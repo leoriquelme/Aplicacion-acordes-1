@@ -28,6 +28,10 @@ Las canciones y eventos se guardan **en el mismo equipo** (en el navegador). Usa
 - `{soc}` y `{eoc}` marcan el inicio y fin del coro.
 - `{c: texto}` pone un título de sección.
 
+## Abrirla sin instalar nada
+
+La app se publica sola en https://leoriquelme.github.io/Aplicacion-acordes-1/ cada vez que se suben cambios.
+
 ## Cómo ejecutarla en tu PC
 
 1. Instala [Node.js](https://nodejs.org) (versión 20 o más nueva).
