@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useStore } from '../lib/store.jsx';
 import { displayKey, normalize } from '../lib/chordpro.js';
-import { formatLong } from '../lib/dates.js';
+import { formatLong, todayISO } from '../lib/dates.js';
 import TransposeControls from '../components/TransposeControls.jsx';
 import ArrangementEditor from '../components/ArrangementEditor.jsx';
 
@@ -12,7 +12,20 @@ export default function Evento() {
   const { events, songs, settings, saveEvent, deleteEvent, can } = useStore();
   const [q, setQ] = useState('');
   const [openOrder, setOpenOrder] = useState(null);
-  const event = events.find((e) => e.id === id);
+  // Evento nuevo: se arma aquí y solo se guarda al pulsar "Crear evento".
+  const isNew = id === 'nuevo';
+  const [draft, setDraft] = useState(() => ({ name: 'Culto dominical', date: todayISO(), time: '11:00', notes: '', items: [] }));
+  const [error, setError] = useState('');
+  const event = isNew ? draft : events.find((e) => e.id === id);
+
+  if (isNew && !can.events) {
+    return (
+      <div className="page">
+        <p>Tu perfil no permite crear eventos.</p>
+        <Link to="/eventos">← Volver a eventos</Link>
+      </div>
+    );
+  }
 
   if (!event) {
     return (
@@ -57,7 +70,7 @@ export default function Evento() {
       </div>
     );
   }
-  const update = (patch) => saveEvent({ ...event, ...patch });
+  const update = (patch) => (isNew ? setDraft((d) => ({ ...d, ...patch })) : saveEvent({ ...event, ...patch }));
   const setItems = (items) => update({ items });
 
   const move = (i, dir) => {
@@ -86,10 +99,12 @@ export default function Evento() {
       <Link to="/eventos" className="back">← Eventos</Link>
       <div className="page-head">
         <div>
-          <h1>{event.name}</h1>
-          <p className="muted">{formatLong(event.date)}{event.time ? ` · ${event.time}` : ''}</p>
+          <h1>{isNew ? 'Nuevo evento' : event.name}</h1>
+          <p className="muted">
+            {isNew ? 'Elige los datos y las canciones. El evento se guarda al pulsar "Crear evento".' : `${formatLong(event.date)}${event.time ? ` · ${event.time}` : ''}`}
+          </p>
         </div>
-        {event.items.length > 0 && (
+        {!isNew && event.items.length > 0 && (
           <Link className="btn primary" to={`/presentar/evento/${event.id}`}>▶ Presentar</Link>
         )}
       </div>
@@ -193,9 +208,31 @@ export default function Evento() {
         {query && results.length === 0 && <p className="muted">No se encontraron canciones.</p>}
       </div>
 
-      <div className="danger-zone">
-        <button className="btn danger ghost" onClick={remove}>Eliminar evento</button>
-      </div>
+      {isNew ? (
+        <div className="create-bar">
+          {error && <p className="error">{error}</p>}
+          <div className="row gap">
+            <button
+              className="btn primary big-inline"
+              onClick={() => {
+                if (!draft.name.trim() || !draft.date) {
+                  setError('El evento necesita nombre y fecha.');
+                  return;
+                }
+                saveEvent({ ...draft, name: draft.name.trim() });
+                navigate('/eventos');
+              }}
+            >
+              ✓ Crear evento
+            </button>
+            <Link className="btn" to="/eventos">Cancelar</Link>
+          </div>
+        </div>
+      ) : (
+        <div className="danger-zone">
+          <button className="btn danger ghost" onClick={remove}>Eliminar evento</button>
+        </div>
+      )}
     </div>
   );
 }

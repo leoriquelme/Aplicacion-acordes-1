@@ -81,6 +81,8 @@ code { background: var(--chorus-bg); padding: 0.1em 0.35em; border-radius: 4px; 
 }
 .empty { text-align: center; padding: 2rem; }
 .danger-zone { margin-top: 2.5rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+.create-bar { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+.btn.big-inline { padding: 0.75rem 1.5rem; font-size: 1.05rem; }
 
 /* Formularios */
 label { display: flex; flex-direction: column; gap: 0.3rem; font-weight: 500; margin-bottom: 0.8rem; font-size: 0.95rem; }
