@@ -19,7 +19,6 @@ export default function Bienvenida({ notice }) {
   const [church, setChurch] = useState(last.church || '');
   const [name, setName] = useState(last.name || '');
   const [pin, setPin] = useState('');
-  const [showPin, setShowPin] = useState(false);
   const [needsPin, setNeedsPin] = useState(null); // { role, result }
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -29,11 +28,10 @@ export default function Bienvenida({ notice }) {
     setBusy(true);
     setError('');
     try {
-      const r = await enterChurch({ church, name, pin: showPin || needsPin ? pin : '' });
+      const r = await enterChurch({ church, name, pin });
       localStorage.setItem(LAST, JSON.stringify({ church: church.trim(), name: name.trim() }));
       if (r.needsPin && !pin) {
         setNeedsPin({ role: r.needsPin, result: r });
-        setShowPin(true);
       } else {
         setSession({ churchId: r.churchId, churchName: r.churchName });
       }
@@ -71,24 +69,18 @@ export default function Bienvenida({ notice }) {
             Este nombre tiene el perfil <strong>{ROLES[needsPin.role]?.label}</strong>. Escribe tu PIN para entrar con ese perfil.
           </p>
         )}
-        {showPin ? (
-          <label>
-            PIN
-            <input
-              value={pin}
-              onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
-              inputMode="numeric"
-              type="password"
-              placeholder="Solo números"
-              autoFocus
-              autoComplete="off"
-            />
-          </label>
-        ) : (
-          <button type="button" className="btn ghost small pin-link" onClick={() => setShowPin(true)}>
-            ¿Eres director o administrador? Usa tu PIN
-          </button>
-        )}
+        <label>
+          PIN <span className="muted small">(solo si eres Director o Administrador)</span>
+          <input
+            value={pin}
+            onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+            inputMode="numeric"
+            type="password"
+            placeholder="Déjalo vacío si eres Colaborador"
+            autoFocus={Boolean(needsPin)}
+            autoComplete="off"
+          />
+        </label>
 
         <button className="btn primary big" disabled={busy || !church.trim() || !name.trim() || (needsPin && !pin)}>
           {busy ? 'Entrando…' : 'Entrar'}

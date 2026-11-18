@@ -64,9 +64,12 @@ export async function enterChurch({ church, name, pin }) {
   const now = Date.now();
 
   if (pin) {
-    for (const role of ['admin', 'director']) {
+    const clean = String(pin).trim();
+    // El PIN puede estar guardado como texto o como número en Firebase: se prueban ambos.
+    const attempts = [['admin', clean], ['admin', Number(clean)], ['director', clean]];
+    for (const [role, value] of attempts) {
       try {
-        await setDoc(sessionRef(churchId, user.uid), { ...base, role, pin: String(pin).trim() });
+        await setDoc(sessionRef(churchId, user.uid), { ...base, role, pin: value });
         if (role === 'admin') {
           await setDoc(personRef(churchId, key), { name: base.name, role: 'admin', lastSeen: now }, { merge: true });
         } else {
