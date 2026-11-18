@@ -15,7 +15,10 @@ export default function Canciones() {
     <div className="page">
       <div className="page-head">
         <h1>Canciones</h1>
-        <Link className="btn primary" to="/canciones/nueva">+ Nueva canción</Link>
+        <div className="row gap wrap">
+          <Link className="btn" to="/canciones/importar">⤓ Importar</Link>
+          <Link className="btn primary" to="/canciones/nueva">+ Nueva canción</Link>
+        </div>
       </div>
       <input
         className="search"

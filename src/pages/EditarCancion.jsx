@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useStore } from '../lib/store.jsx';
 import { KEYS, parseMeta, parseSong } from '../lib/chordpro.js';
 import SectionButtons from '../components/SectionButtons.jsx';
@@ -15,12 +15,13 @@ const PLANTILLA = `[VERSO]
 export default function EditarCancion() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { songs, settings, saveSong } = useStore();
   const textRef = useRef(null);
   const pendingCursor = useRef(null);
   const existing = songs.find((s) => s.id === id);
   const [form, setForm] = useState(
-    existing || { title: '', author: '', key: 'G', content: PLANTILLA }
+    existing || location.state?.imported || { title: '', author: '', key: 'G', content: PLANTILLA }
   );
   const [error, setError] = useState('');
 
@@ -111,7 +112,12 @@ export default function EditarCancion() {
           </div>
           <div className="field">
             <label htmlFor="letra" className="field-label">Letra y acordes</label>
-            <SectionButtons existingNames={sectionNames} onInsert={insertSection} />
+            <div className="row gap wrap between">
+              <SectionButtons existingNames={sectionNames} onInsert={insertSection} />
+              {!existing && (
+                <Link className="btn small primary" to="/canciones/importar">⤓ Importar desde la web</Link>
+              )}
+            </div>
             <textarea id="letra" ref={textRef} value={form.content} onChange={onContent} rows={18} spellCheck={false} />
           </div>
           <details className="help">

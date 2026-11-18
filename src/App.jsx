@@ -7,6 +7,7 @@ import Eventos from './pages/Eventos.jsx';
 import Evento from './pages/Evento.jsx';
 import Ajustes from './pages/Ajustes.jsx';
 import Presentacion from './pages/Presentacion.jsx';
+import Importar from './pages/Importar.jsx';
 
 const TABS = [
   { to: '/', label: 'Inicio', icon: '🏠', end: true },
@@ -39,6 +40,7 @@ export default function App() {
           <Route path="/" element={<Inicio />} />
           <Route path="/canciones" element={<Canciones />} />
           <Route path="/canciones/nueva" element={<EditarCancion />} />
+          <Route path="/canciones/importar" element={<Importar />} />
           <Route path="/canciones/:id" element={<Cancion />} />
           <Route path="/canciones/:id/editar" element={<EditarCancion />} />
           <Route path="/eventos" element={<Eventos />} />

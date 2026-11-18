@@ -7,6 +7,7 @@ App para leer las letras y acordes de las canciones de la iglesia.
 - **Inicio**: los próximos eventos (cultos) con su lista de canciones.
 - **Canciones**: todas las canciones, con buscador por título o autor. Cada canción muestra la letra con los acordes encima, se puede cambiar el tono con − y +, editar y presentar.
 - **Secciones**: cada canción se divide en Verso 1, Coro, Puente, etc. En "Orden de las secciones" se arrastran para cambiar el orden, se repiten o se quitan. Cada evento puede tener su propio orden para cada canción.
+- **Importar**: pega una canción copiada de una página web (acordes en la línea de arriba de la letra) y la app pone los acordes entre corchetes y detecta intro, versos, coros, puentes y repeticiones. No usa internet ni tiene costo.
 - **Eventos**: crear un evento (nombre, fecha, hora), armar su lista de canciones, ordenarla y elegir el tono de cada canción para ese culto. Incluye un ranking de las canciones más y menos usadas del último año, con su última fecha de uso.
 - **Ajustes**: tamaño de letra, mostrar u ocultar acordes, notación americana (C, D, E) o latina (Do, Re, Mi), tema claro u oscuro, y respaldo de los datos.
 - **Modo presentación** a pantalla completa. Teclas: `→` / `←` siguiente y anterior canción, `+` / `−` cambiar tono, `F` pantalla completa, `Esc` salir.

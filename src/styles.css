@@ -274,3 +274,8 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--primary); o
 .sec-input { padding: 0.3rem 0.55rem; font-size: 0.9rem; width: 12rem; }
 .line.chords-only .lyric { display: none; }
 .line.chords-only .chord { padding-right: 1em; }
+
+/* Importar */
+.between { justify-content: space-between; }
+textarea.mono { font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 0.95rem; white-space: pre; overflow-x: auto; }
+.import-steps ol { margin: 0; padding-left: 1.3rem; line-height: 1.7; }
