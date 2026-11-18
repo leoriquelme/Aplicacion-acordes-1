@@ -1,42 +1,45 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
+import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import {
-  arrayRemove, arrayUnion, collection, deleteDoc, doc, getDoc, onSnapshot, serverTimestamp,
-  setDoc, updateDoc, writeBatch,
+  collection, deleteDoc, deleteField, doc, getDoc, onSnapshot, setDoc, updateDoc, writeBatch,
 } from 'firebase/firestore';
 import { auth, db } from './firebase.js';
 import { DataContext, ROLES } from './store.jsx';
 import { normalize } from './chordpro.js';
 
-// ---------- Sesión y perfil ----------
+// Se entra con Iglesia + Nombre. Por detrás, cada equipo tiene una sesión anónima de Firebase
+// (invisible para la persona) que permite que las reglas de permisos funcionen.
+
+const SESSION_KEY = 'cancionero-sesion';
+
+/** "Leonardo  Riquelme" → "leonardo riquelme" (sin tildes ni mayúsculas) */
+export function keyOf(text) {
+  return normalize(text).replace(/[^a-z0-9ñ ]/g, ' ').replace(/\s+/g, ' ').trim();
+}
 
 const AuthContext = createContext(null);
-const LAST_CHURCH = 'cancionero-iglesia';
+
+function readSession() {
+  try {
+    return JSON.parse(localStorage.getItem(SESSION_KEY)) || null;
+  } catch {
+    return null;
+  }
+}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(undefined); // undefined = cargando
-  const [profile, setProfile] = useState(null);
-  const [churchId, setChurchIdState] = useState(() => localStorage.getItem(LAST_CHURCH) || '');
+  const [session, setSessionState] = useState(readSession); // { churchId, churchName }
 
   useEffect(() => onAuthStateChanged(auth, (u) => setUser(u || null)), []);
 
-  useEffect(() => {
-    if (!user) {
-      setProfile(null);
-      return undefined;
-    }
-    return onSnapshot(doc(db, 'users', user.uid), (snap) => {
-      setProfile(snap.exists() ? snap.data() : { name: '', churches: [] });
-    });
-  }, [user]);
-
-  const setChurchId = useCallback((id) => {
-    setChurchIdState(id);
-    if (id) localStorage.setItem(LAST_CHURCH, id);
-    else localStorage.removeItem(LAST_CHURCH);
+  const setSession = useCallback((s) => {
+    setSessionState(s);
+    if (s) localStorage.setItem(SESSION_KEY, JSON.stringify(s));
+    else localStorage.removeItem(SESSION_KEY);
   }, []);
 
-  const value = useMemo(() => ({ user, profile, churchId, setChurchId }), [user, profile, churchId, setChurchId]);
+  const value = useMemo(() => ({ user, session, setSession }), [user, session, setSession]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
@@ -44,102 +47,94 @@ export function useAuth() {
   return useContext(AuthContext);
 }
 
-export async function signInWithGoogle() {
-  const provider = new GoogleAuthProvider();
-  provider.setCustomParameters({ prompt: 'select_account' });
-  await signInWithPopup(auth, provider);
-}
+const sessionRef = (churchId, uid) => doc(db, 'churches', churchId, 'sessions', uid);
+const personRef = (churchId, key) => doc(db, 'churches', churchId, 'people', key);
 
-export async function logout() {
-  localStorage.removeItem(LAST_CHURCH);
-  await signOut(auth);
-}
+/**
+ * Entrar a una iglesia. Con PIN intenta Administrador y luego Director.
+ * Devuelve { churchId, churchName, needsPin } (needsPin = perfil que pide PIN).
+ */
+export async function enterChurch({ church, name, pin }) {
+  const churchId = keyOf(church);
+  const key = keyOf(name);
+  if (!churchId) throw new Error('Escribe el nombre de la iglesia.');
+  if (!key) throw new Error('Escribe tu nombre.');
+  const user = auth.currentUser || (await signInAnonymously(auth)).user;
+  const base = { key, name: name.trim(), churchName: church.trim().toUpperCase() };
+  const now = Date.now();
 
-export async function saveMyName(uid, name) {
-  await setDoc(doc(db, 'users', uid), { name }, { merge: true });
-}
-
-// ---------- Iglesias ----------
-
-/** Código fácil de dictar: GRACIA-4821 */
-export function makeChurchCode(name) {
-  const word = normalize(name).replace(/^(iglesia|comunidad|centro|ministerio|mision|templo)\s+/, '')
-    .replace(/[^a-z0-9 ]/g, '').trim().split(/\s+/)[0] || 'IGLESIA';
-  const num = String(Math.floor(1000 + Math.random() * 9000));
-  return `${word.slice(0, 10).toUpperCase()}-${num}`;
-}
-
-export function cleanCode(code) {
-  return code.trim().toUpperCase().replace(/\s+/g, '');
-}
-
-export async function createChurch(user, myName, churchName) {
-  let code = makeChurchCode(churchName);
-  for (let i = 0; i < 5; i++) {
-    const taken = await getDoc(doc(db, 'churchCodes', code));
-    if (!taken.exists()) break;
-    code = makeChurchCode(churchName);
+  if (pin) {
+    for (const role of ['admin', 'director']) {
+      try {
+        await setDoc(sessionRef(churchId, user.uid), { ...base, role, pin: String(pin).trim() });
+        if (role === 'admin') {
+          await setDoc(personRef(churchId, key), { name: base.name, role: 'admin', lastSeen: now }, { merge: true });
+        } else {
+          await updateDoc(personRef(churchId, key), { lastSeen: now, name: base.name });
+        }
+        return { churchId, churchName: base.churchName };
+      } catch {
+        /* probar el siguiente perfil */
+      }
+    }
+    // ¿La iglesia existe? Si se puede entrar como colaborador, el problema es el PIN.
+    try {
+      await setDoc(sessionRef(churchId, user.uid), { ...base, role: 'colaborador' });
+    } catch {
+      throw new Error(`No encontramos la iglesia "${church.trim()}". Revisa cómo está escrita.`);
+    }
+    await deleteDoc(sessionRef(churchId, user.uid)).catch(() => {});
+    throw new Error('El PIN no es correcto para ese nombre.');
   }
-  const ref = doc(collection(db, 'churches'));
-  const b = writeBatch(db);
-  b.set(ref, { name: churchName, code, createdBy: user.uid, createdAt: serverTimestamp() });
-  b.set(doc(db, 'churchCodes', code), { churchId: ref.id, name: churchName });
-  b.set(doc(db, 'churches', ref.id, 'members', user.uid), {
-    name: myName, email: user.email || '', role: 'admin', joinedAt: serverTimestamp(),
-  });
-  await b.commit();
-  await setDoc(doc(db, 'users', user.uid), { name: myName, churches: arrayUnion({ id: ref.id, name: churchName }) }, { merge: true });
-  return ref.id;
-}
 
-export async function joinChurch(user, myName, rawCode) {
-  const code = cleanCode(rawCode);
-  const snap = await getDoc(doc(db, 'churchCodes', code));
-  if (!snap.exists()) throw new Error('No existe una iglesia con ese código. Revisa que esté bien escrito.');
-  const { churchId, name } = snap.data();
-  const memberRef = doc(db, 'churches', churchId, 'members', user.uid);
-  let already = false;
   try {
-    already = (await getDoc(memberRef)).exists();
+    await setDoc(sessionRef(churchId, user.uid), { ...base, role: 'colaborador' });
   } catch {
-    already = false; // todavía no es miembro, por eso no puede leer
+    throw new Error(`No encontramos la iglesia "${church.trim()}". Revisa cómo está escrita.`);
   }
-  if (!already) {
-    await setDoc(memberRef, { name: myName, email: user.email || '', role: 'musico', code, joinedAt: serverTimestamp() });
+  const person = await getDoc(personRef(churchId, key));
+  if (!person.exists()) {
+    await setDoc(personRef(churchId, key), { name: base.name, role: 'colaborador', firstSeen: now, lastSeen: now });
+    return { churchId, churchName: base.churchName };
   }
-  await setDoc(doc(db, 'users', user.uid), { name: myName, churches: arrayUnion({ id: churchId, name }) }, { merge: true });
-  return churchId;
+  await updateDoc(personRef(churchId, key), { lastSeen: now, name: base.name });
+  const role = person.data().role;
+  return { churchId, churchName: base.churchName, needsPin: role !== 'colaborador' ? role : null };
 }
 
-export async function forgetChurch(uid, church) {
-  await updateDoc(doc(db, 'users', uid), { churches: arrayRemove(church) });
+export async function leaveChurch(churchId) {
+  const uid = auth.currentUser?.uid;
+  if (uid && churchId) await deleteDoc(sessionRef(churchId, uid)).catch(() => {});
 }
 
 // ---------- Datos de una iglesia ----------
 
 const sinId = ({ id, ...rest }) => rest; // eslint-disable-line no-unused-vars
 
-export function CloudStoreProvider({ churchId, children }) {
+export function CloudStoreProvider({ churchId, churchName, children }) {
   const { user } = useAuth();
-  const [church, setChurch] = useState(null);
-  const [me, setMe] = useState(undefined);
+  const [mySession, setMySession] = useState(undefined);
   const [songs, setSongs] = useState([]);
   const [events, setEvents] = useState([]);
-  const [members, setMembers] = useState([]);
+  const [people, setPeople] = useState([]);
   const [error, setError] = useState('');
 
   useEffect(() => {
+    const unsub = onSnapshot(sessionRef(churchId, user.uid), (s) => setMySession(s.exists() ? s.data() : null), () => setMySession(null));
+    return unsub;
+  }, [churchId, user.uid]);
+
+  useEffect(() => {
+    if (!mySession) return undefined;
     const base = doc(db, 'churches', churchId);
     const fail = (e) => setError(e.message);
     const subs = [
-      onSnapshot(base, (s) => setChurch(s.exists() ? { id: s.id, ...s.data() } : null), fail),
-      onSnapshot(doc(base, 'members', user.uid), (s) => setMe(s.exists() ? s.data() : null), () => setMe(null)),
       onSnapshot(collection(base, 'songs'), (s) => setSongs(s.docs.map((d) => ({ ...d.data(), id: d.id }))), fail),
       onSnapshot(collection(base, 'events'), (s) => setEvents(s.docs.map((d) => ({ items: [], ...d.data(), id: d.id }))), fail),
-      onSnapshot(collection(base, 'members'), (s) => setMembers(s.docs.map((d) => ({ ...d.data(), uid: d.id }))), fail),
+      onSnapshot(collection(base, 'people'), (s) => setPeople(s.docs.map((d) => ({ ...d.data(), key: d.id }))), fail),
     ];
     return () => subs.forEach((u) => u());
-  }, [churchId, user.uid]);
+  }, [churchId, mySession]);
 
   const col = useCallback((name) => collection(db, 'churches', churchId, name), [churchId]);
   const report = useCallback((e) => setError(`No se pudo guardar: ${e.message}`), []);
@@ -152,7 +147,6 @@ export function CloudStoreProvider({ churchId, children }) {
 
   const deleteSong = useCallback((id) => {
     deleteDoc(doc(col('songs'), id)).catch(report);
-    // Quitarla también de los eventos.
     events.filter((e) => e.items.some((i) => i.songId === id)).forEach((e) => {
       setDoc(doc(col('events'), e.id), { ...sinId(e), items: e.items.filter((i) => i.songId !== id) }).catch(report);
     });
@@ -168,55 +162,50 @@ export function CloudStoreProvider({ churchId, children }) {
     deleteDoc(doc(col('events'), id)).catch(report);
   }, [col, report]);
 
-  const setMemberRole = useCallback(
-    (uid, role) => updateDoc(doc(db, 'churches', churchId, 'members', uid), { role }).catch(report),
-    [churchId, report]
-  );
-  const removeMember = useCallback(
-    (uid) => deleteDoc(doc(db, 'churches', churchId, 'members', uid)).catch(report),
-    [churchId, report]
-  );
+  /** El administrador cambia el perfil. Director necesita PIN. */
+  const setPersonRole = useCallback(async (key, role, pin) => {
+    const b = writeBatch(db);
+    b.update(personRef(churchId, key), { role });
+    b.set(doc(db, 'churches', churchId, 'private', 'pins'), { pins: { [key]: role === 'director' ? String(pin) : deleteField() } }, { merge: true });
+    await b.commit();
+  }, [churchId]);
 
-  /** Sube canciones (y eventos) de este equipo a la iglesia, saltando títulos que ya existen. */
-  const uploadLocal = useCallback(async ({ songs: localSongs, events: localEvents }) => {
-    const existing = new Map(songs.map((s) => [normalize(s.title), s.id]));
-    const idMap = new Map();
+  const removePerson = useCallback((key) => deleteDoc(personRef(churchId, key)).catch(report), [churchId, report]);
+
+  /** Sube canciones de este equipo a la iglesia, saltando títulos que ya existen. */
+  const uploadLocal = useCallback(async ({ songs: localSongs }) => {
+    const existing = new Set(songs.map((s) => normalize(s.title)));
     let b = writeBatch(db);
     let n = 0;
     let added = 0;
-    const flush = async () => {
-      if (n) await b.commit();
-      b = writeBatch(db);
-      n = 0;
-    };
     for (const s of localSongs) {
-      const same = existing.get(normalize(s.title));
-      if (same) {
-        idMap.set(s.id, same);
-        continue;
-      }
-      const ref = doc(col('songs'));
-      idMap.set(s.id, ref.id);
-      b.set(ref, { ...sinId(s), updatedAt: Date.now() });
+      if (existing.has(normalize(s.title))) continue;
+      b.set(doc(col('songs')), { ...sinId(s), updatedAt: Date.now() });
       added++;
-      if (++n >= 400) await flush();
+      if (++n >= 400) {
+        await b.commit();
+        b = writeBatch(db);
+        n = 0;
+      }
     }
-    for (const e of localEvents || []) {
-      const ref = doc(col('events'));
-      b.set(ref, { ...sinId(e), items: e.items.map((i) => ({ ...i, songId: idMap.get(i.songId) || i.songId })) });
-      if (++n >= 400) await flush();
-    }
-    await flush();
+    if (n) await b.commit();
     return added;
   }, [songs, col]);
 
-  const role = me?.role;
-  const can = ROLES[role] || ROLES.musico;
+  // Perfil efectivo (igual que en las reglas): si el administrador cambió el perfil,
+  // el que vale es el menor hasta que la persona vuelva a entrar con su PIN.
+  const person = mySession ? people.find((p) => p.key === mySession.key) : null;
+  let role = mySession?.role || 'colaborador';
+  if (role === 'director' && person && person.role !== 'director') role = 'colaborador';
+  const pendingRole = person && person.role !== 'colaborador' && person.role !== role ? person.role : null;
+  const can = ROLES[role] || ROLES.colaborador;
+  const me = mySession === undefined ? undefined : mySession && { name: mySession.name, key: mySession.key };
+  const church = { id: churchId, name: churchName };
 
   const value = useMemo(() => ({
-    mode: 'cloud', churchId, church, me, role, can, members, songs, events, error, clearError: () => setError(''),
-    saveSong, deleteSong, saveEvent, deleteEvent, setMemberRole, removeMember, uploadLocal,
-  }), [churchId, church, me, role, can, members, songs, events, error, saveSong, deleteSong, saveEvent, deleteEvent, setMemberRole, removeMember, uploadLocal]);
+    mode: 'cloud', churchId, church, me, role, pendingRole, can, people, songs, events, error,
+    clearError: () => setError(''), saveSong, deleteSong, saveEvent, deleteEvent, setPersonRole, removePerson, uploadLocal,
+  }), [churchId, church.name, me?.name, me?.key, role, pendingRole, can, people, songs, events, error, saveSong, deleteSong, saveEvent, deleteEvent, setPersonRole, removePerson, uploadLocal]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }

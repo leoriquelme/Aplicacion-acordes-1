@@ -327,3 +327,8 @@ textarea.mono { font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
 .toast { position: fixed; bottom: 1rem; left: 50%; transform: translateX(-50%); z-index: 50; background: var(--danger); color: #fff; padding: 0.6rem 1rem; border-radius: 8px; display: flex; gap: 0.5rem; align-items: center; }
 .toast .btn { color: #fff; }
 .topbar .church-chip { margin-left: auto; font-size: 0.9rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 16rem; }
+.pin-link { align-self: center; margin: -0.3rem auto 0.8rem; display: block; }
+.pin-notice { background: var(--chorus-bg); border-radius: 8px; padding: 0.6rem 0.8rem; text-align: left; font-size: 0.95rem; }
+.welcome-card .btn.ghost.small { margin-top: 0.5rem; }
+.pin-input { width: 9rem; padding: 0.3rem 0.5rem; }
+.table-scroll { overflow-x: auto; }

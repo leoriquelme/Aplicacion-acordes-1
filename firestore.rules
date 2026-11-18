@@ -1,69 +1,82 @@
 rules_version = '2';
 // Reglas de permisos del Cancionero.
-// Perfiles: admin (Administrador), director (Director musical), musico (Músico).
+// Se entra con Iglesia + Nombre. Perfiles: admin (Administrador), director (Director musical),
+// colaborador (Colaborador). Administrador y Director necesitan PIN.
+//
+// churches/{iglesia}               { name, adminKey, adminPin }  ← lo crea el administrador a mano
+// churches/{iglesia}/people/{nombre} { name, role, firstSeen, lastSeen }  ← quienes han entrado
+// churches/{iglesia}/private/pins  { pins: { nombre: "1234" } }  ← PIN de directores (nadie lo lee)
+// churches/{iglesia}/sessions/{uid} { key, name, role, pin }  ← cada equipo que entró
 service cloud.firestore {
   match /databases/{database}/documents {
 
     function signedIn() { return request.auth != null; }
-    function memberPath(church) { return /databases/$(database)/documents/churches/$(church)/members/$(request.auth.uid); }
-    function isMember(church) { return signedIn() && exists(memberPath(church)); }
-    function role(church) { return get(memberPath(church)).data.role; }
-    function isAdmin(church) { return isMember(church) && role(church) == 'admin'; }
-    function canEdit(church) { return isMember(church) && role(church) in ['admin', 'director']; }
+    function churchPath(c) { return /databases/$(database)/documents/churches/$(c); }
+    function sessionPath(c) { return /databases/$(database)/documents/churches/$(c)/sessions/$(request.auth.uid); }
+    function personPath(c, key) { return /databases/$(database)/documents/churches/$(c)/people/$(key); }
+    function pinsPath(c) { return /databases/$(database)/documents/churches/$(c)/private/pins; }
+
+    function isMember(c) { return signedIn() && exists(sessionPath(c)); }
+    function sess(c) { return get(sessionPath(c)).data; }
+    function isAdmin(c) {
+      return isMember(c) && sess(c).role == 'admin' && sess(c).key == get(churchPath(c)).data.adminKey;
+    }
+    function isDirector(c) {
+      return isMember(c) && sess(c).role == 'director'
+        && exists(personPath(c, sess(c).key)) && get(personPath(c, sess(c).key)).data.role == 'director';
+    }
+    function canEdit(c) { return isAdmin(c) || isDirector(c); }
     function validName(n) { return n is string && n.size() > 0 && n.size() <= 60; }
 
-    // Perfil propio: nombre y lista de iglesias en las que participa.
-    match /users/{uid} {
-      allow read, write: if signedIn() && request.auth.uid == uid;
+    // Entrar: colaborador siempre (si la iglesia existe); director o admin solo con su PIN.
+    function validSession(c, uid) {
+      let d = request.resource.data;
+      return signedIn() && request.auth.uid == uid && exists(churchPath(c))
+        && d.key is string && validName(d.key) && validName(d.name)
+        && (
+          d.role == 'colaborador'
+          || (d.role == 'admin' && d.key == get(churchPath(c)).data.adminKey && d.pin == get(churchPath(c)).data.adminPin)
+          || (d.role == 'director' && get(personPath(c, d.key)).data.role == 'director'
+              && d.pin == get(pinsPath(c)).data.pins[d.key])
+        );
     }
 
-    // Código de iglesia → id de iglesia. Cualquiera con sesión puede buscar un código exacto.
-    match /churchCodes/{code} {
-      allow get: if signedIn();
-      allow list: if false;
-      allow create: if signedIn()
-        && getAfter(/databases/$(database)/documents/churches/$(request.resource.data.churchId)).data.createdBy == request.auth.uid;
-      allow update, delete: if isAdmin(resource.data.churchId);
-    }
+    match /churches/{c} {
+      allow get: if isAdmin(c);
+      allow list, write: if false;
 
-    match /churches/{church} {
-      allow get: if isMember(church);
-      allow create: if signedIn()
-        && request.resource.data.createdBy == request.auth.uid
-        && validName(request.resource.data.name);
-      allow update: if isAdmin(church) && request.resource.data.createdBy == resource.data.createdBy;
-      allow delete: if false;
+      match /sessions/{uid} {
+        allow create, update: if validSession(c, uid);
+        allow read, delete: if signedIn() && request.auth.uid == uid;
+      }
 
-      match /members/{uid} {
-        allow read: if isMember(church);
-        // Unirse: uno mismo, como músico, mostrando el código correcto.
-        // El creador de la iglesia se agrega como administrador.
-        allow create: if signedIn() && request.auth.uid == uid
+      match /people/{key} {
+        allow read: if isMember(c);
+        // Al entrar por primera vez uno queda registrado como colaborador (con su propio nombre).
+        allow create: if isMember(c) && key == sess(c).key && request.resource.data.role == 'colaborador'
           && validName(request.resource.data.name)
-          && (
-            (request.resource.data.role == 'musico'
-              && get(/databases/$(database)/documents/churchCodes/$(request.resource.data.code)).data.churchId == church)
-            || (request.resource.data.role == 'admin'
-              && getAfter(/databases/$(database)/documents/churches/$(church)).data.createdBy == request.auth.uid
-              && !exists(/databases/$(database)/documents/churches/$(church)))
-          );
-        // El administrador cambia perfiles; cada uno puede cambiar su propio nombre (no su perfil).
-        allow update: if isAdmin(church)
-          || (request.auth.uid == uid
-              && request.resource.data.role == resource.data.role
-              && validName(request.resource.data.name));
-        allow delete: if isAdmin(church) || (signedIn() && request.auth.uid == uid);
+          || isAdmin(c);
+        // Cada uno actualiza su "última vez"; el administrador cambia perfiles.
+        allow update: if isAdmin(c)
+          || (isMember(c) && key == sess(c).key
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastSeen', 'name']));
+        allow delete: if isAdmin(c);
+      }
+
+      match /private/{doc} {
+        allow read: if false;
+        allow write: if isAdmin(c);
       }
 
       match /songs/{song} {
-        allow read: if isMember(church);
-        allow create, update: if canEdit(church);
-        allow delete: if isAdmin(church);
+        allow read: if isMember(c);
+        allow create, update: if canEdit(c);
+        allow delete: if isAdmin(c);
       }
 
       match /events/{event} {
-        allow read: if isMember(church);
-        allow create, update, delete: if canEdit(church);
+        allow read: if isMember(c);
+        allow create, update, delete: if canEdit(c);
       }
     }
   }

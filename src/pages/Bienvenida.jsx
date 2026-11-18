@@ -1,151 +1,109 @@
 import { useState } from 'react';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
-import { auth, useEmulator } from '../lib/firebase.js';
-import { createChurch, joinChurch, logout, saveMyName, signInWithGoogle, useAuth } from '../lib/cloud.jsx';
+import { enterChurch, useAuth } from '../lib/cloud.jsx';
+import { ROLES } from '../lib/store.jsx';
 
-const NAME_KEY = 'cancionero-nombre';
+const LAST = 'cancionero-ultimo-ingreso';
 
-/** Página de apertura: nombre, inicio de sesión y elegir la iglesia. */
+function readLast() {
+  try {
+    return JSON.parse(localStorage.getItem(LAST)) || {};
+  } catch {
+    return {};
+  }
+}
+
+/** Página de apertura: Iglesia + Nombre (+ PIN para Director o Administrador). */
 export default function Bienvenida({ notice }) {
-  const { user, profile, setChurchId } = useAuth();
-  const [name, setName] = useState(() => localStorage.getItem(NAME_KEY) || '');
-  const [code, setCode] = useState('');
-  const [newChurch, setNewChurch] = useState('');
+  const { setSession } = useAuth();
+  const last = readLast();
+  const [church, setChurch] = useState(last.church || '');
+  const [name, setName] = useState(last.name || '');
+  const [pin, setPin] = useState('');
+  const [showPin, setShowPin] = useState(false);
+  const [needsPin, setNeedsPin] = useState(null); // { role, result }
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [testEmail, setTestEmail] = useState('');
 
-  const run = async (fn) => {
+  const submit = async (e) => {
+    e.preventDefault();
     setBusy(true);
     setError('');
     try {
-      await fn();
-    } catch (e) {
-      setError(friendly(e));
+      const r = await enterChurch({ church, name, pin: showPin || needsPin ? pin : '' });
+      localStorage.setItem(LAST, JSON.stringify({ church: church.trim(), name: name.trim() }));
+      if (r.needsPin && !pin) {
+        setNeedsPin({ role: r.needsPin, result: r });
+        setShowPin(true);
+      } else {
+        setSession({ churchId: r.churchId, churchName: r.churchName });
+      }
+    } catch (err) {
+      setError(err.message?.includes('network') ? 'No hay conexión a internet.' : err.message);
     } finally {
       setBusy(false);
     }
   };
 
-  const myName = (name || profile?.name || user?.displayName || '').trim();
-
-  if (!user) {
-    return (
-      <div className="welcome">
-        <div className="welcome-card card">
-          <div className="welcome-logo" aria-hidden="true">🎵</div>
-          <h1>Cancionero</h1>
-          <p className="muted">Letras y acordes para tu iglesia</p>
-          <label>
-            Tu nombre
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej. Leonardo Riquelme" autoFocus />
-          </label>
-          <button
-            className="btn primary big"
-            disabled={busy}
-            onClick={() => run(async () => {
-              localStorage.setItem(NAME_KEY, name.trim());
-              await signInWithGoogle();
-            })}
-          >
-            Entrar con Google
-          </button>
-          {useEmulator && (
-            <form
-              className="row gap test-login"
-              onSubmit={(e) => {
-                e.preventDefault();
-                run(async () => {
-                  localStorage.setItem(NAME_KEY, name.trim());
-                  try {
-                    await signInWithEmailAndPassword(auth, testEmail, 'prueba123');
-                  } catch {
-                    await createUserWithEmailAndPassword(auth, testEmail, 'prueba123');
-                  }
-                });
-              }}
-            >
-              <input value={testEmail} onChange={(e) => setTestEmail(e.target.value)} placeholder="correo de prueba" />
-              <button className="btn small">Entrar (prueba)</button>
-            </form>
-          )}
-          {error && <p className="error">{error}</p>}
-          {notice && <p className="muted small">{notice}</p>}
-        </div>
-      </div>
-    );
-  }
-
-  const enter = (id) => {
-    if (myName && myName !== profile?.name) saveMyName(user.uid, myName);
-    setChurchId(id);
-  };
-
   return (
     <div className="welcome">
-      <div className="welcome-card card wide">
-        <h1>¡Hola{myName ? `, ${myName.split(' ')[0]}` : ''}!</h1>
+      <form className="welcome-card card" onSubmit={submit}>
+        <div className="welcome-logo" aria-hidden="true">🎵</div>
+        <h1>Cancionero</h1>
+        <p className="muted">Letras y acordes para tu iglesia</p>
+        {notice && <p className="error">{notice}</p>}
+        <label>
+          Iglesia
+          <input value={church} onChange={(e) => setChurch(e.target.value)} placeholder="Ej. PSG" autoFocus={!church} autoComplete="organization" />
+        </label>
         <label>
           Tu nombre
-          <input value={myName} onChange={(e) => setName(e.target.value)} placeholder="Como te verán los demás" />
+          <input
+            value={name}
+            onChange={(e) => { setName(e.target.value); setNeedsPin(null); }}
+            placeholder="Ej. Leonardo Riquelme"
+            autoFocus={Boolean(church)}
+            autoComplete="name"
+          />
         </label>
 
-        {notice && <p className="error">{notice}</p>}
-
-        {profile?.churches?.length > 0 && (
-          <>
-            <h2>¿A qué iglesia quieres entrar?</h2>
-            <div className="church-list">
-              {profile.churches.map((c) => (
-                <button key={c.id} className="btn church-btn" disabled={!myName} onClick={() => enter(c.id)}>
-                  ⛪ {c.name}
-                </button>
-              ))}
-            </div>
-          </>
+        {needsPin && (
+          <p className="pin-notice">
+            Este nombre tiene el perfil <strong>{ROLES[needsPin.role]?.label}</strong>. Escribe tu PIN para entrar con ese perfil.
+          </p>
+        )}
+        {showPin ? (
+          <label>
+            PIN
+            <input
+              value={pin}
+              onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+              inputMode="numeric"
+              type="password"
+              placeholder="Solo números"
+              autoFocus
+              autoComplete="off"
+            />
+          </label>
+        ) : (
+          <button type="button" className="btn ghost small pin-link" onClick={() => setShowPin(true)}>
+            ¿Eres director o administrador? Usa tu PIN
+          </button>
         )}
 
-        <h2>{profile?.churches?.length ? 'Entrar a otra iglesia' : '¿A qué iglesia quieres entrar?'}</h2>
-        <form
-          className="row gap wrap"
-          onSubmit={(e) => {
-            e.preventDefault();
-            run(async () => enter(await joinChurch(user, myName, code)));
-          }}
-        >
-          <input className="grow code-input" value={code} onChange={(e) => setCode(e.target.value)} placeholder="Código de la iglesia, ej. GRACIA-4821" />
-          <button className="btn primary" disabled={busy || !code.trim() || !myName}>Entrar</button>
-        </form>
-        <p className="muted small">Pídele el código al administrador de tu iglesia.</p>
-
-        <details className="create-church">
-          <summary>Crear una iglesia nueva</summary>
-          <p className="muted small">Quedarás como Administrador y recibirás un código para invitar a los músicos.</p>
-          <form
-            className="row gap wrap"
-            onSubmit={(e) => {
-              e.preventDefault();
-              run(async () => enter(await createChurch(user, myName, newChurch.trim())));
-            }}
+        <button className="btn primary big" disabled={busy || !church.trim() || !name.trim() || (needsPin && !pin)}>
+          {busy ? 'Entrando…' : 'Entrar'}
+        </button>
+        {needsPin && (
+          <button
+            type="button"
+            className="btn ghost small"
+            onClick={() => setSession({ churchId: needsPin.result.churchId, churchName: needsPin.result.churchName })}
           >
-            <input className="grow" value={newChurch} onChange={(e) => setNewChurch(e.target.value)} placeholder="Nombre de la iglesia" />
-            <button className="btn" disabled={busy || !newChurch.trim() || !myName}>Crear</button>
-          </form>
-        </details>
-
-        {!myName && <p className="error">Escribe tu nombre para continuar.</p>}
+            Entrar como Colaborador
+          </button>
+        )}
         {error && <p className="error">{error}</p>}
-        <button className="btn ghost small" onClick={logout}>Cerrar sesión ({user.email})</button>
-      </div>
+      </form>
     </div>
   );
-}
-
-function friendly(e) {
-  const m = e?.code || e?.message || '';
-  if (m.includes('popup-closed')) return 'Se cerró la ventana de Google antes de terminar.';
-  if (m.includes('popup-blocked')) return 'El navegador bloqueó la ventana de Google. Permite ventanas emergentes e intenta de nuevo.';
-  if (m.includes('network')) return 'No hay conexión a internet.';
-  if (m.includes('permission')) return 'No tienes permiso para hacer esto.';
-  return e?.message || 'Ocurrió un error.';
 }

@@ -5,11 +5,11 @@ import Bienvenida from './pages/Bienvenida.jsx';
 import App from './App.jsx';
 
 function Gate() {
-  const { user, churchId } = useAuth();
+  const { user, session } = useAuth();
   if (user === undefined) return <div className="loading">Cargando…</div>;
-  if (!user || !churchId) return <Bienvenida />;
+  if (!user || !session) return <Bienvenida />;
   return (
-    <CloudStoreProvider churchId={churchId} key={churchId}>
+    <CloudStoreProvider churchId={session.churchId} churchName={session.churchName} key={session.churchId}>
       <MemberCheck />
     </CloudStoreProvider>
   );
@@ -18,9 +18,7 @@ function Gate() {
 function MemberCheck() {
   const { me, error, clearError } = useContext(DataContext);
   if (me === undefined) return <div className="loading">Abriendo la iglesia…</div>;
-  if (me === null) {
-    return <Bienvenida notice="Ya no tienes acceso a esa iglesia. Pide un código nuevo al administrador." key="sin-acceso" />;
-  }
+  if (me === null) return <Bienvenida notice="Vuelve a entrar con tu iglesia y tu nombre." />;
   return (
     <>
       {error && (

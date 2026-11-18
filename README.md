@@ -33,6 +33,12 @@ Las canciones y eventos se guardan **en el mismo equipo** (en el navegador). Usa
 - El acorde va entre corchetes justo antes de la sílaba.
 - Las canciones antiguas escritas con `{c: Coro}` o `{soc}` / `{eoc}` siguen funcionando.
 
+## Iglesias y perfiles
+
+Se entra con **Iglesia + Nombre**. Perfiles: Administrador, Director musical (con PIN) y Colaborador. Los datos de cada iglesia se guardan en Firebase; ver [docs/configurar-firebase.md](docs/configurar-firebase.md). Mientras `src/firebase-config.js` esté vacío, la app funciona en modo local.
+
+Pruebas de permisos: `npm run test:rules` (usa el emulador de Firebase).
+
 ## Abrirla sin instalar nada
 
 La app se publica sola en https://leoriquelme.github.io/Aplicacion-acordes-1/ cada vez que se suben cambios.
