@@ -4,7 +4,7 @@ import { useStore } from '../lib/store.jsx';
 import { displayKey, normalize } from '../lib/chordpro.js';
 
 export default function Canciones() {
-  const { songs, settings } = useStore();
+  const { songs, settings, can } = useStore();
   const [q, setQ] = useState('');
   const query = normalize(q.trim());
   const list = songs
@@ -15,10 +15,12 @@ export default function Canciones() {
     <div className="page">
       <div className="page-head">
         <h1>Canciones</h1>
-        <div className="row gap wrap">
-          <Link className="btn" to="/canciones/importar">⤓ Importar</Link>
-          <Link className="btn primary" to="/canciones/nueva">+ Nueva canción</Link>
-        </div>
+        {can.edit && (
+          <div className="row gap wrap">
+            <Link className="btn" to="/canciones/importar">⤓ Importar</Link>
+            <Link className="btn primary" to="/canciones/nueva">+ Nueva canción</Link>
+          </div>
+        )}
       </div>
       <input
         className="search"

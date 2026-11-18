@@ -1,8 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { cancionesEjemplo, eventosEjemplo } from '../data/ejemplos.js';
 
-// Todo se guarda en este equipo (localStorage del navegador).
-const STORAGE_KEY = 'cancionero-v1';
+// Datos guardados solo en este equipo (modo sin iglesia) y ajustes personales.
+export const STORAGE_KEY = 'cancionero-v1';
+const SETTINGS_KEY = 'cancionero-ajustes';
 
 export const DEFAULT_SETTINGS = {
   fontSize: 22,
@@ -11,22 +12,27 @@ export const DEFAULT_SETTINGS = {
   theme: 'claro',
 };
 
-function initialData() {
-  return { songs: cancionesEjemplo, events: eventosEjemplo(), settings: DEFAULT_SETTINGS };
-}
+/** Permisos por perfil (tabla de control de acceso). */
+export const ROLES = {
+  admin: { label: 'Administrador', edit: true, delete: true, events: true, users: true },
+  director: { label: 'Director musical', edit: true, delete: false, events: true, users: false },
+  musico: { label: 'Músico', edit: false, delete: false, events: false, users: false },
+};
+const LOCAL_CAN = { edit: true, delete: true, events: true, users: false };
 
-function load() {
+function readJSON(key) {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return initialData();
-    const data = JSON.parse(raw);
-    return {
-      songs: Array.isArray(data.songs) ? data.songs : [],
-      events: Array.isArray(data.events) ? data.events : [],
-      settings: { ...DEFAULT_SETTINGS, ...(data.settings || {}) },
-    };
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
   } catch {
-    return initialData();
+    return null;
+  }
+}
+function writeJSON(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    /* sin espacio o almacenamiento bloqueado */
   }
 }
 
@@ -35,22 +41,49 @@ export function newId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2);
 }
 
-const StoreContext = createContext(null);
+/** Canciones y eventos guardados en este equipo (para subirlos a una iglesia). */
+export function readLocalData() {
+  const d = readJSON(STORAGE_KEY);
+  return { songs: Array.isArray(d?.songs) ? d.songs : [], events: Array.isArray(d?.events) ? d.events : [] };
+}
 
-export function StoreProvider({ children }) {
-  const [data, setData] = useState(load);
+// ---------- Ajustes personales ----------
+
+const SettingsContext = createContext(null);
+
+export function SettingsProvider({ children }) {
+  const [settings, setSettings] = useState(() => ({
+    ...DEFAULT_SETTINGS,
+    ...(readJSON(STORAGE_KEY)?.settings || {}),
+    ...(readJSON(SETTINGS_KEY) || {}),
+  }));
+
+  useEffect(() => writeJSON(SETTINGS_KEY, settings), [settings]);
+  useEffect(() => {
+    document.documentElement.dataset.theme = settings.theme;
+  }, [settings.theme]);
+
+  const updateSettings = useCallback((patch) => setSettings((s) => ({ ...s, ...patch })), []);
+  const value = useMemo(() => ({ settings, updateSettings }), [settings, updateSettings]);
+  return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;
+}
+
+// ---------- Datos (canciones y eventos) ----------
+
+export const DataContext = createContext(null);
+
+/** Modo local: todo en el navegador de este equipo. */
+export function LocalStoreProvider({ children }) {
+  const [data, setData] = useState(() => {
+    const d = readJSON(STORAGE_KEY);
+    if (!d) return { songs: cancionesEjemplo, events: eventosEjemplo() };
+    return { songs: Array.isArray(d.songs) ? d.songs : [], events: Array.isArray(d.events) ? d.events : [] };
+  });
 
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    } catch {
-      /* sin espacio o almacenamiento bloqueado */
-    }
+    const prev = readJSON(STORAGE_KEY) || {};
+    writeJSON(STORAGE_KEY, { ...prev, songs: data.songs, events: data.events });
   }, [data]);
-
-  useEffect(() => {
-    document.documentElement.dataset.theme = data.settings.theme;
-  }, [data.settings.theme]);
 
   const saveSong = useCallback((song) => {
     const id = song.id || newId();
@@ -64,7 +97,6 @@ export function StoreProvider({ children }) {
 
   const deleteSong = useCallback((id) => {
     setData((d) => ({
-      ...d,
       songs: d.songs.filter((s) => s.id !== id),
       events: d.events.map((e) => ({ ...e, items: e.items.filter((i) => i.songId !== id) })),
     }));
@@ -84,17 +116,9 @@ export function StoreProvider({ children }) {
     setData((d) => ({ ...d, events: d.events.filter((e) => e.id !== id) }));
   }, []);
 
-  const updateSettings = useCallback((patch) => {
-    setData((d) => ({ ...d, settings: { ...d.settings, ...patch } }));
-  }, []);
-
   const importData = useCallback((incoming) => {
     if (!incoming || !Array.isArray(incoming.songs)) throw new Error('Archivo no válido');
-    setData({
-      songs: incoming.songs,
-      events: Array.isArray(incoming.events) ? incoming.events : [],
-      settings: { ...DEFAULT_SETTINGS, ...(incoming.settings || {}) },
-    });
+    setData({ songs: incoming.songs, events: Array.isArray(incoming.events) ? incoming.events : [] });
   }, []);
 
   const restoreExamples = useCallback(() => {
@@ -104,18 +128,32 @@ export function StoreProvider({ children }) {
     });
   }, []);
 
-  const deleteAll = useCallback(() => {
-    setData((d) => ({ songs: [], events: [], settings: d.settings }));
-  }, []);
+  const deleteAll = useCallback(() => setData({ songs: [], events: [] }), []);
 
   const value = useMemo(
-    () => ({ ...data, saveSong, deleteSong, saveEvent, deleteEvent, updateSettings, importData, restoreExamples, deleteAll }),
-    [data, saveSong, deleteSong, saveEvent, deleteEvent, updateSettings, importData, restoreExamples, deleteAll]
+    () => ({ ...data, mode: 'local', can: LOCAL_CAN, saveSong, deleteSong, saveEvent, deleteEvent, importData, restoreExamples, deleteAll }),
+    [data, saveSong, deleteSong, saveEvent, deleteEvent, importData, restoreExamples, deleteAll]
   );
-
-  return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
+  return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }
 
 export function useStore() {
-  return useContext(StoreContext);
+  return { ...useContext(DataContext), ...useContext(SettingsContext) };
+}
+
+export function useSettings() {
+  return useContext(SettingsContext);
+}
+
+// ---------- Tono personal (cada músico, en su equipo) ----------
+
+const PERSONAL_KEY = 'cancionero-tonos';
+export function getPersonalKey(songId) {
+  return readJSON(PERSONAL_KEY)?.[songId] || 0;
+}
+export function setPersonalKey(songId, steps) {
+  const all = readJSON(PERSONAL_KEY) || {};
+  if (steps) all[songId] = steps;
+  else delete all[songId];
+  writeJSON(PERSONAL_KEY, all);
 }

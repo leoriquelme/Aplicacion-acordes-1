@@ -300,3 +300,30 @@ textarea.mono { font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
 }
 .adj-cut:hover { color: var(--chord); border-color: var(--chord); background: var(--chorus-bg); }
 .adj-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Bienvenida e iglesias */
+.loading { display: grid; place-items: center; height: 100vh; color: var(--muted); }
+.welcome { min-height: 100vh; display: grid; place-items: center; padding: 1rem; }
+.welcome-card { width: 100%; max-width: 420px; text-align: center; padding: 2rem; }
+.welcome-card.wide { max-width: 560px; text-align: left; }
+.welcome-card h2 { font-size: 1.05rem; margin: 1.4rem 0 0.6rem; }
+.welcome-card label { text-align: left; }
+.welcome-logo { font-size: 3rem; }
+.btn.big { width: 100%; padding: 0.8rem; font-size: 1.05rem; }
+.test-login { margin-top: 1rem; }
+.test-login input { flex: 1; }
+.church-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.church-btn { justify-content: flex-start; font-size: 1.05rem; padding: 0.75rem 1rem; }
+.code-input { text-transform: uppercase; letter-spacing: 0.05em; }
+.create-church { margin: 1.2rem 0; }
+.create-church summary { cursor: pointer; color: var(--primary); font-weight: 500; }
+.create-church form { margin-top: 0.5rem; }
+.church-name { font-size: 1.2rem; margin: 0 0 0.4rem; }
+.code-box { background: var(--chorus-bg); border-radius: 8px; padding: 0.75rem 1rem; margin: 0.8rem 0 1rem; display: flex; flex-direction: column; gap: 0.35rem; }
+.church-code { font-size: 1.4rem; font-weight: 700; letter-spacing: 0.08em; background: var(--surface); padding: 0.2rem 0.6rem; }
+.role-pill { font-size: 0.85rem; font-weight: 600; padding: 0.1rem 0.55rem; border-radius: 999px; background: var(--chorus-bg); }
+.role-pill.role-admin { background: var(--primary); color: var(--primary-text); }
+.users-table select { padding: 0.3rem 0.5rem; }
+.toast { position: fixed; bottom: 1rem; left: 50%; transform: translateX(-50%); z-index: 50; background: var(--danger); color: #fff; padding: 0.6rem 1rem; border-radius: 8px; display: flex; gap: 0.5rem; align-items: center; }
+.toast .btn { color: #fff; }
+.topbar .church-chip { margin-left: auto; font-size: 0.9rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 16rem; }

@@ -1,16 +1,27 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { HashRouter } from 'react-router-dom';
-import { StoreProvider } from './lib/store.jsx';
+import { LocalStoreProvider, SettingsProvider } from './lib/store.jsx';
+import { cloudEnabled } from './lib/firebase.js';
 import App from './App.jsx';
 import './styles.css';
 
+import CloudRoot from './CloudRoot.jsx';
+
+// Con Firebase configurado: iglesias compartidas. Sin configurar: todo en este equipo.
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <StoreProvider>
+    <SettingsProvider>
       <HashRouter>
-        <App />
+        {cloudEnabled ? (
+          <CloudRoot />
+        ) : (
+          <LocalStoreProvider>
+            <App />
+          </LocalStoreProvider>
+        )}
       </HashRouter>
-    </StoreProvider>
+    </SettingsProvider>
   </StrictMode>
 );

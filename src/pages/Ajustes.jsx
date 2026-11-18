@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
-import { useStore } from '../lib/store.jsx';
+import { readLocalData, useStore } from '../lib/store.jsx';
+import { ChurchCard, UsersCard } from '../components/ChurchAdmin.jsx';
 import SongView from '../components/SongView.jsx';
 
 const MUESTRA = '[G]Cuán grande es [C]Él, [G]cuán grande es [D]Él';
@@ -74,35 +75,80 @@ export default function Ajustes() {
         </div>
       </section>
 
+      {store.mode === 'cloud' ? (
+        <>
+          <ChurchCard />
+          {store.can.users && <UsersCard />}
+          <section className="card">
+            <h2>Datos</h2>
+            <p className="muted">
+              La iglesia tiene {songs.length} canciones y {events.length} eventos, guardados en internet y compartidos con todos sus miembros.
+            </p>
+            <div className="row gap wrap">
+              <button className="btn" onClick={exportar}>⬇ Descargar respaldo</button>
+              {store.can.edit && <UploadLocal onDone={setMsg} />}
+            </div>
+            {msg && <p className="ok">{msg}</p>}
+          </section>
+        </>
+      ) : (
       <section className="card">
-        <h2>Datos</h2>
-        <p className="muted">
-          Tienes {songs.length} canciones y {events.length} eventos guardados en este equipo.
-          Descarga un respaldo de vez en cuando para no perderlos.
-        </p>
-        <div className="row gap wrap">
-          <button className="btn" onClick={exportar}>⬇ Descargar respaldo</button>
-          <button className="btn" onClick={() => fileRef.current?.click()}>⬆ Cargar respaldo</button>
-          <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={importar} />
-          <button className="btn" onClick={() => { store.restoreExamples(); setMsg('Canciones de ejemplo restauradas.'); }}>
-            Restaurar canciones de ejemplo
-          </button>
-        </div>
-        {msg && <p className="ok">{msg}</p>}
-        <div className="danger-zone">
-          <button
-            className="btn danger ghost"
-            onClick={() => {
-              if (window.confirm('¿Borrar TODAS las canciones y eventos de este equipo? No se puede deshacer.')) {
-                store.deleteAll();
-                setMsg('Se borraron todos los datos.');
-              }
-            }}
-          >
-            Borrar todos los datos
-          </button>
-        </div>
-      </section>
+          <h2>Datos</h2>
+          <p className="muted">
+            Tienes {songs.length} canciones y {events.length} eventos guardados en este equipo.
+            Descarga un respaldo de vez en cuando para no perderlos.
+          </p>
+          <div className="row gap wrap">
+            <button className="btn" onClick={exportar}>⬇ Descargar respaldo</button>
+            <button className="btn" onClick={() => fileRef.current?.click()}>⬆ Cargar respaldo</button>
+            <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={importar} />
+            <button className="btn" onClick={() => { store.restoreExamples(); setMsg('Canciones de ejemplo restauradas.'); }}>
+              Restaurar canciones de ejemplo
+            </button>
+          </div>
+          {msg && <p className="ok">{msg}</p>}
+          <div className="danger-zone">
+            <button
+              className="btn danger ghost"
+              onClick={() => {
+                if (window.confirm('¿Borrar TODAS las canciones y eventos de este equipo? No se puede deshacer.')) {
+                  store.deleteAll();
+                  setMsg('Se borraron todos los datos.');
+                }
+              }}
+            >
+              Borrar todos los datos
+            </button>
+          </div>
+        </section>
+      )}
     </div>
+  );
+}
+
+function UploadLocal({ onDone }) {
+  const { uploadLocal } = useStore();
+  const [busy, setBusy] = useState(false);
+  const local = readLocalData();
+  if (!local.songs.length) return null;
+  return (
+    <button
+      className="btn"
+      disabled={busy}
+      onClick={async () => {
+        if (!window.confirm(`¿Subir las ${local.songs.length} canciones guardadas en este equipo a la iglesia? Las que ya existen con el mismo título se saltan.`)) return;
+        setBusy(true);
+        try {
+          const n = await uploadLocal({ songs: local.songs, events: [] });
+          onDone(`Se subieron ${n} canciones a la iglesia.`);
+        } catch (e) {
+          onDone(`No se pudo subir: ${e.message}`);
+        } finally {
+          setBusy(false);
+        }
+      }}
+    >
+      ⬆ Subir canciones de este equipo ({local.songs.length})
+    </button>
   );
 }

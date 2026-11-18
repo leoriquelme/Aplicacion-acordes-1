@@ -16,7 +16,7 @@ export default function EditarCancion() {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { songs, settings, saveSong } = useStore();
+  const { songs, settings, saveSong, can } = useStore();
   const textRef = useRef(null);
   const pendingCursor = useRef(null);
   const existing = songs.find((s) => s.id === id);
@@ -53,6 +53,10 @@ export default function EditarCancion() {
   }, [form.content]);
 
   const sectionNames = parseSong(form.content).map((s) => s.name);
+
+  if (!can.edit) {
+    return <div className="page"><p>Tu perfil no permite editar canciones.</p><Link to="/canciones">← Volver</Link></div>;
+  }
 
   if (id && !existing) {
     return (

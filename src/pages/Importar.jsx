@@ -22,7 +22,7 @@ y la app lo reconoce`;
 
 export default function Importar() {
   const navigate = useNavigate();
-  const { settings } = useStore();
+  const { settings, can } = useStore();
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
   const [raw, setRaw] = useState('');
@@ -48,6 +48,10 @@ export default function Importar() {
       },
     });
   };
+
+  if (!can.edit) {
+    return <div className="page"><p>Tu perfil no permite agregar canciones.</p><Link to="/canciones">← Volver</Link></div>;
+  }
 
   return (
     <div className="page wide">

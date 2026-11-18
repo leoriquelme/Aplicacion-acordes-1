@@ -9,7 +9,7 @@ import ArrangementEditor from '../components/ArrangementEditor.jsx';
 export default function Evento() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { events, songs, settings, saveEvent, deleteEvent } = useStore();
+  const { events, songs, settings, saveEvent, deleteEvent, can } = useStore();
   const [q, setQ] = useState('');
   const [openOrder, setOpenOrder] = useState(null);
   const event = events.find((e) => e.id === id);
@@ -24,6 +24,39 @@ export default function Evento() {
   }
 
   const byId = new Map(songs.map((s) => [s.id, s]));
+
+  // Músicos: solo ver la lista y presentar.
+  if (!can.events) {
+    return (
+      <div className="page">
+        <Link to="/eventos" className="back">← Eventos</Link>
+        <div className="page-head">
+          <div>
+            <h1>{event.name}</h1>
+            <p className="muted">{formatLong(event.date)}{event.time ? ` · ${event.time}` : ''}</p>
+          </div>
+          {event.items.length > 0 && (
+            <Link className="btn primary" to={`/presentar/evento/${event.id}`}>▶ Presentar</Link>
+          )}
+        </div>
+        {event.notes && <p className="card">{event.notes}</p>}
+        <h2>Lista de canciones</h2>
+        <ol className="setlist">
+          {event.items.map((item, i) => {
+            const s = byId.get(item.songId);
+            if (!s) return null;
+            return (
+              <li key={i} className="setlist-item">
+                <span className="setlist-num">{i + 1}</span>
+                <Link className="grow" to={`/canciones/${s.id}`}><strong>{s.title}</strong></Link>
+                {s.key && <span className="key-pill">{displayKey(s.key, item.transpose || 0, settings.notation)}</span>}
+              </li>
+            );
+          })}
+        </ol>
+      </div>
+    );
+  }
   const update = (patch) => saveEvent({ ...event, ...patch });
   const setItems = (items) => update({ items });
 

@@ -6,7 +6,7 @@ import EventCard from '../components/EventCard.jsx';
 import SongRanking from '../components/SongRanking.jsx';
 
 export default function Eventos() {
-  const { events, songs, saveEvent } = useStore();
+  const { events, songs, saveEvent, can } = useStore();
   const navigate = useNavigate();
   const [form, setForm] = useState({ name: 'Culto dominical', date: todayISO(), time: '11:00' });
   const [showPast, setShowPast] = useState(false);
@@ -24,6 +24,7 @@ export default function Eventos() {
   return (
     <div className="page">
       <h1>Eventos</h1>
+      {can.events && (
       <form className="card new-event" onSubmit={create}>
         <h2>Nuevo evento</h2>
         <div className="row gap wrap">
@@ -42,6 +43,7 @@ export default function Eventos() {
           <button className="btn primary align-end" type="submit">Crear</button>
         </div>
       </form>
+      )}
 
       <h2>Próximos</h2>
       {upcoming.length === 0 ? (

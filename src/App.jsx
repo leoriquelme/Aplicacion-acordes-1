@@ -8,6 +8,7 @@ import Evento from './pages/Evento.jsx';
 import Ajustes from './pages/Ajustes.jsx';
 import Presentacion from './pages/Presentacion.jsx';
 import Importar from './pages/Importar.jsx';
+import { useStore } from './lib/store.jsx';
 
 const TABS = [
   { to: '/', label: 'Inicio', icon: '🏠', end: true },
@@ -19,6 +20,7 @@ const TABS = [
 export default function App() {
   const { pathname } = useLocation();
   const presenting = pathname.startsWith('/presentar');
+  const { mode, church, me } = useStore();
 
   return (
     <div className="app">
@@ -33,6 +35,9 @@ export default function App() {
               </NavLink>
             ))}
           </nav>
+          {mode === 'cloud' && church && (
+            <div className="church-chip" title={`${me?.name} en ${church.name}`}>⛪ {church.name}</div>
+          )}
         </header>
       )}
       <main className={presenting ? '' : 'content'}>

@@ -1,0 +1,70 @@
+rules_version = '2';
+// Reglas de permisos del Cancionero.
+// Perfiles: admin (Administrador), director (Director musical), musico (Músico).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function memberPath(church) { return /databases/$(database)/documents/churches/$(church)/members/$(request.auth.uid); }
+    function isMember(church) { return signedIn() && exists(memberPath(church)); }
+    function role(church) { return get(memberPath(church)).data.role; }
+    function isAdmin(church) { return isMember(church) && role(church) == 'admin'; }
+    function canEdit(church) { return isMember(church) && role(church) in ['admin', 'director']; }
+    function validName(n) { return n is string && n.size() > 0 && n.size() <= 60; }
+
+    // Perfil propio: nombre y lista de iglesias en las que participa.
+    match /users/{uid} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+    }
+
+    // Código de iglesia → id de iglesia. Cualquiera con sesión puede buscar un código exacto.
+    match /churchCodes/{code} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn()
+        && getAfter(/databases/$(database)/documents/churches/$(request.resource.data.churchId)).data.createdBy == request.auth.uid;
+      allow update, delete: if isAdmin(resource.data.churchId);
+    }
+
+    match /churches/{church} {
+      allow get: if isMember(church);
+      allow create: if signedIn()
+        && request.resource.data.createdBy == request.auth.uid
+        && validName(request.resource.data.name);
+      allow update: if isAdmin(church) && request.resource.data.createdBy == resource.data.createdBy;
+      allow delete: if false;
+
+      match /members/{uid} {
+        allow read: if isMember(church);
+        // Unirse: uno mismo, como músico, mostrando el código correcto.
+        // El creador de la iglesia se agrega como administrador.
+        allow create: if signedIn() && request.auth.uid == uid
+          && validName(request.resource.data.name)
+          && (
+            (request.resource.data.role == 'musico'
+              && get(/databases/$(database)/documents/churchCodes/$(request.resource.data.code)).data.churchId == church)
+            || (request.resource.data.role == 'admin'
+              && getAfter(/databases/$(database)/documents/churches/$(church)).data.createdBy == request.auth.uid
+              && !exists(/databases/$(database)/documents/churches/$(church)))
+          );
+        // El administrador cambia perfiles; cada uno puede cambiar su propio nombre (no su perfil).
+        allow update: if isAdmin(church)
+          || (request.auth.uid == uid
+              && request.resource.data.role == resource.data.role
+              && validName(request.resource.data.name));
+        allow delete: if isAdmin(church) || (signedIn() && request.auth.uid == uid);
+      }
+
+      match /songs/{song} {
+        allow read: if isMember(church);
+        allow create, update: if canEdit(church);
+        allow delete: if isAdmin(church);
+      }
+
+      match /events/{event} {
+        allow read: if isMember(church);
+        allow create, update, delete: if canEdit(church);
+      }
+    }
+  }
+}

@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { useStore } from '../lib/store.jsx';
+import { getPersonalKey, setPersonalKey, useStore } from '../lib/store.jsx';
 import { sortEvents, todayISO, formatLong } from '../lib/dates.js';
 import SongView from '../components/SongView.jsx';
 import TransposeControls from '../components/TransposeControls.jsx';
@@ -9,8 +9,14 @@ import ArrangementEditor from '../components/ArrangementEditor.jsx';
 export default function Cancion() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { songs, events, settings, deleteSong, saveEvent, saveSong } = useStore();
-  const [steps, setSteps] = useState(0);
+  const { songs, events, settings, deleteSong, saveEvent, saveSong, can } = useStore();
+  // Tono personal: cada músico guarda su propio tono en su equipo.
+  const [steps, setStepsState] = useState(() => getPersonalKey(id));
+  const setSteps = (n) => {
+    setStepsState(n);
+    setPersonalKey(id, n);
+  };
+  useEffect(() => setStepsState(getPersonalKey(id)), [id]);
   const [added, setAdded] = useState('');
   const song = songs.find((s) => s.id === id);
 
@@ -48,14 +54,14 @@ export default function Cancion() {
           {song.author && <p className="muted">{song.author}</p>}
         </div>
         <div className="row gap wrap">
-          <Link className="btn" to={`/canciones/${song.id}/editar`}>✏️ Editar</Link>
+          {can.edit && <Link className="btn" to={`/canciones/${song.id}/editar`}>✏️ Editar</Link>}
           <Link className="btn primary" to={`/presentar/cancion/${song.id}?t=${steps}`}>▶ Presentar</Link>
         </div>
       </div>
 
       <div className="toolbar">
         <TransposeControls songKey={song.key} steps={steps} onChange={setSteps} notation={settings.notation} />
-        {upcoming.length > 0 && (
+        {can.events && upcoming.length > 0 && (
           <select value="" onChange={(e) => addToEvent(e.target.value)} aria-label="Agregar a un evento">
             <option value="">+ Agregar a un evento…</option>
             {upcoming.map((e) => (
@@ -66,6 +72,7 @@ export default function Cancion() {
         {added && <span className="ok">✓ {added}</span>}
       </div>
 
+      {can.edit && (
       <details className="card arrangement-card">
         <summary>
           <strong>Orden de las secciones</strong>
@@ -77,12 +84,15 @@ export default function Cancion() {
           onChange={(order) => saveSong({ ...song, order })}
         />
       </details>
+      )}
 
       <SongView content={song.content} songKey={song.key} steps={steps} order={song.order} settings={settings} />
 
-      <div className="danger-zone">
-        <button className="btn danger ghost" onClick={remove}>Eliminar canción</button>
-      </div>
+      {can.delete && (
+        <div className="danger-zone">
+          <button className="btn danger ghost" onClick={remove}>Eliminar canción</button>
+        </div>
+      )}
     </div>
   );
 }
