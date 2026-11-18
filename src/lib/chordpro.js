@@ -99,8 +99,8 @@ export function parseLine(line) {
 const DIRECTIVE_RE = /^\{\s*([a-zA-Z_]+)\s*(?::\s*(.*?))?\s*\}$/;
 
 function typeFromLabel(label) {
-  if (/coro|chorus|estribillo/i.test(label)) return 'chorus';
-  if (/puente|bridge/i.test(label)) return 'bridge';
+  if (/^\s*(coro|chorus|estribillo)/i.test(label)) return 'chorus';
+  if (/^\s*(puente|bridge)/i.test(label)) return 'bridge';
   return 'verse';
 }
 

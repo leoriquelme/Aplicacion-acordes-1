@@ -78,3 +78,8 @@ describe('arrangeSections', () => {
 it('busca sin tildes', () => {
   expect(normalize('Cuán Grande')).toBe('cuan grande');
 });
+
+it('Pre-coro no se marca como coro', () => {
+  const secs = parseSong('{c: Pre-coro}\n[G]a\n\n{c: Coro 2}\n[C]b');
+  expect(secs.map((s) => s.type)).toEqual(['verse', 'chorus']);
+});

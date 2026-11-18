@@ -256,3 +256,19 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--primary); o
 .rank-table th { text-align: left; font-size: 0.85rem; color: var(--muted); font-weight: 600; padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--border); }
 .rank-table td { padding: 0.5rem; border-bottom: 1px solid var(--border); }
 .rank-table .num { text-align: right; width: 4rem; }
+
+/* Botones de secciones del editor */
+.field { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.8rem; }
+.field-label { margin: 0; }
+.section-buttons { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
+.sec-btn { font-weight: 600; }
+.sec-coro { background: var(--primary); color: var(--primary-text); border-color: var(--primary); }
+.sec-puente { border-style: dashed; border-color: var(--chord); }
+.sec-custom { position: relative; display: inline-flex; }
+.sec-x {
+  position: absolute; top: -0.45rem; right: -0.45rem; width: 1.2rem; height: 1.2rem; padding: 0;
+  border-radius: 50%; border: 1px solid var(--border); background: var(--surface); color: var(--muted);
+  font-size: 0.65rem; cursor: pointer; display: grid; place-items: center;
+}
+.sec-x:hover { color: var(--danger); border-color: var(--danger); }
+.sec-input { padding: 0.3rem 0.55rem; font-size: 0.9rem; width: 12rem; }

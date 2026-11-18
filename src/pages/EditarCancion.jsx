@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useStore } from '../lib/store.jsx';
-import { KEYS, parseMeta } from '../lib/chordpro.js';
+import { KEYS, parseMeta, parseSong } from '../lib/chordpro.js';
+import SectionButtons, { nextSectionName } from '../components/SectionButtons.jsx';
 import SongView from '../components/SongView.jsx';
 
 const PLANTILLA = `{c: Verso 1}
@@ -15,12 +16,44 @@ const PLANTILLA = `{c: Verso 1}
 export default function EditarCancion() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { songs, settings, saveSong } = useStore();
+  const { songs, settings, saveSong, updateSettings } = useStore();
+  const textRef = useRef(null);
+  const pendingCursor = useRef(null);
   const existing = songs.find((s) => s.id === id);
   const [form, setForm] = useState(
     existing || { title: '', author: '', key: 'G', content: PLANTILLA }
   );
   const [error, setError] = useState('');
+
+  const set = (field) => (e) => setForm({ ...form, [field]: e.target.value });
+
+  // Inserta "{c: Nombre}" donde está el cursor, empezando una sección nueva.
+  const insertSection = (label) => {
+    const ta = textRef.current;
+    const v = form.content;
+    const pos = ta ? ta.selectionStart : v.length;
+    const lineStart = v.lastIndexOf('\n', pos - 1) + 1;
+    const at = pos > lineStart && v.slice(lineStart, pos).trim() ? v.indexOf('\n', pos) === -1 ? v.length : v.indexOf('\n', pos) : lineStart;
+    const before = v.slice(0, at);
+    const after = v.slice(at).replace(/^\n/, '');
+    const name = nextSectionName(label, parseSong(v).map((s) => s.name));
+    const prefix = before === '' || before.endsWith('\n\n') ? '' : before.endsWith('\n') ? '\n' : '\n\n';
+    const insert = `${prefix}{c: ${name}}\n`;
+    const content = before + insert + after;
+    setForm((f) => ({ ...f, content }));
+    pendingCursor.current = before.length + insert.length;
+  };
+
+  // Después de insertar, deja el cursor listo para escribir la nueva sección.
+  useLayoutEffect(() => {
+    const ta = textRef.current;
+    if (pendingCursor.current === null || !ta) return;
+    ta.focus();
+    ta.setSelectionRange(pendingCursor.current, pendingCursor.current);
+    pendingCursor.current = null;
+  }, [form.content]);
+
+  const customButtons = settings.sectionButtons || [];
 
   if (id && !existing) {
     return (
@@ -31,7 +64,6 @@ export default function EditarCancion() {
     );
   }
 
-  const set = (field) => (e) => setForm({ ...form, [field]: e.target.value });
 
   const onContent = (e) => {
     const content = e.target.value;
@@ -79,16 +111,23 @@ export default function EditarCancion() {
               </select>
             </label>
           </div>
-          <label>
-            Letra y acordes (formato ChordPro)
-            <textarea value={form.content} onChange={onContent} rows={18} spellCheck={false} />
-          </label>
+          <div className="field">
+            <label htmlFor="letra" className="field-label">Letra y acordes</label>
+            <SectionButtons
+              custom={customButtons}
+              onInsert={insertSection}
+              onAddCustom={(n) => updateSettings({ sectionButtons: [...customButtons, n] })}
+              onRemoveCustom={(n) => updateSettings({ sectionButtons: customButtons.filter((x) => x !== n) })}
+            />
+            <textarea id="letra" ref={textRef} value={form.content} onChange={onContent} rows={18} spellCheck={false} />
+          </div>
           <details className="help">
             <summary>¿Cómo escribir los acordes?</summary>
             <ul>
               <li>Pon el acorde entre corchetes justo antes de la sílaba: <code>[G]Cuán grande es [C]Él</code></li>
               <li>Deja una línea en blanco para separar secciones. Se llaman solas "Verso 1", "Verso 2"…</li>
-              <li>Para darle nombre a una sección escribe al inicio <code>{'{c: Verso 2}'}</code>, <code>{'{c: Coro}'}</code> o <code>{'{c: Puente}'}</code></li>
+              <li>Usa los botones <strong>+ Verso</strong>, <strong>+ Coro</strong>, <strong>+ Puente</strong> para empezar una sección nueva donde está el cursor. Con <strong>+ Nuevo botón…</strong> creas los tuyos.</li>
+              <li>También puedes escribir el nombre a mano al inicio de la sección <code>{'{c: Verso 2}'}</code>, <code>{'{c: Coro}'}</code> o <code>{'{c: Puente}'}</code></li>
               <li>Si el coro tiene líneas en blanco, enciérralo entre <code>{'{soc}'}</code> y <code>{'{eoc}'}</code>.</li>
               <li>Escribe cada sección una sola vez. El orden y las repeticiones se eligen después en "Orden de las secciones".</li>
               <li>Puedes escribir acordes como <code>[Am]</code>, <code>[D7]</code>, <code>[G/B]</code> o en latino: <code>[Sol]</code>, <code>[Lam]</code>.</li>
