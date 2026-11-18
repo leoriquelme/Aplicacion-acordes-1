@@ -4,12 +4,14 @@ import { useStore } from '../lib/store.jsx';
 import { displayKey, normalize } from '../lib/chordpro.js';
 import { formatLong } from '../lib/dates.js';
 import TransposeControls from '../components/TransposeControls.jsx';
+import ArrangementEditor from '../components/ArrangementEditor.jsx';
 
 export default function Evento() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { events, songs, settings, saveEvent, deleteEvent } = useStore();
   const [q, setQ] = useState('');
+  const [openOrder, setOpenOrder] = useState(null);
   const event = events.find((e) => e.id === id);
 
   if (!event) {
@@ -31,6 +33,7 @@ export default function Evento() {
     if (j < 0 || j >= items.length) return;
     [items[i], items[j]] = [items[j], items[i]];
     setItems(items);
+    setOpenOrder(null);
   };
 
   const query = normalize(q.trim());
@@ -98,11 +101,33 @@ export default function Evento() {
                   notation={settings.notation}
                   onChange={(t) => setItems(event.items.map((x, k) => (k === i ? { ...x, transpose: t } : x)))}
                 />
+                <button
+                  className={`btn small ${item.order?.length ? 'primary' : ''}`}
+                  onClick={() => setOpenOrder(openOrder === i ? null : i)}
+                  title="Elegir el orden de las secciones para este evento"
+                >
+                  Orden{item.order?.length ? ' ✓' : ''}
+                </button>
                 <div className="row">
                   <button className="btn ghost small" onClick={() => move(i, -1)} disabled={i === 0} aria-label="Subir">↑</button>
                   <button className="btn ghost small" onClick={() => move(i, 1)} disabled={i === event.items.length - 1} aria-label="Bajar">↓</button>
-                  <button className="btn ghost small" onClick={() => setItems(event.items.filter((_, k) => k !== i))} aria-label="Quitar">✕</button>
+                  <button className="btn ghost small" onClick={() => { setItems(event.items.filter((_, k) => k !== i)); setOpenOrder(null); }} aria-label="Quitar">✕</button>
                 </div>
+                {openOrder === i && (
+                  <div className="setlist-order">
+                    <p className="muted small">
+                      Orden de "{s.title}" solo para este evento.
+                      {!item.order?.length && ' Ahora usa el orden de la canción.'}
+                    </p>
+                    <ArrangementEditor
+                      content={s.content}
+                      order={item.order}
+                      fallbackOrder={s.order}
+                      resetLabel="Usar orden de la canción"
+                      onChange={(order) => setItems(event.items.map((x, k) => (k === i ? { ...x, order } : x)))}
+                    />
+                  </div>
+                )}
               </li>
             );
           })}

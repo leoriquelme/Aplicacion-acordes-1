@@ -98,24 +98,34 @@ export function parseLine(line) {
 
 const DIRECTIVE_RE = /^\{\s*([a-zA-Z_]+)\s*(?::\s*(.*?))?\s*\}$/;
 
+function typeFromLabel(label) {
+  if (/coro|chorus|estribillo/i.test(label)) return 'chorus';
+  if (/puente|bridge/i.test(label)) return 'bridge';
+  return 'verse';
+}
+
+const DEFAULT_NAMES = { verse: 'Verso', chorus: 'Coro', bridge: 'Puente' };
+
 /**
- * Convierte el texto ChordPro en bloques para mostrar:
- * { type: 'verse' | 'chorus', label, lines: [...] } donde cada línea es
+ * Convierte el texto ChordPro en secciones con nombre:
+ * { name, type: 'verse' | 'chorus' | 'bridge', lines: [...] } donde cada línea es
  * { type: 'lyrics', segments } o { type: 'comment', text }.
+ *
+ * Una sección empieza con {start_of_verse: Verso 1}, {soc}, {start_of_bridge},
+ * con un {c: Nombre} al inicio de un bloque, o simplemente después de una línea en blanco.
+ * Las secciones sin nombre se llaman "Verso 1", "Verso 2", "Coro", "Puente", etc.
  */
 export function parseSong(content = '') {
   const blocks = [];
   let current = null;
-  let mode = 'verse';
+  let inSection = false; // dentro de {soc}…{eoc} las líneas en blanco no cortan
 
-  const ensureBlock = () => {
-    if (!current) {
-      current = { type: mode, label: '', lines: [] };
-      blocks.push(current);
-    }
+  const open = (type, label) => {
+    current = { type, label, lines: [] };
+    blocks.push(current);
     return current;
   };
-  const closeBlock = () => {
+  const close = () => {
     current = null;
   };
 
@@ -128,37 +138,66 @@ export function parseSong(content = '') {
     const d = trimmed.match(DIRECTIVE_RE);
     if (d) {
       const name = d[1].toLowerCase();
-      const value = d[2] || '';
+      const value = (d[2] || '').trim();
       if (['soc', 'start_of_chorus'].includes(name)) {
-        closeBlock();
-        mode = 'chorus';
-        current = { type: 'chorus', label: value || 'Coro', lines: [] };
-        blocks.push(current);
+        close();
+        open('chorus', value);
+        inSection = true;
+      } else if (['sov', 'start_of_verse'].includes(name)) {
+        close();
+        open(value ? typeFromLabel(value) : 'verse', value);
+        inSection = true;
+      } else if (['sob', 'start_of_bridge'].includes(name)) {
+        close();
+        open('bridge', value);
+        inSection = true;
       } else if (['eoc', 'end_of_chorus', 'eov', 'end_of_verse', 'eob', 'end_of_bridge'].includes(name)) {
-        closeBlock();
-        mode = 'verse';
-      } else if (['sov', 'start_of_verse', 'sob', 'start_of_bridge'].includes(name)) {
-        closeBlock();
-        mode = 'verse';
-        const isBridge = name === 'sob' || name === 'start_of_bridge';
-        const label = value || (isBridge ? 'Puente' : '');
-        current = { type: 'verse', label, lines: [] };
-        blocks.push(current);
+        close();
+        inSection = false;
       } else if (['c', 'comment', 'ci', 'comment_italic'].includes(name)) {
-        ensureBlock().lines.push({ type: 'comment', text: value });
+        if (!current) open(typeFromLabel(value), value);
+        else if (!current.label && current.lines.length === 0) current.label = value;
+        else current.lines.push({ type: 'comment', text: value });
       }
       // {title}, {artist}, {key} y otras directivas no se muestran en la letra.
       continue;
     }
 
     if (trimmed === '') {
-      if (mode !== 'chorus') closeBlock();
+      if (!inSection) close();
       continue;
     }
 
-    ensureBlock().lines.push({ type: 'lyrics', segments: parseLine(line) });
+    (current || open('verse', '')).lines.push({ type: 'lyrics', segments: parseLine(line) });
   }
-  return blocks.filter((b) => b.lines.length > 0);
+
+  // Ponerle nombre único a cada sección.
+  const used = new Set();
+  const counters = {};
+  return blocks
+    .filter((b) => b.lines.length > 0)
+    .map((b) => {
+      let name = b.label;
+      if (!name) {
+        counters[b.type] = (counters[b.type] || 0) + 1;
+        name = DEFAULT_NAMES[b.type] + (b.type === 'verse' ? ` ${counters[b.type]}` : '');
+      }
+      let unique = name;
+      for (let k = 2; used.has(unique); k++) unique = `${name} ${k}`;
+      used.add(unique);
+      return { name: unique, type: b.type, lines: b.lines };
+    });
+}
+
+/**
+ * Ordena las secciones según una lista de nombres (se pueden repetir).
+ * Si no hay orden o ningún nombre coincide, se usa el orden original.
+ */
+export function arrangeSections(sections, order) {
+  if (!Array.isArray(order) || order.length === 0) return sections;
+  const byName = new Map(sections.map((s) => [s.name, s]));
+  const arranged = order.map((n) => byName.get(n)).filter(Boolean);
+  return arranged.length ? arranged : sections;
 }
 
 /** Lee {title}, {artist} y {key} si vienen en el texto. */

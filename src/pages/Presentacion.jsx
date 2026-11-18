@@ -21,12 +21,14 @@ export default function Presentacion() {
     if (ev) {
       title = ev.name;
       exitTo = `/eventos/${ev.id}`;
-      items = ev.items.map((i) => ({ song: byId.get(i.songId), transpose: i.transpose || 0 })).filter((i) => i.song);
+      items = ev.items
+        .map((i) => { const song = byId.get(i.songId); return { song, transpose: i.transpose || 0, order: i.order?.length ? i.order : song?.order }; })
+        .filter((i) => i.song);
     }
   } else {
     const s = byId.get(id);
     if (s) {
-      items = [{ song: s, transpose: Number(params.get('t')) || 0 }];
+      items = [{ song: s, transpose: Number(params.get('t')) || 0, order: s.order }];
       exitTo = `/canciones/${s.id}`;
     }
   }
@@ -111,6 +113,7 @@ export default function Presentacion() {
         content={current.song.content}
         songKey={current.song.key}
         steps={steps}
+        order={current.order}
         settings={{ ...settings, showChords }}
         fontSize={size}
         className="present-song"

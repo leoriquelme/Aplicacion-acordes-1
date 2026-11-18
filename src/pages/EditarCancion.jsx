@@ -4,7 +4,7 @@ import { useStore } from '../lib/store.jsx';
 import { KEYS, parseMeta } from '../lib/chordpro.js';
 import SongView from '../components/SongView.jsx';
 
-const PLANTILLA = `{c: Estrofa 1}
+const PLANTILLA = `{c: Verso 1}
 [G]Escribe aquí la [C]letra con los [G]acordes
 [D]entre corchetes, justo antes de la [G]sílaba.
 
@@ -87,9 +87,10 @@ export default function EditarCancion() {
             <summary>¿Cómo escribir los acordes?</summary>
             <ul>
               <li>Pon el acorde entre corchetes justo antes de la sílaba: <code>[G]Cuán grande es [C]Él</code></li>
-              <li>Deja una línea en blanco para separar estrofas.</li>
-              <li>Marca el coro con <code>{'{soc}'}</code> al inicio y <code>{'{eoc}'}</code> al final.</li>
-              <li>Agrega un título de sección con <code>{'{c: Estrofa 2}'}</code></li>
+              <li>Deja una línea en blanco para separar secciones. Se llaman solas "Verso 1", "Verso 2"…</li>
+              <li>Para darle nombre a una sección escribe al inicio <code>{'{c: Verso 2}'}</code>, <code>{'{c: Coro}'}</code> o <code>{'{c: Puente}'}</code></li>
+              <li>Si el coro tiene líneas en blanco, enciérralo entre <code>{'{soc}'}</code> y <code>{'{eoc}'}</code>.</li>
+              <li>Escribe cada sección una sola vez. El orden y las repeticiones se eligen después en "Orden de las secciones".</li>
               <li>Puedes escribir acordes como <code>[Am]</code>, <code>[D7]</code>, <code>[G/B]</code> o en latino: <code>[Sol]</code>, <code>[Lam]</code>.</li>
             </ul>
           </details>

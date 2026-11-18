@@ -6,13 +6,13 @@ export const cancionesEjemplo = [
     title: '¡Santo! ¡Santo! ¡Santo!',
     author: 'Reginald Heber (trad. Juan B. Cabrera)',
     key: 'D',
-    content: `{c: Estrofa 1}
+    content: `{c: Verso 1}
 [D]¡Santo! ¡Santo! [Bm]¡Santo! [G]Señor omni[D]potente,
 [A]siempre el labio [D]mío lo[E]ores te da[A]rá;
 [D]¡Santo! ¡Santo! [Bm]¡Santo! [G]te adoro re[D]verente,
 [G]Dios en tres per[D]sonas, [A]bendita Trini[D]dad.
 
-{c: Estrofa 2}
+{c: Verso 2}
 [D]¡Santo! ¡Santo! [Bm]¡Santo! [G]en numeroso [D]coro,
 [A]santos escogi[D]dos te a[E]doran sin ce[A]sar,
 [D]de alegría [Bm]llenos, y [G]sus coronas de [D]oro
@@ -23,7 +23,8 @@ export const cancionesEjemplo = [
     title: 'Castillo fuerte es nuestro Dios',
     author: 'Martín Lutero (trad. Juan B. Cabrera)',
     key: 'C',
-    content: `[C]Castillo fuerte es [G]nuestro [C]Dios,
+    content: `{sov: Verso 1}
+[C]Castillo fuerte es [G]nuestro [C]Dios,
 [F]defensa y [C]buen es[G]cudo;
 [C]con su poder nos [G]libra[C]rá
 [F]en este [C]trance a[G]gudo.
@@ -32,7 +33,8 @@ export const cancionesEjemplo = [
 [Am]acósanos Sa[E]tán;
 [F]por armas deja [C]ver
 [Dm]astucia y gran po[G]der;
-[C]cual él no [F]hay en la [G]tie[C]rra.`,
+[C]cual él no [F]hay en la [G]tie[C]rra.
+{eov}`,
   },
   {
     id: 'ejemplo-amigo',

@@ -1,4 +1,4 @@
-import { chordOptions, parseSong, transposeChord } from '../lib/chordpro.js';
+import { arrangeSections, chordOptions, parseSong, transposeChord } from '../lib/chordpro.js';
 
 // Separa el texto en palabras para que las líneas largas se puedan cortar
 // sin separar un acorde de su sílaba.
@@ -28,8 +28,8 @@ function Line({ segments, showChords, opts, steps }) {
   );
 }
 
-export default function SongView({ content, songKey, steps = 0, settings, fontSize, className = '' }) {
-  const blocks = parseSong(content);
+export default function SongView({ content, songKey, steps = 0, order, settings, fontSize, className = '' }) {
+  const blocks = arrangeSections(parseSong(content), order);
   const opts = chordOptions(songKey, steps, settings.notation);
   const showChords = settings.showChords;
 
@@ -41,7 +41,7 @@ export default function SongView({ content, songKey, steps = 0, settings, fontSi
     <div className={`song ${className}`} style={{ fontSize: fontSize ?? settings.fontSize }}>
       {blocks.map((b, i) => (
         <section className={`block ${b.type}`} key={i}>
-          {b.label && <div className="block-label">{b.label}</div>}
+          <div className="block-label">{b.name}</div>
           {b.lines.map((l, j) =>
             l.type === 'comment' ? (
               <div className="comment" key={j}>{l.text}</div>

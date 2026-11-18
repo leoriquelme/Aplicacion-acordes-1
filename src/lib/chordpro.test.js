@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseLine, parseSong, parseMeta, transposeChord, transposeKey, displayKey, normalize } from './chordpro.js';
+import { arrangeSections, parseLine, parseSong, parseMeta, transposeChord, transposeKey, displayKey, normalize } from './chordpro.js';
 
 describe('transposeChord', () => {
   it('sube y baja medio tono', () => {
@@ -46,14 +46,32 @@ describe('parseLine', () => {
 });
 
 describe('parseSong', () => {
-  it('reconoce estrofas, coros y comentarios', () => {
-    const blocks = parseSong('{title: X}\n{c: Estrofa}\n[G]uno\n\n{soc}\n[C]coro\n\n[D]sigue\n{eoc}\n[G]fin');
-    expect(blocks.map((b) => b.type)).toEqual(['verse', 'chorus', 'verse']);
-    expect(blocks[0].lines[0]).toEqual({ type: 'comment', text: 'Estrofa' });
-    expect(blocks[1].lines).toHaveLength(2);
+  it('divide en secciones con nombre', () => {
+    const secs = parseSong('{title: X}\n{c: Estrofa}\n[G]uno\n\n{soc}\n[C]coro\n\n[D]sigue\n{eoc}\n[G]fin\n\n{sob}\n[Em]puente\n{eob}');
+    expect(secs.map((s) => [s.name, s.type])).toEqual([
+      ['Estrofa', 'verse'], ['Coro', 'chorus'], ['Verso 1', 'verse'], ['Puente', 'bridge'],
+    ]);
+    expect(secs[1].lines).toHaveLength(2);
+  });
+  it('numera versos y evita nombres repetidos', () => {
+    const secs = parseSong('[G]a\n\n[G]b\n\n{c: Coro}\n[C]c\n\n{c: Coro}\n[C]d');
+    expect(secs.map((s) => s.name)).toEqual(['Verso 1', 'Verso 2', 'Coro', 'Coro 2']);
+    expect(secs[2].type).toBe('chorus');
   });
   it('lee los datos de la canción', () => {
     expect(parseMeta('{title: Hola}\n{artist: Ana}\n{key: G}')).toEqual({ title: 'Hola', author: 'Ana', key: 'G' });
+  });
+});
+
+describe('arrangeSections', () => {
+  const secs = parseSong('[G]uno\n\n{soc}\n[C]coro\n{eoc}\n\n[G]dos');
+  it('reordena y repite secciones', () => {
+    expect(arrangeSections(secs, ['Coro', 'Verso 1', 'Coro', 'Verso 2', 'Coro']).map((s) => s.name))
+      .toEqual(['Coro', 'Verso 1', 'Coro', 'Verso 2', 'Coro']);
+  });
+  it('usa el orden original si no hay orden válido', () => {
+    expect(arrangeSections(secs, undefined)).toBe(secs);
+    expect(arrangeSections(secs, ['No existe'])).toBe(secs);
   });
 });
 

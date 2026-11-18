@@ -4,11 +4,12 @@ import { useStore } from '../lib/store.jsx';
 import { sortEvents, todayISO, formatLong } from '../lib/dates.js';
 import SongView from '../components/SongView.jsx';
 import TransposeControls from '../components/TransposeControls.jsx';
+import ArrangementEditor from '../components/ArrangementEditor.jsx';
 
 export default function Cancion() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { songs, events, settings, deleteSong, saveEvent } = useStore();
+  const { songs, events, settings, deleteSong, saveEvent, saveSong } = useStore();
   const [steps, setSteps] = useState(0);
   const [added, setAdded] = useState('');
   const song = songs.find((s) => s.id === id);
@@ -65,7 +66,19 @@ export default function Cancion() {
         {added && <span className="ok">✓ {added}</span>}
       </div>
 
-      <SongView content={song.content} songKey={song.key} steps={steps} settings={settings} />
+      <details className="card arrangement-card">
+        <summary>
+          <strong>Orden de las secciones</strong>
+          <span className="muted small"> · arrastra para mover, repite o quita secciones</span>
+        </summary>
+        <ArrangementEditor
+          content={song.content}
+          order={song.order}
+          onChange={(order) => saveSong({ ...song, order })}
+        />
+      </details>
+
+      <SongView content={song.content} songKey={song.key} steps={steps} order={song.order} settings={settings} />
 
       <div className="danger-zone">
         <button className="btn danger ghost" onClick={remove}>Eliminar canción</button>
