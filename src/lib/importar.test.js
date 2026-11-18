@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { importSong, isChordLine, mergeChordLine, parseHeader } from './importar.js';
+import { buildSong, importSong, isChordLine, mergeChordLine, mergeWithPrevious, parseHeader, removeSection, sectionNames, setSectionType, splitSection } from './importar.js';
 import { parseSong } from './chordpro.js';
 
 describe('detectar acordes', () => {
@@ -73,5 +73,37 @@ El coro`;
       ['VERSO', 'verse'], ['CORO', 'chorus'], ['VERSO 2', 'verse'],
     ]);
     expect(r.order).toEqual(['VERSO', 'CORO', 'VERSO 2', 'CORO']);
+  });
+});
+
+describe('ajustes manuales', () => {
+  const base = {
+    sections: [
+      { base: 'VERSO', lines: ['a', 'b'] },
+      { base: 'CORO', lines: ['c'] },
+      { base: 'VERSO', lines: ['d', 'e', 'f'] },
+    ],
+    order: [0, 1, 2, 1],
+    key: '',
+  };
+  it('cambia el tipo y renumera', () => {
+    const s = setSectionType(base, 2, 'PUENTE');
+    expect(sectionNames(s.sections)).toEqual(['VERSO', 'CORO', 'PUENTE']);
+    expect(buildSong(s.sections, s.order).order).toEqual(['VERSO', 'CORO', 'PUENTE', 'CORO']);
+  });
+  it('une con la anterior', () => {
+    const s = mergeWithPrevious(base, 1);
+    expect(s.sections.map((x) => x.lines)).toEqual([['a', 'b', 'c'], ['d', 'e', 'f']]);
+    expect(s.order).toEqual([0, 1, 0]);
+  });
+  it('divide una sección', () => {
+    const s = splitSection(base, 2, 1, 'CORO');
+    expect(sectionNames(s.sections)).toEqual(['VERSO', 'CORO', 'VERSO 2', 'CORO 2']);
+    expect(s.order).toEqual([0, 1, 2, 3, 1]);
+  });
+  it('quita una sección', () => {
+    const s = removeSection(base, 1);
+    expect(s.order).toEqual([0, 1]);
+    expect(buildSong(s.sections, s.order)).toEqual({ content: '[VERSO]\na\nb\n\n[VERSO 2]\nd\ne\nf', order: undefined });
   });
 });

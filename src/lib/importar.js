@@ -1,6 +1,6 @@
 // Convierte una canción copiada de una página web (acordes en la línea de arriba
 // de la letra) al formato de la app: [CORO], [VERSO 2] y acordes como [G].
-import { nextSectionName } from './chordpro.js';
+import { MAX_SECTION_NUMBER } from './chordpro.js';
 
 const NOTE = '(?:Do|Re|Mi|Fa|Sol|La|Si|[A-G])[#b♯♭]?';
 const CHORD_TOKEN_RE = new RegExp(
@@ -83,12 +83,12 @@ const lyricKey = (lines) =>
     .normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-zñ0-9]+/g, ' ').trim();
 
 /**
- * Convierte el texto pegado. Devuelve { content, order, key }.
+ * Analiza el texto pegado. Devuelve { sections: [{ base, lines }], order, key }.
  * - Los títulos como "Coro:" o "Estrofa 2" se convierten en [CORO], [VERSO 2]…
  * - Si no hay títulos, los bloques que se repiten se marcan como CORO y el resto como VERSO.
  * - Las secciones repetidas se escriben una sola vez y se guarda el orden original.
  */
-export function importSong(raw) {
+export function analyzeSong(raw) {
   const lines = raw.replace(/\r/g, '').replace(/\t/g, '    ').replace(/ /g, ' ').split('\n');
   let key = '';
   const blocks = [];
@@ -137,35 +137,92 @@ export function importSong(raw) {
     counts.set(k, (counts.get(k) || 0) + 1);
   }
 
-  const sections = []; // { name, base, lines, key }
-  const order = [];
+  const sections = []; // { base, lines, key }
+  const order = []; // posiciones en "sections", en el orden en que se canta
+  const countOf = (base) => sections.filter((x) => x.base === base).length;
   for (const b of blocks) {
     if (!b.lines.length) {
       // "Coro" solo, sin letra: repetir el último de ese tipo.
-      const prev = [...sections].reverse().find((s) => s.base === b.base);
-      if (prev) for (let t = 0; t < b.times; t++) order.push(prev.name);
+      const prev = sections.map((x, i) => i).reverse().find((i) => sections[i].base === b.base);
+      if (prev !== undefined) for (let t = 0; t < b.times; t++) order.push(prev);
       continue;
     }
     const k = lyricKey(b.lines);
-    const same = k && sections.find((s) => s.key === k);
-    if (same) {
-      order.push(same.name);
+    const same = k ? sections.findIndex((x) => x.key === k) : -1;
+    if (same >= 0) {
+      order.push(same);
       continue;
     }
     const base = b.base || (k && counts.get(k) > 1 ? 'CORO' : 'VERSO');
-    const name = nextSectionName(base, sections.map((s) => s.name));
-    if (!name) {
+    if (countOf(base) >= MAX_SECTION_NUMBER && sections.length) {
       // Más de 5 del mismo tipo: se junta con la sección anterior.
-      const last = sections[sections.length - 1];
-      if (last) last.lines.push('', ...b.lines);
+      sections[sections.length - 1].lines.push(...b.lines);
       continue;
     }
-    sections.push({ name, base, lines: b.lines, key: k });
-    order.push(name);
+    sections.push({ base, lines: b.lines, key: k });
+    order.push(sections.length - 1);
   }
 
-  const content = sections.map((s) => `[${s.name}]\n${s.lines.join('\n')}`).join('\n\n');
-  const natural = sections.map((s) => s.name);
-  const sameAsNatural = order.length === natural.length && order.every((n, i) => n === natural[i]);
-  return { content, order: sameAsNatural ? undefined : order, key };
+  return { sections: sections.map(({ base, lines }) => ({ base, lines })), order, key };
+}
+
+/** Nombres de cada sección según su tipo: VERSO, VERSO 2, CORO… */
+export function sectionNames(sections) {
+  const seen = {};
+  return sections.map((x) => {
+    seen[x.base] = (seen[x.base] || 0) + 1;
+    return seen[x.base] === 1 ? x.base : `${x.base} ${seen[x.base]}`;
+  });
+}
+
+/** Arma el texto final y el orden (o undefined si es el orden natural). */
+export function buildSong(sections, order) {
+  const names = sectionNames(sections);
+  const content = sections.map((x, i) => `[${names[i]}]\n${x.lines.join('\n')}`).join('\n\n');
+  const natural = sections.map((_, i) => i);
+  const valid = order.filter((i) => i >= 0 && i < sections.length);
+  const same = valid.length === natural.length && valid.every((n, i) => n === i);
+  return { content, order: same || !valid.length ? undefined : valid.map((i) => names[i]) };
+}
+
+/** Convierte el texto pegado. Devuelve { content, order, key }. */
+export function importSong(raw) {
+  const r = analyzeSong(raw);
+  return { ...buildSong(r.sections, r.order), key: r.key };
+}
+
+// ---- Ajustes manuales (devuelven copias nuevas) ----
+
+const dedupe = (order) => order.filter((n, i) => i === 0 || n !== order[i - 1]);
+
+/** Une la sección i con la anterior. */
+export function mergeWithPrevious(state, i) {
+  if (i <= 0) return state;
+  const sections = state.sections.map((x) => ({ ...x, lines: [...x.lines] }));
+  sections[i - 1].lines.push(...sections[i].lines);
+  sections.splice(i, 1);
+  const order = dedupe(state.order.map((n) => (n === i ? i - 1 : n > i ? n - 1 : n)));
+  return { ...state, sections, order };
+}
+
+/** Divide la sección i antes de la línea "line": la segunda parte queda como nueva sección. */
+export function splitSection(state, i, line, base) {
+  const sec = state.sections[i];
+  if (line <= 0 || line >= sec.lines.length) return state;
+  const sections = [...state.sections];
+  sections.splice(i, 1, { ...sec, lines: sec.lines.slice(0, line) }, { base: base || sec.base, lines: sec.lines.slice(line) });
+  const order = state.order.flatMap((n) => (n === i ? [i, i + 1] : n > i ? [n + 1] : [n]));
+  return { ...state, sections, order };
+}
+
+export function removeSection(state, i) {
+  const sections = state.sections.filter((_, k) => k !== i);
+  const order = dedupe(state.order.filter((n) => n !== i).map((n) => (n > i ? n - 1 : n)));
+  return { ...state, sections, order };
+}
+
+export function setSectionType(state, i, base) {
+  const used = state.sections.filter((x, k) => k !== i && x.base === base).length;
+  if (used >= MAX_SECTION_NUMBER) return state;
+  return { ...state, sections: state.sections.map((x, k) => (k === i ? { ...x, base } : x)) };
 }

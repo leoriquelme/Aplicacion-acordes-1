@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useStore } from '../lib/store.jsx';
-import { importSong } from '../lib/importar.js';
+import { analyzeSong, buildSong } from '../lib/importar.js';
+import SectionAdjuster from '../components/SectionAdjuster.jsx';
 import { parseSong } from '../lib/chordpro.js';
 import SongView from '../components/SongView.jsx';
 
@@ -25,8 +26,13 @@ export default function Importar() {
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
   const [raw, setRaw] = useState('');
+  const [state, setState] = useState(null); // secciones detectadas, se pueden ajustar a mano
 
-  const result = useMemo(() => (raw.trim() ? importSong(raw) : null), [raw]);
+  const onPaste = (text) => {
+    setRaw(text);
+    setState(text.trim() ? analyzeSong(text) : null);
+  };
+  const result = state ? { ...buildSong(state.sections, state.order), key: state.key } : null;
   const sections = result ? parseSong(result.content) : [];
 
   const usar = () => {
@@ -73,16 +79,22 @@ export default function Importar() {
               className="mono"
               rows={20}
               value={raw}
-              onChange={(e) => setRaw(e.target.value)}
+              onChange={(e) => onPaste(e.target.value)}
               placeholder={EJEMPLO}
               spellCheck={false}
             />
           </label>
+          {state && (
+            <details className="card adjust-card" open>
+              <summary><strong>Ajustar secciones</strong></summary>
+              <SectionAdjuster state={state} onChange={setState} />
+            </details>
+          )}
           <div className="row gap wrap">
             <button className="btn primary" disabled={!result || !result.content} onClick={usar}>
               Usar esta canción
             </button>
-            {raw && <button className="btn ghost" onClick={() => setRaw('')}>Borrar</button>}
+            {raw && <button className="btn ghost" onClick={() => onPaste('')}>Borrar</button>}
           </div>
           <p className="muted small">
             Después podrás corregir cualquier detalle en el editor antes de guardar.
