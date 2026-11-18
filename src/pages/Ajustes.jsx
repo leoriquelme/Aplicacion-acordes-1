@@ -9,7 +9,6 @@ export default function Ajustes() {
   const { settings, updateSettings, songs, events } = store;
   const fileRef = useRef(null);
   const [msg, setMsg] = useState('');
-  const [newButton, setNewButton] = useState('');
 
   const exportar = () => {
     const blob = new Blob([JSON.stringify({ songs, events, settings }, null, 2)], { type: 'application/json' });
@@ -72,37 +71,6 @@ export default function Ajustes() {
         <div className="preview-box">
           <div className="muted small">Vista previa</div>
           <SongView content={MUESTRA} songKey="G" settings={settings} />
-        </div>
-      </section>
-
-      <section className="card">
-        <h2>Botones de secciones</h2>
-        <p className="muted">
-          En el editor siempre están <strong>Verso</strong>, <strong>Coro</strong> y <strong>Puente</strong>. Aquí eliges tus botones extra.
-        </p>
-        <div className="row gap wrap">
-          {(settings.sectionButtons || []).map((b) => (
-            <span key={b} className="sec-custom">
-              <span className="btn small sec-btn">{b}</span>
-              <button
-                type="button" className="sec-x" aria-label={`Borrar ${b}`}
-                onClick={() => updateSettings({ sectionButtons: settings.sectionButtons.filter((x) => x !== b) })}
-              >✕</button>
-            </span>
-          ))}
-          <form
-            className="row gap"
-            onSubmit={(e) => {
-              e.preventDefault();
-              const n = newButton.trim();
-              const list = settings.sectionButtons || [];
-              if (n && !['Verso', 'Coro', 'Puente'].includes(n) && !list.includes(n)) updateSettings({ sectionButtons: [...list, n] });
-              setNewButton('');
-            }}
-          >
-            <input className="sec-input" value={newButton} onChange={(e) => setNewButton(e.target.value)} placeholder="Ej. Pre-coro" aria-label="Nombre del nuevo botón" />
-            <button className="btn small" type="submit">Agregar</button>
-          </form>
         </div>
       </section>
 

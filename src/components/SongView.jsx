@@ -5,7 +5,8 @@ import { arrangeSections, chordOptions, parseSong, transposeChord } from '../lib
 function splitWords(segments) {
   const out = [];
   for (const seg of segments) {
-    const words = seg.text.match(/\S*\s*/g)?.filter(Boolean) || [''];
+    const found = seg.text.match(/\S*\s*/g)?.filter(Boolean) || [];
+    const words = found.length ? found : [''];
     words.forEach((w, i) => out.push({ chord: i === 0 ? seg.chord : '', text: w }));
   }
   return out;
@@ -17,7 +18,7 @@ function Line({ segments, showChords, opts, steps }) {
     return <div className="line">{segments.map((s) => s.text).join('')}</div>;
   }
   return (
-    <div className="line with-chords">
+    <div className={`line with-chords ${segments.every((s) => !s.text.trim()) ? 'chords-only' : ''}`}>
       {splitWords(segments).map((s, i) => (
         <span className="seg" key={i}>
           <span className="chord">{s.chord ? transposeChord(s.chord, steps, opts) : ' '}</span>

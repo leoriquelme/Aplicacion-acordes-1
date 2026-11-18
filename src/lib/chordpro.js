@@ -106,6 +106,32 @@ function typeFromLabel(label) {
 
 const DEFAULT_NAMES = { verse: 'Verso', chorus: 'Coro', bridge: 'Puente' };
 
+/** Secciones permitidas. Se escriben solas en una línea: [VERSO], [CORO 2]… (número del 2 al 5). */
+export const SECTION_NAMES = ['INTRO', 'VERSO', 'PRE CORO', 'CORO', 'PUENTE', 'CODA'];
+export const MAX_SECTION_NUMBER = 5;
+const SECTION_LINE_RE = /^\[\s*(INTRO|VERSO|PRE[\s-]*CORO|CORO|PUENTE|CODA)(?:\s+([1-5]))?\s*\]$/i;
+
+/** Si la línea es un título de sección como "[CORO 2]", devuelve "CORO 2". */
+export function sectionHeader(line) {
+  const m = line.trim().match(SECTION_LINE_RE);
+  if (!m) return null;
+  const base = m[1].toUpperCase().replace(/^PRE[\s-]*CORO$/, 'PRE CORO');
+  return m[2] ? `${base} ${m[2]}` : base;
+}
+
+/**
+ * Nombre para la siguiente sección de un tipo: "VERSO", luego "VERSO 2"… hasta 5.
+ * Devuelve null si ya se llegó al máximo.
+ */
+export function nextSectionName(base, existingNames) {
+  const names = new Set(existingNames.map((n) => n.toUpperCase()));
+  if (!names.has(base) && !names.has(`${base} 1`)) return base;
+  for (let n = 2; n <= MAX_SECTION_NUMBER; n++) {
+    if (!names.has(`${base} ${n}`)) return `${base} ${n}`;
+  }
+  return null;
+}
+
 /**
  * Convierte el texto ChordPro en secciones con nombre:
  * { name, type: 'verse' | 'chorus' | 'bridge', lines: [...] } donde cada línea es
@@ -134,6 +160,14 @@ export function parseSong(content = '') {
     const trimmed = line.trim();
 
     if (trimmed.startsWith('#')) continue; // comentario interno, no se muestra
+
+    const header = sectionHeader(trimmed);
+    if (header) {
+      close();
+      open(typeFromLabel(header), header);
+      inSection = false; // la sección termina con la próxima línea vacía
+      continue;
+    }
 
     const d = trimmed.match(DIRECTIVE_RE);
     if (d) {

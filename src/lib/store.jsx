@@ -9,7 +9,6 @@ export const DEFAULT_SETTINGS = {
   notation: 'americano', // 'americano' (C D E) o 'latino' (Do Re Mi)
   showChords: true,
   theme: 'claro',
-  sectionButtons: ['Intro', 'Final'], // botones propios del editor
 };
 
 function initialData() {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { arrangeSections, parseLine, parseSong, parseMeta, transposeChord, transposeKey, displayKey, normalize } from './chordpro.js';
+import { arrangeSections, nextSectionName, sectionHeader, parseLine, parseSong, parseMeta, transposeChord, transposeKey, displayKey, normalize } from './chordpro.js';
 
 describe('transposeChord', () => {
   it('sube y baja medio tono', () => {
@@ -82,4 +82,27 @@ it('busca sin tildes', () => {
 it('Pre-coro no se marca como coro', () => {
   const secs = parseSong('{c: Pre-coro}\n[G]a\n\n{c: Coro 2}\n[C]b');
   expect(secs.map((s) => s.type)).toEqual(['verse', 'chorus']);
+});
+
+describe('secciones con [NOMBRE]', () => {
+  it('reconoce títulos de sección y no los confunde con acordes', () => {
+    expect(sectionHeader('[CORO]')).toBe('CORO');
+    expect(sectionHeader('[verso 2]')).toBe('VERSO 2');
+    expect(sectionHeader('[Pre-coro]')).toBe('PRE CORO');
+    expect(sectionHeader('[C]')).toBe(null);
+    expect(sectionHeader('[G]Cuán grande')).toBe(null);
+    expect(sectionHeader('[VERSO 6]')).toBe(null);
+  });
+  it('divide la canción y termina la sección con una línea vacía', () => {
+    const secs = parseSong('[INTRO]\n[G] [D]\n\n[VERSO]\n[G]uno\n[C]dos\n\n[PRE CORO]\n[Am]pre\n\n[CORO]\n[C]coro\n\n[VERSO 2]\n[G]tres');
+    expect(secs.map((s) => [s.name, s.type, s.lines.length])).toEqual([
+      ['INTRO', 'verse', 1], ['VERSO', 'verse', 2], ['PRE CORO', 'verse', 1], ['CORO', 'chorus', 1], ['VERSO 2', 'verse', 1],
+    ]);
+  });
+  it('numera la siguiente sección hasta 5', () => {
+    expect(nextSectionName('VERSO', [])).toBe('VERSO');
+    expect(nextSectionName('VERSO', ['VERSO', 'CORO'])).toBe('VERSO 2');
+    expect(nextSectionName('VERSO', ['VERSO', 'VERSO 2', 'VERSO 3'])).toBe('VERSO 4');
+    expect(nextSectionName('CORO', ['CORO', 'CORO 2', 'CORO 3', 'CORO 4', 'CORO 5'])).toBe(null);
+  });
 });

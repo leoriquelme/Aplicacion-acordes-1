@@ -272,3 +272,5 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--primary); o
 }
 .sec-x:hover { color: var(--danger); border-color: var(--danger); }
 .sec-input { padding: 0.3rem 0.55rem; font-size: 0.9rem; width: 12rem; }
+.line.chords-only .lyric { display: none; }
+.line.chords-only .chord { padding-right: 1em; }

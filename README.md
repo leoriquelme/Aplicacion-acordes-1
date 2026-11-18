@@ -13,21 +13,24 @@ App para leer las letras y acordes de las canciones de la iglesia.
 
 Las canciones y eventos se guardan **en el mismo equipo** (en el navegador). Usa *Ajustes → Descargar respaldo* para guardar una copia.
 
-## Formato de las canciones (ChordPro)
+## Formato de las canciones
 
 ```
-{c: Estrofa 1}
+[VERSO]
 [G]Cuán grande es [C]Él
 
-{soc}
+[CORO]
 [C]Este es el [G]coro
-{eoc}
+
+[VERSO 2]
+[G]Otra estrofa
 ```
 
+- Cada sección empieza con su nombre entre corchetes, solo en una línea: `[INTRO]`, `[VERSO]`, `[PRE CORO]`, `[CORO]`, `[PUENTE]` o `[CODA]`. En el editor hay un botón para cada una.
+- Si ya existe una sección del mismo tipo se numera sola: `[VERSO 2]`, `[VERSO 3]`… hasta 5.
+- La sección termina con una línea vacía.
 - El acorde va entre corchetes justo antes de la sílaba.
-- Una línea en blanco separa estrofas.
-- `{soc}` y `{eoc}` marcan el inicio y fin del coro.
-- `{c: texto}` pone un título de sección.
+- Las canciones antiguas escritas con `{c: Coro}` o `{soc}` / `{eoc}` siguen funcionando.
 
 ## Abrirla sin instalar nada
 
