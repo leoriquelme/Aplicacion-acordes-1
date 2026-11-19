@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../lib/store.jsx';
+import Icon from './Icon.jsx';
 
 /** Compartir (o dejar de compartir) una canción en la biblioteca de todas las iglesias. */
 export default function CompartirCancion({ song }) {
@@ -18,7 +19,7 @@ export default function CompartirCancion({ song }) {
   if (shared) {
     return (
       <div className="share-box card">
-        <span>🌐 <strong>Compartida</strong> con otras iglesias.</span>
+        <span><Icon name="globe" /> <strong>Compartida</strong> con otras iglesias.</span>
         {outdated && (
           <button className="btn small" onClick={() => run(() => shareSong(song), '✓ Copia compartida actualizada.')}>
             ⟳ Actualizar la copia compartida
@@ -35,7 +36,7 @@ export default function CompartirCancion({ song }) {
   return (
     <div className="share-box">
       {!open ? (
-        <button className="btn small ghost" onClick={() => setOpen(true)}>🌐 Compartir con otras iglesias</button>
+        <button className="btn small ghost" onClick={() => setOpen(true)}><Icon name="globe" /> Compartir con otras iglesias</button>
       ) : (
         <div className="card">
           <p style={{ marginTop: 0 }}>

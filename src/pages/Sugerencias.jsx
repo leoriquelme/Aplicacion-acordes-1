@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useStore } from '../lib/store.jsx';
 import ConfirmX from '../components/ConfirmX.jsx';
+import Icon from '../components/Icon.jsx';
 
 /** Sugerir mejoras para la app. Solo el Administrador las recibe y las ve. */
 export default function Sugerencias() {
@@ -26,7 +27,7 @@ export default function Sugerencias() {
   return (
     <div className="page">
       <Link to="/ajustes" className="back">← Ajustes</Link>
-      <h1>💡 Sugerir mejoras</h1>
+      <h1><Icon name="bulb" /> Sugerir mejoras</h1>
       {mode !== 'cloud' ? (
         <p className="card muted">Para enviar sugerencias, entra con tu iglesia.</p>
       ) : (

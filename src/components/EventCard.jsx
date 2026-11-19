@@ -3,6 +3,7 @@ import { formatLong, relativeDay } from '../lib/dates.js';
 import { eventLines } from '../lib/evento.js';
 import { useStore } from '../lib/store.jsx';
 import Avatares from './Avatares.jsx';
+import Icon from './Icon.jsx';
 
 export default function EventCard({ event, songs, showSongs = true }) {
   const lines = eventLines(event, songs);
@@ -32,7 +33,7 @@ export default function EventCard({ event, songs, showSongs = true }) {
       <div className="row gap">
         <Link className="btn" to={`/eventos/${event.id}`}>Ver evento</Link>
         {list.length > 0 && (
-          <Link className="btn primary" to={`/presentar/evento/${event.id}`}>▶ Presentar</Link>
+          <Link className="btn primary" to={`/presentar/evento/${event.id}`}><Icon name="play" /> Presentar</Link>
         )}
       </div>
     </article>

@@ -5,6 +5,7 @@ import { formatLong } from '../lib/dates.js';
 import { songKey } from '../lib/importar.js';
 import { eventLines } from '../lib/evento.js';
 import { inscritosPorGrupo } from '../lib/participacion.js';
+import Icon from '../components/Icon.jsx';
 
 /** Hoja estándar del culto para imprimir o guardar como PDF: orden arriba, participantes abajo. */
 export default function Imprimir() {
@@ -19,7 +20,7 @@ export default function Imprimir() {
     <div className="page print-page">
       <div className="row gap no-print" style={{ marginBottom: '1rem' }}>
         <Link className="btn" to={`/eventos/${event.id}`}>← Volver</Link>
-        <button className="btn primary" onClick={() => window.print()}>🖨 Imprimir o guardar PDF</button>
+        <button className="btn primary" onClick={() => window.print()}><Icon name="print" /> Imprimir o guardar PDF</button>
       </div>
       <p className="muted small no-print">En el celular: pulsa el botón y elige "Guardar como PDF" o compártelo.</p>
 

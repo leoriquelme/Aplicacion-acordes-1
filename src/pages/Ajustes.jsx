@@ -4,6 +4,7 @@ import SongView from '../components/SongView.jsx';
 import AgregarEjemplos from '../components/AgregarEjemplos.jsx';
 import { AjustesFinal, IglesiaBoton, PerfilCard } from '../components/Comunicacion.jsx';
 import InstalarCard from '../components/InstalarCard.jsx';
+import Icon from '../components/Icon.jsx';
 
 const MUESTRA = '[G]Cuán grande es [C]Él, [G]cuán grande es [D]Él';
 
@@ -86,7 +87,7 @@ export default function Ajustes() {
               La iglesia tiene {songs.length} canciones y {events.length} eventos, guardados en internet y compartidos con todos sus miembros.
             </p>
             <div className="row gap wrap">
-              <button className="btn" onClick={exportar}>⬇ Descargar respaldo</button>
+              <button className="btn" onClick={exportar}><Icon name="download" /> Descargar respaldo</button>
               {store.can.edit && <UploadLocal onDone={setMsg} />}
             </div>
             {store.can.edit && (
@@ -106,8 +107,8 @@ export default function Ajustes() {
             Descarga un respaldo de vez en cuando para no perderlos.
           </p>
           <div className="row gap wrap">
-            <button className="btn" onClick={exportar}>⬇ Descargar respaldo</button>
-            <button className="btn" onClick={() => fileRef.current?.click()}>⬆ Cargar respaldo</button>
+            <button className="btn" onClick={exportar}><Icon name="download" /> Descargar respaldo</button>
+            <button className="btn" onClick={() => fileRef.current?.click()}><Icon name="upload" /> Cargar respaldo</button>
             <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={importar} />
             <button className="btn" onClick={() => { store.restoreExamples(); setMsg('Canciones de ejemplo restauradas.'); }}>
               Restaurar canciones de ejemplo
@@ -158,7 +159,7 @@ function UploadLocal({ onDone }) {
         }
       }}
     >
-      ⬆ Subir canciones de este equipo ({local.songs.length})
+      <Icon name="upload" /> Subir canciones de este equipo ({local.songs.length})
     </button>
   );
 }

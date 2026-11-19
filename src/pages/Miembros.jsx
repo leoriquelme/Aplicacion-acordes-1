@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { ROLES, useStore } from '../lib/store.jsx';
 import { UsersCard } from '../components/ChurchAdmin.jsx';
 import { Avatar } from '../components/Avatares.jsx';
+import Icon from '../components/Icon.jsx';
 
 /** Nombre de la iglesia arriba y sus usuarios abajo. El administrador además cambia perfiles. */
 export default function Miembros() {
@@ -18,7 +19,7 @@ export default function Miembros() {
   return (
     <div className="page">
       <Link to="/mi-iglesia" className="back">← Mi iglesia</Link>
-      <h1>⛪ {church?.name}</h1>
+      <h1><Icon name="church" /> {church?.name}</h1>
       <p className="muted">{people.length} {people.length === 1 ? 'miembro' : 'miembros'}</p>
       {can.users ? (
         <UsersCard />

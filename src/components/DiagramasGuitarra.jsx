@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { transposeChord } from '../lib/chordpro.js';
 import { chordsInContent, guitarShape } from '../lib/guitarra.js';
 import { convertPlainChords } from '../lib/importar.js';
+import Icon from './Icon.jsx';
 
 // Dibujo de un acorde: 6 cuerdas verticales, 5 trastes.
 function Diagrama({ shape }) {
@@ -52,7 +53,7 @@ export default function DiagramasGuitarra({ content, steps, opts }) {
   return (
     <div className="diagramas no-print">
       <button className={`btn small ${open ? 'primary' : ''}`} onClick={() => setOpen(!open)} aria-expanded={open}>
-        🎸 {open ? 'Ocultar acordes de guitarra' : 'Ver acordes de guitarra'}
+        <Icon name="guitar" /> {open ? 'Ocultar acordes de guitarra' : 'Ver acordes de guitarra'}
       </button>
       {open && (
         <>

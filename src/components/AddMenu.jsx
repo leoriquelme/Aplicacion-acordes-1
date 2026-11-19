@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import Icon from './Icon.jsx';
 
 /** Botón redondo "+" que despliega las formas de agregar una canción. */
 export default function AddMenu({ cloud }) {
@@ -26,9 +27,9 @@ export default function AddMenu({ cloud }) {
       </button>
       {open && (
         <div className="add-menu-panel" role="menu">
-          <Link role="menuitem" to="/canciones/nueva">✏️ Nueva canción<span>Escribir desde cero</span></Link>
+          <Link role="menuitem" to="/canciones/nueva"><span className="menu-t"><Icon name="edit" /> Nueva canción</span><span>Escribir desde cero</span></Link>
           <Link role="menuitem" to="/canciones/importar">⤓ Importar<span>Pegar letra y acordes de una página web</span></Link>
-          {cloud && <Link role="menuitem" to="/canciones/biblioteca">🌐 De otras iglesias<span>Buscar y copiar a tu iglesia</span></Link>}
+          {cloud && <Link role="menuitem" to="/canciones/biblioteca"><span className="menu-t"><Icon name="globe" /> De otras iglesias</span><span>Buscar y copiar a tu iglesia</span></Link>}
         </div>
       )}
     </div>

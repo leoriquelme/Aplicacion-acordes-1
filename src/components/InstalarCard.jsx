@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import Icon from './Icon.jsx';
 
 let guardado = null; // Aviso de instalación de Android/PC (Chrome, Edge).
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); guardado = e; });
@@ -19,7 +20,7 @@ export default function InstalarCard() {
   }, []);
   return (
     <section className="card">
-      <h2>📱 Instalar la app</h2>
+      <h2><Icon name="phone" /> Instalar la app</h2>
       {hecho ? (
         <p>✓ Ya la tienes instalada. Ábrela desde su ícono; funciona aunque no haya internet.</p>
       ) : (
@@ -27,7 +28,7 @@ export default function InstalarCard() {
           <p className="muted small">Instalada, la app queda como un ícono en tu teléfono, abre sin internet y puede mostrar avisos del calendario.</p>
           {puede && (
             <button className="btn primary" onClick={async () => { guardado.prompt(); const r = await guardado.userChoice; if (r.outcome === 'accepted') setHecho(true); guardado = null; setPuede(false); }}>
-              ⬇ Instalar ahora
+              <Icon name="download" /> Instalar ahora
             </button>
           )}
           {esIOS() ? (

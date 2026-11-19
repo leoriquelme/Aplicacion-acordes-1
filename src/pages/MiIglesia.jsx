@@ -5,6 +5,7 @@ import Avatares from '../components/Avatares.jsx';
 import MisEquipos from '../components/MisEquipos.jsx';
 import SongRanking from '../components/SongRanking.jsx';
 import HistorialParticipacion from '../components/HistorialParticipacion.jsx';
+import Icon from '../components/Icon.jsx';
 
 /** Pestaña "Mi iglesia": datos de la iglesia, mis equipos, canciones más usadas e historial. */
 export default function MiIglesia() {
@@ -15,7 +16,7 @@ export default function MiIglesia() {
   return (
     <div className="page">
       <section className="card bloque-iglesia">
-        <div className="bloque-icono" aria-hidden="true">⛪</div>
+        <div className="bloque-icono"><Icon name="church" /></div>
         <div className="grow">
           <h1>{mode === 'cloud' ? church?.name : 'Mi iglesia'}</h1>
           {mode === 'cloud' && <Avatares people={people} max={8} size="sm" />}

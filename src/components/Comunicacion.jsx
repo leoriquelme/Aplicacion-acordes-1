@@ -4,6 +4,7 @@ import { ROLES, useStore } from '../lib/store.jsx';
 import { enterChurch, leaveChurch, useAuth } from '../lib/cloud.jsx';
 import { APP_VERSION } from '../lib/version.js';
 import { Avatar } from './Avatares.jsx';
+import Icon from './Icon.jsx';
 
 function useOnline() {
   const [online, setOnline] = useState(() => navigator.onLine);
@@ -60,7 +61,7 @@ export function PerfilCard() {
           {msg && <p className="error small">{msg}</p>}
         </div>
         {cloud && !editing && (
-          <button className="btn small" onClick={() => { setName(me?.name || ''); setEditing(true); }}>✏️ Editar</button>
+          <button className="btn small" onClick={() => { setName(me?.name || ''); setEditing(true); }}><Icon name="edit" /> Editar</button>
         )}
       </div>
 
@@ -89,13 +90,13 @@ export function PerfilCard() {
         <li><span className={`dot-status ${online ? 'ok' : 'off'}`} /> {online ? 'Con internet' : 'Sin internet: puedes seguir viendo tus canciones'}</li>
         {cloud ? (
           <>
-            <li>⛪ Iglesia: <strong>{church?.name}</strong></li>
-            <li>👤 {me?.name} · {ROLES[role]?.label || 'Colaborador'}</li>
+            <li><Icon name="church" /> Iglesia: <strong>{church?.name}</strong></li>
+            <li><Icon name="user" /> {me?.name} · {ROLES[role]?.label || 'Colaborador'}</li>
           </>
         ) : (
-          <li>💻 Usando la app solo en este equipo</li>
+          <li><Icon name="laptop" /> Usando la app solo en este equipo</li>
         )}
-        <li>🎵 {songs.length} {songs.length === 1 ? 'canción' : 'canciones'}{offlineReady ? ' guardadas para usar sin internet' : ''}</li>
+        <li><Icon name="music" /> {songs.length} {songs.length === 1 ? 'canción' : 'canciones'}{offlineReady ? ' guardadas para usar sin internet' : ''}</li>
       </ul>
     </section>
   );
@@ -107,7 +108,7 @@ export function IglesiaBoton() {
   if (mode !== 'cloud') return null;
   return (
     <Link to="/mi-iglesia/miembros" className="card iglesia-boton">
-      <span className="bloque-icono" aria-hidden="true">⛪</span>
+      <span className="bloque-icono"><Icon name="church" /></span>
       <span className="grow">
         <span className="muted small">Perteneces a</span>
         <strong>{church?.name}</strong>
@@ -129,10 +130,10 @@ export function AjustesFinal() {
   return (
     <section className="ajustes-final">
       <Link className="btn big-inline" to="/sugerencias">
-        💡 Sugerir mejoras
+        <Icon name="bulb" /> Sugerir mejoras
         {can.users && suggestions.length > 0 && <span className="badge">{suggestions.length}</span>}
       </Link>
-      <Link className="btn big-inline" to="/apoyo">🙏 Apoyo: orar y donar</Link>
+      <Link className="btn big-inline" to="/apoyo"><Icon name="heart" /> Apoyo: orar y donar</Link>
       {mode === 'cloud' && <button className="btn ghost" onClick={salir}>Salir / cambiar de iglesia</button>}
       <p className="muted small">Versión {APP_VERSION}</p>
     </section>

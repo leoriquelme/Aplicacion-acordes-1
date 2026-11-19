@@ -15,13 +15,14 @@ import Sugerencias from './pages/Sugerencias.jsx';
 import Imprimir from './pages/Imprimir.jsx';
 import Importar from './pages/Importar.jsx';
 import { useStore } from './lib/store.jsx';
+import Icon from './components/Icon.jsx';
 
 const TABS = [
-  { to: '/', label: 'Inicio', icon: '🏠', end: true },
-  { to: '/canciones', label: 'Canciones', icon: '🎵' },
-  { to: '/eventos', label: 'Eventos', icon: '📅' },
-  { to: '/mi-iglesia', label: 'Mi iglesia', icon: '⛪' },
-  { to: '/ajustes', label: 'Ajustes', icon: '⚙️' },
+  { to: '/', label: 'Inicio', icon: 'home', end: true },
+  { to: '/canciones', label: 'Canciones', icon: 'music' },
+  { to: '/eventos', label: 'Eventos', icon: 'calendar' },
+  { to: '/mi-iglesia', label: 'Mi iglesia', icon: 'church' },
+  { to: '/ajustes', label: 'Ajustes', icon: 'settings' },
 ];
 
 export default function App() {
@@ -37,13 +38,13 @@ export default function App() {
           <nav className="tabs">
             {TABS.map((t) => (
               <NavLink key={t.to} to={t.to} end={t.end} className="tab">
-                <span className="tab-icon" aria-hidden="true">{t.icon}</span>
+                <span className="tab-icon"><Icon name={t.icon} size="1.25em" /></span>
                 <span>{t.label}</span>
               </NavLink>
             ))}
           </nav>
           {mode === 'cloud' && church && (
-            <div className="church-chip" title={`${me?.name} en ${church.name}`}>⛪ {church.name}</div>
+            <div className="church-chip" title={`${me?.name} en ${church.name}`}><Icon name="church" /> {church.name}</div>
           )}
         </header>
       )}

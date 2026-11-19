@@ -1,7 +1,9 @@
+import { createPortal } from 'react-dom';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useStore } from '../lib/store.jsx';
 import { descargarOracion } from '../lib/recordatorio.js';
+import Icon from '../components/Icon.jsx';
 
 const MIS_KEY = 'cancionero-oraciones';
 const leer = () => { try { return Number(localStorage.getItem(MIS_KEY)) || 0; } catch { return 0; } };
@@ -28,7 +30,7 @@ export default function Apoyo() {
   return (
     <div className="page apoyo">
       <Link to="/ajustes" className="back">← Ajustes</Link>
-      <h1>🙏 Apoyo</h1>
+      <h1><Icon name="heart" /> Apoyo</h1>
 
       <section className="card oracion">
         <h2>Oremos por el proyecto</h2>
@@ -36,19 +38,18 @@ export default function Apoyo() {
           <strong>{total}</strong>
           <span className="muted">{total === 1 ? 'oración' : 'oraciones'}</span>
         </div>
-        <button className="btn primary orar-btn" onClick={() => setGracias(true)}>🙏 Oré por el proyecto</button>
+        <button className="btn primary orar-btn" onClick={() => setGracias(true)}><Icon name="pray" /> Oré por el proyecto</button>
         <p className="muted small center">Tú has orado {mias} {mias === 1 ? 'vez' : 'veces'}.</p>
       </section>
 
       {gracias && (
-        <div className="modal-fondo" role="dialog" aria-modal="true" aria-labelledby="gracias-titulo" onClick={cerrar}>
+        createPortal(<div className="modal-fondo" role="dialog" aria-modal="true" aria-labelledby="gracias-titulo" onClick={cerrar}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-icono">🙏</div>
+            <div className="modal-icono"><Icon name="pray" size="2.6rem" /></div>
             <h2 id="gracias-titulo">¡Gracias por orar por el proyecto!</h2>
-            <p className="muted">Tu oración ya suma.</p>
             <button className="btn primary big-inline" onClick={cerrar} autoFocus>Amén</button>
           </div>
-        </div>
+        </div>, document.body)
       )}
 
       <section className="card">
@@ -56,14 +57,14 @@ export default function Apoyo() {
         <p className="muted small">Se agrega a tu calendario y te avisa todos los días a esa hora.</p>
         <div className="row gap wrap">
           <input type="time" value={hora} onChange={(e) => setHora(e.target.value)} style={{ width: 'auto' }} />
-          <button className="btn" disabled={!hora} onClick={() => descargarOracion(hora)}>📅 Recordarme cada día</button>
+          <button className="btn" disabled={!hora} onClick={() => descargarOracion(hora)}><Icon name="bell" /> Recordarme cada día</button>
         </div>
       </section>
 
       <section className="card donar">
         <h2>Donar</h2>
         <p className="muted small">Tu apoyo ayudará a mantener el Cancionero gratis para todas las iglesias.</p>
-        <button className="btn big-inline" disabled aria-disabled="true">💝 Donar</button>
+        <button className="btn big-inline" disabled aria-disabled="true"><Icon name="heart" /> Donar</button>
         <p className="muted small">Todavía no disponible. Muy pronto.</p>
       </section>
     </div>

@@ -10,6 +10,7 @@ import TransposeControls from '../components/TransposeControls.jsx';
 import ArrangementEditor from '../components/ArrangementEditor.jsx';
 import Participacion from '../components/Participacion.jsx';
 import ConfirmX from '../components/ConfirmX.jsx';
+import Icon from '../components/Icon.jsx';
 
 export default function Evento() {
   const { id } = useParams();
@@ -57,16 +58,17 @@ export default function Evento() {
             <h1>{event.name}</h1>
             <p className="muted">{when}</p>
           </div>
-          <div className="row gap wrap">
-            {can.events && <button className="btn" onClick={() => setEditing(true)}>✏️ Editar</button>}
-            {hasSongs && <Link className="btn primary" to={`/presentar/evento/${event.id}`}>▶ Presentar</Link>}
+          <div className="head-actions">
+            {can.events && <button className="btn" onClick={() => setEditing(true)}><Icon name="edit" /> Editar</button>}
+            {hasSongs && <Link className="btn primary" to={`/presentar/evento/${event.id}`}><Icon name="play" /> Presentar</Link>}
           </div>
         </div>
-        <div className="row gap wrap event-tools">
-          <Link className="btn small" to={`/imprimir/evento/${event.id}`}>🖨 PDF del culto</Link>
-          <button className="btn small" onClick={() => descargarRecordatorio(event)}>📅 Recordarme</button>
+        <div className="event-tools">
+          <Link className="btn small" to={`/imprimir/evento/${event.id}`}><Icon name="print" /> PDF del culto</Link>
+          <button className="btn small" onClick={() => descargarRecordatorio(event)}><Icon name="bell" /> Recordarme</button>
         </div>
         {event.notes && <p className="card">{event.notes}</p>}
+        <section className="card orden-culto">
         <h2>Orden del culto</h2>
         {lines.length === 0 && <p className="muted">Todavía no hay nada en este evento.</p>}
         <ol className="setlist">
@@ -89,6 +91,7 @@ export default function Evento() {
             </li>
           ))}
         </ol>
+        </section>
         <Participacion event={event} />
       </div>
     );
@@ -162,6 +165,7 @@ export default function Evento() {
         </label>
       </div>
 
+      <section className="card orden-culto">
       <h2>Orden del culto</h2>
       {lines.length === 0 ? (
         <p className="muted">Agrega canciones y partes del culto abajo.</p>
@@ -222,6 +226,7 @@ export default function Evento() {
           ))}
         </ol>
       )}
+      </section>
 
       <div className="card">
         <label>

@@ -4,6 +4,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { getCapo, setCapo as saveCapo, useStore } from '../lib/store.jsx';
 import { displayKey } from '../lib/chordpro.js';
 import SongView from '../components/SongView.jsx';
+import Icon from '../components/Icon.jsx';
 
 export default function Presentacion() {
   const { tipo, id } = useParams();
@@ -170,8 +171,8 @@ export default function Presentacion() {
             <div className="present-menu-key">Tono: <strong>{displayKey(songKey(current.song), steps, settings.notation) || '—'}</strong></div>
             {items.length > 1 && (
               <div className="present-menu-row">
-                <button className="btn" onClick={() => go(-1)} disabled={index === 0}>◀ Anterior</button>
-                <button className="btn" onClick={() => go(1)} disabled={index === items.length - 1}>Siguiente ▶</button>
+                <button className="btn" onClick={() => go(-1)} disabled={index === 0}><Icon name="chevronLeft" /> Anterior</button>
+                <button className="btn" onClick={() => go(1)} disabled={index === items.length - 1}>Siguiente <Icon name="chevronRight" /></button>
               </div>
             )}
             <div className="present-menu-row">
@@ -187,15 +188,15 @@ export default function Presentacion() {
               </select>
             </label>
             <button className="btn" onClick={() => setShowChords((v) => !v)}>{showChords ? 'Ocultar acordes' : 'Mostrar acordes'}</button>
-            <button className="btn" onClick={toggleFull}>{isFull ? 'Salir de pantalla completa' : '⛶ Pantalla completa'}</button>
+            <button className="btn" onClick={toggleFull}>{isFull ? 'Salir de pantalla completa' : <><Icon name="expand" /> Pantalla completa</>}</button>
             <button className="btn danger-solid" onClick={exit}>✕ Salir de la presentación</button>
           </div>
         )}
       </div>
       {items.length > 1 && (
         <div className={`present-nav ${controlsVisible ? '' : 'dim'}`}>
-          <button onClick={() => go(-1)} disabled={index === 0} aria-label="Canción anterior">◀</button>
-          <button onClick={() => go(1)} disabled={index === items.length - 1} aria-label="Canción siguiente">▶</button>
+          <button onClick={() => go(-1)} disabled={index === 0} aria-label="Canción anterior"><Icon name="chevronLeft" /></button>
+          <button onClick={() => go(1)} disabled={index === items.length - 1} aria-label="Canción siguiente"><Icon name="chevronRight" /></button>
         </div>
       )}
     </div>

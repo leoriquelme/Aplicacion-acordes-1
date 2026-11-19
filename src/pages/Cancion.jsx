@@ -9,6 +9,7 @@ import TransposeControls from '../components/TransposeControls.jsx';
 import CompartirCancion from '../components/CompartirCancion.jsx';
 import ArrangementEditor from '../components/ArrangementEditor.jsx';
 import DiagramasGuitarra from '../components/DiagramasGuitarra.jsx';
+import Icon from '../components/Icon.jsx';
 
 export default function Cancion() {
   const { id } = useParams();
@@ -88,8 +89,8 @@ export default function Cancion() {
           )}
         </div>
         <div className="row gap wrap">
-          {can.edit && <Link className="btn" to={`/canciones/${song.id}/editar`}>✏️ Editar</Link>}
-          <Link className="btn primary" to={`/presentar/cancion/${song.id}?t=${steps}`}>▶ Presentar</Link>
+          {can.edit && <Link className="btn" to={`/canciones/${song.id}/editar`}><Icon name="edit" /> Editar</Link>}
+          <Link className="btn primary" to={`/presentar/cancion/${song.id}?t=${steps}`}><Icon name="play" /> Presentar</Link>
         </div>
       </div>
 
@@ -138,7 +139,7 @@ export default function Cancion() {
             <h3>Orden</h3>
             {can.edit && (
               <button className={`btn small ${editOrder ? 'primary' : ''}`} onClick={() => setEditOrder(!editOrder)}>
-                {editOrder ? '✓ Listo' : '✏️ Editar'}
+                {editOrder ? '✓ Listo' : <><Icon name="edit" /> Editar</>}
               </button>
             )}
           </div>

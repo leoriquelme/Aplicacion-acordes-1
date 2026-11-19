@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { enterChurch, useAuth } from '../lib/cloud.jsx';
 import { ROLES } from '../lib/store.jsx';
+import Icon from '../components/Icon.jsx';
 
 const LAST = 'cancionero-ultimo-ingreso';
 
@@ -45,7 +46,7 @@ export default function Bienvenida({ notice }) {
   return (
     <div className="welcome">
       <form className="welcome-card card" onSubmit={submit}>
-        <div className="welcome-logo" aria-hidden="true">🎵</div>
+        <div className="welcome-logo"><Icon name="music" size="2.4rem" /></div>
         <h1>Cancionero</h1>
         <p className="muted">Letras y acordes para tu iglesia</p>
         {notice && <p className="error">{notice}</p>}

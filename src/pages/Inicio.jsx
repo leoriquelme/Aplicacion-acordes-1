@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useStore } from '../lib/store.jsx';
 import { formatLong, relativeDay, sortEvents, todayISO } from '../lib/dates.js';
 import Avatares from '../components/Avatares.jsx';
+import Icon from '../components/Icon.jsx';
 
 const MAX_EVENTOS = 4;
 
@@ -14,7 +15,7 @@ export default function Inicio() {
     <div className="page inicio">
       {/* Bloque 1: la iglesia */}
       <section className="card bloque-iglesia">
-        <div className="bloque-icono" aria-hidden="true">⛪</div>
+        <div className="bloque-icono"><Icon name="church" /></div>
         <div>
           <h1>{mode === 'cloud' ? church?.name : 'Cancionero'}</h1>
           <p className="muted">

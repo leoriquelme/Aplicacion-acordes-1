@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { useState } from 'react';
 import { useStore } from '../lib/store.jsx';
 import { eventDateTime } from '../lib/stats.js';
@@ -5,6 +6,7 @@ import { GRUPOS, inscritosPorGrupo, participationId } from '../lib/participacion
 import ConfirmX from './ConfirmX.jsx';
 import Avatares, { Avatar } from './Avatares.jsx';
 import { Link } from 'react-router-dom';
+import Icon from './Icon.jsx';
 
 /**
  * Zona de inscripción de un evento: cada hermano elige UN rol para servir
@@ -42,26 +44,31 @@ export default function Participacion({ event }) {
           mine ? (
             <div className="row gap wrap">
               <span className="mi-rol">✓ Participas como <strong>{mine.role}</strong></span>
-              <button className="btn small" onClick={() => setChoosing(!choosing)}>{choosing ? 'Cerrar' : 'Cambiar rol'}</button>
+              <button className="btn small" onClick={() => setChoosing(true)}>Cambiar rol</button>
               <button className="btn small ghost danger" onClick={() => { leaveEvent(event.id, me.key); setChoosing(false); }}>Ya no participo</button>
             </div>
           ) : (
-            <button className="btn primary" onClick={() => setChoosing(!choosing)}>{choosing ? 'Cerrar' : '🙋 Participar'}</button>
+            <button className="btn primary" onClick={() => setChoosing(true)}>{<><Icon name="hand" /> Participar</>}</button>
           )
         )}
       </div>
 
-      {me && !past && !mine && !choosing && teams.length > 0 && (
+      {me && !past && !mine && teams.length > 0 && (
         <div className="rapido">
           <span className="small muted">Inscríbete con un toque:</span>
           <div className="row gap wrap">
-            {teams.map((t) => <button key={t} className="btn small role-btn" onClick={() => pick(t)}>🙋 {t}</button>)}
+            {teams.map((t) => <button key={t} className="btn small role-btn" onClick={() => pick(t)}><Icon name="hand" /> {t}</button>)}
           </div>
         </div>
       )}
 
       {choosing && !past && (
-        <div className="role-picker">
+        createPortal(<div className="modal-fondo" role="dialog" aria-modal="true" aria-label="Elegir cómo participar" onClick={() => setChoosing(false)}>
+        <div className="modal modal-roles role-picker" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-cabeza">
+            <h2>¿Cómo vas a servir?</h2>
+            <button className="btn ghost small" onClick={() => setChoosing(false)} aria-label="Cerrar">✕</button>
+          </div>
           <p className="small muted">
             Elige cómo vas a servir. Con un clic quedas asignado.
             {' '}<Link to="/mi-iglesia">Configura tus equipos</Link> para verlos primero.
@@ -93,6 +100,7 @@ export default function Participacion({ event }) {
             </div>
           ))}
         </div>
+        </div>, document.body)
       )}
 
       {total > 0 && (

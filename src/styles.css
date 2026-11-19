@@ -711,3 +711,42 @@ a.dato:hover { text-decoration: none; border-color: var(--primary); }
 .present button, .present select, .present a { cursor: pointer; }
 .present.sin-cursor, .present.sin-cursor * { cursor: none; }
 .present:focus { outline: none; }
+
+/* Íconos de línea */
+.icon { display: inline-block; vertical-align: -0.17em; flex-shrink: 0; }
+.tab-icon { display: inline-flex; }
+.bloque-icono { color: var(--primary); }
+.bloque-icono .icon { width: 1.6rem; height: 1.6rem; }
+.welcome-logo { color: var(--primary); }
+.add-menu-panel .menu-t { display: inline-flex; align-items: center; gap: 0.4rem; }
+
+/* Canciones: lista de bloques anchos y bajos */
+.song-blocks { list-style: none; padding: 0; margin: 0.4rem 0 0; display: flex; flex-direction: column; gap: 0.45rem; }
+.song-block {
+  display: flex; align-items: center; gap: 0.6rem; padding: 0.6rem 0.9rem; min-height: 3.1rem;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow);
+  color: var(--text); text-decoration: none; transition: border-color 0.1s;
+}
+.song-block:hover { text-decoration: none; border-color: var(--primary); }
+.song-block-text { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
+.song-block-text strong, .song-block-text span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.filtro-fila { margin-top: 0.3rem; }
+.filtro-panel { display: flex; flex-wrap: wrap; gap: 0.6rem 1rem; align-items: flex-end; padding: 0.8rem 1rem; }
+.filtro-panel label { margin: 0; }
+.filtro-panel select { width: auto; min-width: 10rem; }
+
+/* Eventos: botones con aire, orden en bloque */
+.head-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+.event-tools { display: flex; flex-wrap: wrap; gap: 0.6rem; margin: 0.4rem 0 1rem; }
+.event-card .row.gap { gap: 0.6rem; flex-wrap: wrap; }
+.orden-culto h2 { margin-top: 0; }
+.orden-culto .setlist { margin-bottom: 0; }
+
+/* Ventana para elegir cómo participar */
+.modal.modal-roles {
+  max-width: 34rem; text-align: left; max-height: 85vh; overflow: auto; padding: 1.1rem 1.2rem;
+  border: none; background: var(--surface);
+}
+.modal-cabeza { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.modal-cabeza h2 { margin: 0; }
+.modal-roles .role-group { margin-top: 0.8rem; }

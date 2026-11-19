@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ROLES, useStore } from '../lib/store.jsx';
 import { enterChurch, leaveChurch, useAuth } from '../lib/cloud.jsx';
+import Icon from './Icon.jsx';
 
 export function ChurchCard() {
   const { church, me, role, pendingRole, churchId } = useStore();
@@ -16,7 +17,7 @@ export function ChurchCard() {
   return (
     <section className="card">
       <h2>Iglesia</h2>
-      <p className="church-name">⛪ <strong>{church?.name}</strong></p>
+      <p className="church-name"><Icon name="church" /> <strong>{church?.name}</strong></p>
       <p>
         Estás como <strong>{me?.name}</strong> · perfil <span className={`role-pill role-${role}`}>{ROLES[role]?.label}</span>
       </p>

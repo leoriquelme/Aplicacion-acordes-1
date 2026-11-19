@@ -4,6 +4,7 @@ import { useStore } from '../lib/store.jsx';
 import { displayKey, normalize } from '../lib/chordpro.js';
 import { songKey } from '../lib/importar.js';
 import SongView from '../components/SongView.jsx';
+import Icon from '../components/Icon.jsx';
 
 /** Buscar alabanzas que compartieron otras iglesias y copiarlas a la propia. */
 export default function Biblioteca() {
@@ -67,7 +68,7 @@ export default function Biblioteca() {
                 <button className="lib-title" onClick={() => setOpen(open === x.id ? null : x.id)}>
                   <strong>{x.title}</strong>
                   {x.author && <span className="muted"> · {x.author}</span>}
-                  <div className="muted small">⛪ {x.churchName}{x.sharedBy ? ` · compartida por ${x.sharedBy}` : ''}</div>
+                  <div className="muted small"><Icon name="church" /> {x.churchName}{x.sharedBy ? ` · compartida por ${x.sharedBy}` : ''}</div>
                 </button>
                 {songKey(x) && <span className="key-pill">{displayKey(songKey(x), 0, settings.notation)}</span>}
                 {copied[x.id] ? (

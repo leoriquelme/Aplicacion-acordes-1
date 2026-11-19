@@ -5,6 +5,7 @@ import { KEYS, customBases, parseMeta, parseSong, syncOrder } from '../lib/chord
 import SectionButtons from '../components/SectionButtons.jsx';
 import { autodetect } from '../lib/importar.js';
 import SongView from '../components/SongView.jsx';
+import Icon from '../components/Icon.jsx';
 
 const BORRADOR = 'cancionero-borrador';
 const pick = (f) => ({ title: f.title, author: f.author, key: f.key, content: f.content, bpm: f.bpm || '', compas: f.compas || '' });
@@ -198,7 +199,7 @@ export default function EditarCancion() {
                   }
                 }}
               >
-                🎸 Autodetectar acordes
+                <Icon name="guitar" /> Autodetectar acordes
               </button>
               {!existing && (
                 <Link className="btn small primary" to="/canciones/importar">⤓ Importar desde la web</Link>

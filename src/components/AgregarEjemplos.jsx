@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '../lib/store.jsx';
 import { cancionesEjemplo } from '../data/ejemplos.js';
+import Icon from './Icon.jsx';
 
 /** Botón para agregar a la iglesia los himnos de ejemplo de dominio público. */
 export default function AgregarEjemplos({ className = 'btn' }) {
@@ -30,7 +31,7 @@ export default function AgregarEjemplos({ className = 'btn' }) {
         }}
         title={cancionesEjemplo.map((s) => s.title).join(', ')}
       >
-        📖 Agregar himnos de ejemplo ({cancionesEjemplo.length})
+        <Icon name="book" /> Agregar himnos de ejemplo ({cancionesEjemplo.length})
       </button>
       {msg && <span className={`small ${msg.startsWith('✓') ? 'ok' : 'muted'}`}>{msg}</span>}
     </span>
