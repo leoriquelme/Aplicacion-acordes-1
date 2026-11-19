@@ -37,7 +37,7 @@ export const cancionesEjemplo = [
   {
     id: 'ejemplo-amigo',
     title: '¡Oh, qué amigo nos es Cristo!',
-    author: 'Joseph M. Scriven / Charles C. Converse',
+    author: 'Joseph M. Scriven (trad. Leandro Garza Mora)',
     key: 'F',
     content: `[VERSO]
 [F]¡Oh, qué amigo nos es [Bb]Cristo!
@@ -50,6 +50,61 @@ export const cancionesEjemplo = [
 [Bb]de paz, gozo y santo a[F]mor?
 [F]Esto es porque no lle[Bb]vamos
 [F]todo a Dios en [C]ora[F]ción.`,
+  },
+  {
+    id: 'ejemplo-roca',
+    title: 'Roca de la eternidad',
+    author: 'Augustus Toplady (trad. Tomás M. Westrup)',
+    key: 'G',
+    content: `[VERSO]
+[G]Roca de la eterni[D]dad,
+[G]fuiste abierta [C]tú por [G]mí;
+[G]sé mi escondedero [D]fiel,
+[G]solo encuentro [D]paz en [G]ti,
+[C]rico, limpio mana[G]ntial,
+[G]en el cual la[D]vado [G]fui.`,
+  },
+  {
+    id: 'ejemplo-venid',
+    title: 'Venid, fieles todos',
+    author: 'Himno latino Adeste Fideles (trad. Juan B. Cabrera)',
+    key: 'G',
+    content: `[VERSO]
+[G]Venid, fieles [D]todos, [G]a Be[D]lén mar[G]chemos,
+[D]de gozo triun[A]fantes, hen[D]chidos de a[A]mor;
+[D]y al Rey de los [G]cielos hu[D]mildes ve[G]remos.
+
+[CORO]
+[G]Venid, ado[D]remos, [G]venid, ado[D]remos,
+[G]venid, ado[C]re[G]mos a [D]Cristo el Se[G]ñor.`,
+  },
+  {
+    id: 'ejemplo-noche',
+    title: 'Noche de paz',
+    author: 'Joseph Mohr / Franz X. Gruber (trad. Federico Fliedner)',
+    key: 'C',
+    content: `[VERSO]
+[C]Noche de paz, noche de a[C]mor,
+[G]todo duerme en derre[C]dor;
+[F]entre los astros que es[C]parcen su luz,
+[F]bella anunciando al ni[C]ñito Jesús,
+[G]brilla la estrella de [C]paz,
+[C]brilla la [G]estrella de [C]paz.`,
+  },
+  {
+    id: 'ejemplo-cristo-me-ama',
+    title: 'Cristo me ama',
+    author: 'Anna B. Warner / William B. Bradbury (trad. tradicional)',
+    key: 'D',
+    content: `[VERSO]
+[D]Cristo me ama, [G]bien lo [D]sé,
+[D]su Palabra me hace [A]ver,
+[D]que los niños [G]son de [D]Él,
+[D]quien es nuestro a[A]migo [D]fiel.
+
+[CORO]
+[D]Cristo me ama, [G]Cristo me ama,
+[D]Cristo me ama, [A]la Biblia dice [D]así.`,
   },
 ];
 

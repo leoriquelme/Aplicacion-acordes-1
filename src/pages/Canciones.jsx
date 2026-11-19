@@ -2,6 +2,7 @@ import { songKey } from '../lib/importar.js';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useStore } from '../lib/store.jsx';
+import AgregarEjemplos from '../components/AgregarEjemplos.jsx';
 import { displayKey, normalize } from '../lib/chordpro.js';
 
 export default function Canciones() {
@@ -35,6 +36,12 @@ export default function Canciones() {
       {list.length === 0 ? (
         <div className="empty card">
           <p>{songs.length ? 'No se encontraron canciones.' : 'Todavía no hay canciones.'}</p>
+          {!songs.length && (
+            <>
+              <p className="muted small">Puedes empezar con himnos clásicos de dominio público (sin derechos de autor).</p>
+              <AgregarEjemplos className="btn primary" />
+            </>
+          )}
         </div>
       ) : (
         <ul className="song-list">

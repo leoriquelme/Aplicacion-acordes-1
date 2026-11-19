@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { readLocalData, useStore } from '../lib/store.jsx';
 import { ChurchCard, UsersCard } from '../components/ChurchAdmin.jsx';
 import SongView from '../components/SongView.jsx';
+import AgregarEjemplos from '../components/AgregarEjemplos.jsx';
 
 const MUESTRA = '[G]Cuán grande es [C]Él, [G]cuán grande es [D]Él';
 
@@ -88,6 +89,12 @@ export default function Ajustes() {
               <button className="btn" onClick={exportar}>⬇ Descargar respaldo</button>
               {store.can.edit && <UploadLocal onDone={setMsg} />}
             </div>
+            {store.can.edit && (
+              <div style={{ marginTop: '0.8rem' }}>
+                <p className="muted small" style={{ margin: '0 0 0.4rem' }}>Himnos clásicos de dominio público (sin derechos de autor), como ejemplo para la iglesia:</p>
+                <AgregarEjemplos />
+              </div>
+            )}
             {msg && <p className="ok">{msg}</p>}
           </section>
         </>

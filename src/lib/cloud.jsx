@@ -4,6 +4,7 @@ import {
   collection, deleteDoc, deleteField, doc, getDoc, onSnapshot, query, setDoc, updateDoc, where, writeBatch,
 } from 'firebase/firestore';
 import { grupoDe, participationId } from './participacion.js';
+import { cancionesEjemplo } from '../data/ejemplos.js';
 import { auth, db } from './firebase.js';
 import { DataContext, ROLES } from './store.jsx';
 import { normalize } from './chordpro.js';
@@ -220,6 +221,21 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
     return added;
   }, [songs, col]);
 
+  /** Agrega los himnos de ejemplo (dominio público) que la iglesia todavía no tenga. */
+  const addExamples = useCallback(async () => {
+    const titles = new Set(songs.map((s) => normalize(s.title)));
+    const ids = new Set(songs.map((s) => s.id));
+    const b = writeBatch(db);
+    let added = 0;
+    for (const s of cancionesEjemplo) {
+      if (titles.has(normalize(s.title)) || ids.has(s.id)) continue;
+      b.set(doc(col('songs'), s.id), { ...sinId(s), updatedAt: Date.now() });
+      added++;
+    }
+    if (added) await b.commit();
+    return added;
+  }, [songs, col]);
+
   // Perfil efectivo (igual que en las reglas): si el administrador cambió el perfil,
   // el que vale es el menor hasta que la persona vuelva a entrar con su PIN.
   const person = mySession ? people.find((p) => p.key === mySession.key) : null;
@@ -232,8 +248,8 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
 
   const value = useMemo(() => ({
     mode: 'cloud', churchId, church, me, role, pendingRole, can, people, songs, events, participations, error,
-    clearError: () => setError(''), saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal,
-  }), [churchId, church.name, me?.name, me?.key, role, pendingRole, can, people, songs, events, participations, error, saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal]); // eslint-disable-line react-hooks/exhaustive-deps
+    clearError: () => setError(''), saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples,
+  }), [churchId, church.name, me?.name, me?.key, role, pendingRole, can, people, songs, events, participations, error, saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }
