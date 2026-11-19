@@ -488,3 +488,36 @@ textarea.mono { font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
 .lib-row { gap: 0.6rem; }
 .lib-title { flex: 1; min-width: 0; text-align: left; background: none; border: none; font: inherit; color: var(--text); cursor: pointer; padding: 0; }
 .lib-preview { margin: -0.3rem 0 0.8rem; }
+
+/* Presentación: menú pequeño arriba a la derecha */
+.present-head { padding-right: 3.2rem; }
+.present-menu { position: fixed; top: max(0.75rem, env(safe-area-inset-top)); right: 0.75rem; z-index: 30; display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem; transition: opacity 0.3s; }
+.present-menu.dim .present-menu-btn, .present-nav.dim { opacity: 0.35; }
+.present-menu-btn {
+  width: 2.6rem; height: 2.6rem; border-radius: 50%; border: 1px solid #3a3a3a; background: rgba(30, 30, 30, 0.9);
+  color: #fff; font-size: 1.3rem; line-height: 1; cursor: pointer; display: grid; place-items: center;
+}
+.present-menu-panel {
+  display: flex; flex-direction: column; gap: 0.45rem; width: min(17rem, calc(100vw - 1.5rem));
+  background: rgba(24, 24, 24, 0.97); border: 1px solid #333; border-radius: 14px; padding: 0.75rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); font-size: 0.95rem;
+}
+.present-menu-panel .btn { background: #2a2a2a; color: #fff; border-color: #3a3a3a; width: 100%; }
+.present-menu-panel .btn.danger-solid { background: #3a1d1d; border-color: #5a2a2a; color: #ffb4b4; }
+.present-menu-title { color: #9aa0a6; font-size: 0.85rem; }
+.present-menu-key { color: #ddd; }
+.present-menu-key strong { color: var(--chord); }
+.present-menu-row { display: flex; gap: 0.45rem; align-items: center; }
+.present-menu-row .btn { flex: 1; }
+.present-size { min-width: 2rem; text-align: center; color: #9aa0a6; font-size: 0.85rem; }
+.present-nav { position: fixed; bottom: max(0.75rem, env(safe-area-inset-bottom)); right: 0.75rem; display: flex; gap: 0.4rem; z-index: 20; transition: opacity 0.3s; }
+.present-nav button {
+  width: 2.6rem; height: 2.6rem; border-radius: 50%; border: 1px solid #3a3a3a; background: rgba(30, 30, 30, 0.9); color: #fff; cursor: pointer;
+}
+.present-nav button:disabled { opacity: 0.3; }
+@media (max-width: 640px) {
+  .present { padding: 1rem 0.75rem 4.5rem; }
+  .present .song .block { padding-left: 0.6em; padding-right: 1.2em; }
+}
+.word { display: inline-flex; align-items: flex-end; white-space: nowrap; }
+.present-menu-btn, .present-nav button { -webkit-tap-highlight-color: transparent; }

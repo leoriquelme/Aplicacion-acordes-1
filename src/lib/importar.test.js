@@ -130,3 +130,10 @@ describe('autodetectar', () => {
     expect([r.chords, r.headers]).toEqual([2, 2]);
   });
 });
+
+describe('líneas de acordes con barras y puntuación', () => {
+  it('reconoce |D  |F#m  Esus.', () => {
+    expect(isChordLine('|D    |F#m   |Esus.')).toBe(true);
+    expect(convertPlainChords('|D     |Esus\nCuán alto monte')).toContain('[Esus]');
+  });
+});

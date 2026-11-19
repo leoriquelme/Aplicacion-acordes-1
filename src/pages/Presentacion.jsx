@@ -35,15 +35,17 @@ export default function Presentacion() {
   }
 
   const [index, setIndex] = useState(0);
-  const [extra, setExtra] = useState({}); // cambios de tono hechos durante la presentación
-  const [size, setSize] = useState(Math.round(settings.fontSize * 1.5));
+  const [size, setSize] = useState(() => Math.round(settings.fontSize * (window.innerWidth < 640 ? 1 : 1.5)));
   const [showChords, setShowChords] = useState(settings.showChords);
   const [isFull, setIsFull] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
   const hideTimer = useRef(null);
+  const touch = useRef(null);
 
   const current = items[index];
-  const steps = current ? current.transpose + (extra[index] || 0) : 0;
+  // En la presentación no se cambia el tono: se usa el del evento (o el de la canción).
+  const steps = current ? current.transpose : 0;
 
   const go = useCallback((dir) => {
     setIndex((i) => Math.min(Math.max(i + dir, 0), Math.max(items.length - 1, 0)));
@@ -60,8 +62,6 @@ export default function Presentacion() {
     navigate(exitTo);
   }, [navigate, exitTo]);
 
-  const transpose = useCallback((d) => setExtra((x) => ({ ...x, [index]: (x[index] || 0) + d })), [index]);
-
   useEffect(() => {
     const onFs = () => setIsFull(Boolean(document.fullscreenElement));
     document.addEventListener('fullscreenchange', onFs);
@@ -72,14 +72,12 @@ export default function Presentacion() {
     const onKey = (e) => {
       if (['ArrowRight', 'PageDown'].includes(e.key)) { e.preventDefault(); go(1); }
       else if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); go(-1); }
-      else if (e.key === '+' || e.key === '=') transpose(1);
-      else if (e.key === '-') transpose(-1);
       else if (e.key.toLowerCase() === 'f') toggleFull();
       else if (e.key === 'Escape' && !document.fullscreenElement) exit();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [go, transpose, toggleFull, exit]);
+  }, [go, toggleFull, exit]);
 
   // Oculta los controles después de unos segundos sin mover el mouse.
   const poke = useCallback(() => {
@@ -104,7 +102,19 @@ export default function Presentacion() {
   }
 
   return (
-    <div className="present" ref={rootRef} onMouseMove={poke} onTouchStart={poke}>
+    <div
+      className="present"
+      ref={rootRef}
+      onMouseMove={poke}
+      onTouchStart={(e) => { poke(); touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }}
+      onTouchEnd={(e) => {
+        const t = touch.current; touch.current = null;
+        if (!t || menuOpen) return;
+        const dx = e.changedTouches[0].clientX - t.x;
+        const dy = e.changedTouches[0].clientY - t.y;
+        if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.5) go(dx < 0 ? 1 : -1);
+      }}
+    >
       <header className="present-head">
         <h1>{current.song.title}</h1>
         {items.length > 1 && <span className="present-count">{index + 1} / {items.length}</span>}
@@ -120,27 +130,37 @@ export default function Presentacion() {
         className="present-song"
       />
 
-      <div className={`present-controls ${controlsVisible ? '' : 'hidden'}`}>
-        <button className="btn" onClick={exit} title="Salir (Esc)">✕ Salir</button>
-        {items.length > 1 && (
-          <>
-            <button className="btn" onClick={() => go(-1)} disabled={index === 0} title="Anterior (←)">◀</button>
-            <button className="btn" onClick={() => go(1)} disabled={index === items.length - 1} title="Siguiente (→)">▶</button>
-          </>
-        )}
-        <span className="sep" />
-        <button className="btn" onClick={() => transpose(-1)} title="Bajar tono (−)">−</button>
-        <span className="present-key">{displayKey(songKey(current.song), steps, settings.notation) || steps}</span>
-        <button className="btn" onClick={() => transpose(1)} title="Subir tono (+)">+</button>
-        <span className="sep" />
-        <button className="btn" onClick={() => setSize((s) => Math.max(16, s - 4))} title="Letra más chica">A−</button>
-        <button className="btn" onClick={() => setSize((s) => Math.min(96, s + 4))} title="Letra más grande">A+</button>
-        <button className="btn" onClick={() => setShowChords((v) => !v)}>{showChords ? 'Ocultar acordes' : 'Mostrar acordes'}</button>
-        <button className="btn primary" onClick={toggleFull} title="Pantalla completa (F)">
-          {isFull ? 'Salir de pantalla completa' : '⛶ Pantalla completa'}
+      <div className={`present-menu ${controlsVisible || menuOpen ? '' : 'dim'}`}>
+        <button className="present-menu-btn" onClick={() => setMenuOpen((v) => !v)} aria-label="Opciones" aria-expanded={menuOpen}>
+          {menuOpen ? '✕' : '⋯'}
         </button>
-        {title && <span className="present-title muted">{title}</span>}
+        {menuOpen && (
+          <div className="present-menu-panel" role="menu">
+            {title && <div className="present-menu-title">{title}</div>}
+            <div className="present-menu-key">Tono: <strong>{displayKey(songKey(current.song), steps, settings.notation) || '—'}</strong></div>
+            {items.length > 1 && (
+              <div className="present-menu-row">
+                <button className="btn" onClick={() => go(-1)} disabled={index === 0}>◀ Anterior</button>
+                <button className="btn" onClick={() => go(1)} disabled={index === items.length - 1}>Siguiente ▶</button>
+              </div>
+            )}
+            <div className="present-menu-row">
+              <button className="btn" onClick={() => setSize((s) => Math.max(14, s - 3))} aria-label="Letra más chica">A−</button>
+              <span className="present-size">{size}</span>
+              <button className="btn" onClick={() => setSize((s) => Math.min(96, s + 3))} aria-label="Letra más grande">A+</button>
+            </div>
+            <button className="btn" onClick={() => setShowChords((v) => !v)}>{showChords ? 'Ocultar acordes' : 'Mostrar acordes'}</button>
+            <button className="btn" onClick={toggleFull}>{isFull ? 'Salir de pantalla completa' : '⛶ Pantalla completa'}</button>
+            <button className="btn danger-solid" onClick={exit}>✕ Salir de la presentación</button>
+          </div>
+        )}
       </div>
+      {items.length > 1 && (
+        <div className={`present-nav ${controlsVisible ? '' : 'dim'}`}>
+          <button onClick={() => go(-1)} disabled={index === 0} aria-label="Canción anterior">◀</button>
+          <button onClick={() => go(1)} disabled={index === items.length - 1} aria-label="Canción siguiente">▶</button>
+        </div>
+      )}
     </div>
   );
 }

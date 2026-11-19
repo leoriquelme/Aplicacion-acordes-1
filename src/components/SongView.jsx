@@ -2,15 +2,23 @@ import { arrangeSections, chordOptions, guessKey, parseSong, transposeChord } fr
 import { convertPlainChords } from '../lib/importar.js';
 
 // Separa el texto en palabras para que las líneas largas se puedan cortar
-// sin separar un acorde de su sílaba.
+// sin separar un acorde de su sílaba ni partir una palabra en dos.
 function splitWords(segments) {
-  const out = [];
+  const pieces = [];
   for (const seg of segments) {
     const found = seg.text.match(/\S*\s*/g)?.filter(Boolean) || [];
     const words = found.length ? found : [''];
-    words.forEach((w, i) => out.push({ chord: i === 0 ? seg.chord : '', text: w }));
+    words.forEach((w, i) => pieces.push({ chord: i === 0 ? seg.chord : '', text: w }));
   }
-  return out;
+  // Junta los trozos de una misma palabra (ej. "fallé e" + [Esus]"scalar").
+  const words = [];
+  let cur = null;
+  for (const p of pieces) {
+    if (!cur) { cur = []; words.push(cur); }
+    cur.push(p);
+    if (/\s$/.test(p.text) || p.text === '') cur = null;
+  }
+  return words;
 }
 
 function Line({ segments, showChords, opts, steps }) {
@@ -20,10 +28,14 @@ function Line({ segments, showChords, opts, steps }) {
   }
   return (
     <div className={`line with-chords ${segments.every((s) => !s.text.trim()) ? 'chords-only' : ''}`}>
-      {splitWords(segments).map((s, i) => (
-        <span className="seg" key={i}>
-          <span className="chord">{s.chord ? transposeChord(s.chord, steps, opts) : ' '}</span>
-          <span className="lyric">{s.text || ' '}</span>
+      {splitWords(segments).map((word, i) => (
+        <span className="word" key={i}>
+          {word.map((s, j) => (
+            <span className="seg" key={j}>
+              <span className="chord">{s.chord ? transposeChord(s.chord, steps, opts) : ' '}</span>
+              <span className="lyric">{s.text || ' '}</span>
+            </span>
+          ))}
         </span>
       ))}
     </div>

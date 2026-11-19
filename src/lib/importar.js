@@ -29,7 +29,8 @@ export function isChordToken(t) {
 }
 
 function tokens(line) {
-  return line.trim().split(/\s+/).filter(Boolean);
+  // Separa también por barras de compás "|" y quita puntos o comas pegados al acorde ("D.", "Esus,").
+  return line.trim().split(/[\s|]+/).map((t) => t.replace(/^[.,;:·]+|[.,;:·]+$/g, '')).filter(Boolean);
 }
 
 /** Una línea es de acordes si todo lo que tiene son acordes (o separadores como "|"). */
@@ -62,10 +63,11 @@ const normChord = (c) => c.replace(/[()]/g, '').replace('♯', '#').replace('♭
 /** Pone los acordes de la línea de arriba dentro de la letra, en la misma columna. */
 export function mergeChordLine(chordLine, lyric) {
   const found = [];
-  const re = /\S+/g;
+  const re = /[^\s|]+/g;
   let m;
   while ((m = re.exec(chordLine))) {
-    if (isChordToken(m[0])) found.push({ pos: m.index, chord: normChord(m[0]) });
+    const t = m[0].replace(/^[.,;:·]+|[.,;:·]+$/g, '');
+    if (isChordToken(t)) found.push({ pos: m.index + m[0].indexOf(t), chord: normChord(t) });
   }
   let text = lyric;
   const maxPos = found.length ? found[found.length - 1].pos : 0;
