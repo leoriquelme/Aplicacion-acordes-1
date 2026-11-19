@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../lib/store.jsx';
 import { cleanCode, randomCode } from '../lib/cloud.jsx';
 import Icon from './Icon.jsx';
+import { descargar } from '../lib/descargar.js';
 
 /** Código de acceso para entrar a la iglesia (solo el Administrador lo ve y lo cambia). */
 export function CodigoAcceso() {
@@ -55,14 +56,7 @@ export function Respaldo() {
 
   const descargar = () => {
     const data = { app: 'cancionero', version: 1, church: church?.name, fecha: new Date().toISOString(), songs, events };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `respaldo-${(church?.name || 'iglesia').toLowerCase()}-${new Date().toISOString().slice(0, 10)}.json`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    descargar(`respaldo-${(church?.name || 'iglesia').toLowerCase()}-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(data, null, 2));
     setMsg(`✓ Descargado: ${songs.length} canciones y ${events.length} eventos.`);
   };
 

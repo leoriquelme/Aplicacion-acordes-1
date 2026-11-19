@@ -1,54 +1,5 @@
 import { useState } from 'react';
-import { ROLES, useStore } from '../lib/store.jsx';
-import { enterChurch, leaveChurch, useAuth } from '../lib/cloud.jsx';
-import Icon from './Icon.jsx';
-
-export function ChurchCard() {
-  const { church, me, role, pendingRole, churchId } = useStore();
-  const { setSession } = useAuth();
-  const [pin, setPin] = useState('');
-  const [msg, setMsg] = useState('');
-
-  const salir = async () => {
-    await leaveChurch(churchId);
-    setSession(null);
-  };
-
-  return (
-    <section className="card">
-      <h2>Iglesia</h2>
-      <p className="church-name"><Icon name="church" /> <strong>{church?.name}</strong></p>
-      <p>
-        Estás como <strong>{me?.name}</strong> · perfil <span className={`role-pill role-${role}`}>{ROLES[role]?.label}</span>
-      </p>
-      {pendingRole && (
-        <form
-          className="code-box"
-          onSubmit={async (e) => {
-            e.preventDefault();
-            try {
-              await enterChurch({ church: church.name, name: me.name, pin });
-              setMsg('');
-              setPin('');
-            } catch (err) {
-              setMsg(err.message);
-            }
-          }}
-        >
-          <span>Te asignaron el perfil <strong>{ROLES[pendingRole]?.label}</strong>. Escribe tu PIN para activarlo.</span>
-          <div className="row gap">
-            <input value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} inputMode="numeric" type="password" placeholder="PIN" />
-            <button className="btn primary small" disabled={!pin}>Activar</button>
-          </div>
-          {msg && <span className="error">{msg}</span>}
-        </form>
-      )}
-      <div className="row gap wrap">
-        <button className="btn" onClick={salir}>Salir / cambiar de iglesia</button>
-      </div>
-    </section>
-  );
-}
+import { useStore } from '../lib/store.jsx';
 
 function shortDate(ms) {
   if (!ms) return '—';
@@ -88,14 +39,14 @@ function PersonRow({ p, isMe, onSave, onRemove }) {
               value={pin}
               onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
               inputMode="numeric"
-              placeholder={p.role === 'director' ? 'Nuevo PIN' : 'PIN (4+ números)'}
+              placeholder={p.role === 'director' ? 'Nuevo PIN' : 'PIN (8+ números)'}
               aria-label={`PIN de ${p.name}`}
             />
           )}
           {changed && (
             <button
               className="btn primary small"
-              disabled={saving || (role === 'director' && pin.length < 4 && p.role !== 'director')}
+              disabled={saving || (role === 'director' && pin.length < 8 && (p.role !== 'director' || pin.length > 0))}
               onClick={async () => {
                 setSaving(true);
                 try {
@@ -136,8 +87,9 @@ export function UsersCard() {
     if (role === 'director' && !pin) {
       const p = people.find((x) => x.key === key);
       if (p?.role === 'director') return;
-      throw new Error('Escribe un PIN de al menos 4 números.');
+      throw new Error('Escribe un PIN de al menos 8 números.');
     }
+    if (role === 'director' && String(pin).length < 8) throw new Error('El PIN debe tener al menos 8 números.');
     await setPersonRole(key, role, pin);
   };
 

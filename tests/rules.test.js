@@ -20,10 +20,10 @@ beforeEach(async () => {
   await env.clearFirestore();
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
-    await setDoc(doc(db, 'churches', C), { name: 'PSG', adminKey: ADMIN, adminPin: '1234' });
+    await setDoc(doc(db, 'churches', C), { name: 'PSG', adminKey: ADMIN, adminPin: '12345678' });
     await setDoc(doc(db, 'churches', C, 'people', 'dora'), { name: 'Dora', role: 'director' });
     await setDoc(doc(db, 'churches', C, 'people', 'carlos'), { name: 'Carlos', role: 'colaborador' });
-    await setDoc(doc(db, 'churches', C, 'private', 'pins'), { pins: { dora: '5555' } });
+    await setDoc(doc(db, 'churches', C, 'private', 'pins'), { pins: { dora: '55555555' } });
     await setDoc(doc(db, 'churches', C, 'songs', 's1'), { title: 'Santo' });
   });
 });
@@ -34,8 +34,8 @@ const song = (db, id = 's1') => doc(db, 'churches', C, 'songs', id);
 async function seedSessions() {
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
-    await setDoc(doc(db, 'churches', C, 'sessions', 'u-admin'), { key: ADMIN, name: 'Leonardo', role: 'admin', pin: '1234' });
-    await setDoc(doc(db, 'churches', C, 'sessions', 'u-dora'), { key: 'dora', name: 'Dora', role: 'director', pin: '5555' });
+    await setDoc(doc(db, 'churches', C, 'sessions', 'u-admin'), { key: ADMIN, name: 'Leonardo', role: 'admin', pin: '12345678' });
+    await setDoc(doc(db, 'churches', C, 'sessions', 'u-dora'), { key: 'dora', name: 'Dora', role: 'director', pin: '55555555' });
     await setDoc(doc(db, 'churches', C, 'sessions', 'u-carlos'), { key: 'carlos', name: 'Carlos', role: 'colaborador' });
   });
 }
@@ -46,14 +46,14 @@ describe('entrar', () => {
     await assertFails(setDoc(doc(as('u2'), 'churches', 'otra', 'sessions', 'u2'), { key: 'juan', name: 'Juan', role: 'colaborador' }));
   });
   it('administrador solo con su nombre y PIN', async () => {
-    await assertSucceeds(enter('u1', { key: ADMIN, name: 'Leonardo Riquelme', role: 'admin', pin: '1234' }));
-    await assertFails(enter('u2', { key: ADMIN, name: 'Leonardo Riquelme', role: 'admin', pin: '0000' }));
-    await assertFails(enter('u3', { key: 'juan', name: 'Juan', role: 'admin', pin: '1234' }));
+    await assertSucceeds(enter('u1', { key: ADMIN, name: 'Leonardo Riquelme', role: 'admin', pin: '12345678' }));
+    await assertFails(enter('u2', { key: ADMIN, name: 'Leonardo Riquelme', role: 'admin', pin: '00000000' }));
+    await assertFails(enter('u3', { key: 'juan', name: 'Juan', role: 'admin', pin: '12345678' }));
   });
   it('director solo con PIN correcto y perfil asignado', async () => {
-    await assertSucceeds(enter('u1', { key: 'dora', name: 'Dora', role: 'director', pin: '5555' }));
-    await assertFails(enter('u2', { key: 'dora', name: 'Dora', role: 'director', pin: '1111' }));
-    await assertFails(enter('u3', { key: 'carlos', name: 'Carlos', role: 'director', pin: '5555' }));
+    await assertSucceeds(enter('u1', { key: 'dora', name: 'Dora', role: 'director', pin: '55555555' }));
+    await assertFails(enter('u2', { key: 'dora', name: 'Dora', role: 'director', pin: '11111111' }));
+    await assertFails(enter('u3', { key: 'carlos', name: 'Carlos', role: 'director', pin: '55555555' }));
   });
   it('nadie lee los PIN ni la ficha de la iglesia (salvo el admin)', async () => {
     await seedSessions();
@@ -92,7 +92,7 @@ describe('usuarios', () => {
   const person = (db, key) => doc(db, 'churches', C, 'people', key);
   it('solo el admin cambia perfiles y PIN', async () => {
     await assertSucceeds(updateDoc(person(as('u-admin'), 'carlos'), { role: 'director' }));
-    await assertSucceeds(setDoc(doc(as('u-admin'), 'churches', C, 'private', 'pins'), { pins: { carlos: '7777' } }, { merge: true }));
+    await assertSucceeds(setDoc(doc(as('u-admin'), 'churches', C, 'private', 'pins'), { pins: { carlos: '77777777' } }, { merge: true }));
     await assertFails(updateDoc(person(as('u-dora'), 'carlos'), { role: 'director' }));
     await assertFails(updateDoc(person(as('u-carlos'), 'carlos'), { role: 'admin' }));
   });
@@ -169,7 +169,7 @@ describe('favoritas', () => {
 describe('sugerencias', () => {
   beforeEach(seedSessions);
   const sug = (db, id) => doc(db, 'churches', C, 'suggestions', id);
-  const data = (personKey, extra = {}) => ({ text: 'Falta un acorde', songId: '', songTitle: '', personKey, name: 'X', at: 1, ...extra });
+  const data = (personKey, extra = {}) => ({ text: 'Falta un acorde', songId: '', songTitle: '', personKey, name: 'Carlos', at: 1, ...extra });
   it('todos envían; solo el admin lee y resuelve', async () => {
     await assertSucceeds(setDoc(sug(as('u-carlos'), 'x1'), data('carlos')));
     await assertFails(setDoc(sug(as('u-carlos'), 'x2'), data('dora')));
@@ -212,7 +212,7 @@ describe('código de acceso', () => {
   beforeEach(seedSessions);
   it('solo el admin pone el código, y no puede cambiar otra cosa', async () => {
     await assertSucceeds(updateDoc(doc(as('u-admin'), 'churches', C), { accessCode: 'ABCDEF' }));
-    await assertFails(updateDoc(doc(as('u-admin'), 'churches', C), { adminPin: '0000' }));
+    await assertFails(updateDoc(doc(as('u-admin'), 'churches', C), { adminPin: '00000000' }));
     await assertFails(updateDoc(doc(as('u-dora'), 'churches', C), { accessCode: 'XYZXYZ' }));
     await assertFails(updateDoc(doc(as('u-carlos'), 'churches', C), { accessCode: 'XYZXYZ' }));
   });
@@ -222,7 +222,7 @@ describe('código de acceso', () => {
     await assertFails(enter('u2', { key: 'juan', name: 'Juan', role: 'colaborador', code: 'MALO12' }));
     await assertSucceeds(enter('u3', { key: 'juan', name: 'Juan', role: 'colaborador', code: 'ABCDEF' }));
     // El admin entra con su PIN aunque no ponga código.
-    await assertSucceeds(enter('u4', { key: ADMIN, name: 'Leonardo Riquelme', role: 'admin', pin: '1234' }));
+    await assertSucceeds(enter('u4', { key: ADMIN, name: 'Leonardo Riquelme', role: 'admin', pin: '12345678' }));
   });
 });
 
@@ -238,5 +238,87 @@ describe('notas propias', () => {
   it('las notas del director van en la canción', async () => {
     await assertSucceeds(updateDoc(song(as('u-dora')), { notes: [{ section: 'CORO', note: 'fuerte' }] }));
     await assertFails(updateDoc(song(as('u-carlos')), { notes: [] }));
+  });
+});
+
+describe('seguridad: nombres con PIN y sesiones viejas', () => {
+  beforeEach(seedSessions);
+  const fav = (u, k) => doc(as(u), 'churches', C, 'favorites', k);
+  it('un nombre de director o administrador no entra como colaborador', async () => {
+    await assertFails(enter('x1', { key: ADMIN, name: 'Leonardo Riquelme', role: 'colaborador' }));
+    await assertFails(enter('x2', { key: 'dora', name: 'Dora', role: 'colaborador' }));
+    await assertSucceeds(enter('x3', { key: 'carlos', name: 'Carlos', role: 'colaborador' }));
+  });
+  it('una sesión vieja de colaborador con el nombre del admin no ve sus notas', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'churches', C, 'sessions', 'x-falso'), { key: ADMIN, name: 'Leo', role: 'colaborador' });
+      await setDoc(doc(ctx.firestore(), 'churches', C, 'favorites', ADMIN), { notes: { s1: ['secreto'] } });
+    });
+    await assertFails(getDoc(fav('x-falso', ADMIN)));
+    await assertFails(getDoc(song(as('x-falso'))));
+    await assertSucceeds(getDoc(fav('u-admin', ADMIN)));
+  });
+  it('PIN corto (menos de 8) no sirve', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'churches', C, 'people', 'eva'), { name: 'Eva', role: 'director' });
+      await setDoc(doc(ctx.firestore(), 'churches', C, 'private', 'pins'), { pins: { dora: '55555555', eva: '1234' } });
+    });
+    await assertFails(enter('x1', { key: 'eva', name: 'Eva', role: 'director', pin: '1234' }));
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await updateDoc(doc(ctx.firestore(), 'churches', C), { adminPin: '1234' });
+    });
+    await assertFails(enter('x2', { key: ADMIN, name: 'Leonardo', role: 'admin', pin: '1234' }));
+  });
+  it('el PIN del admin también puede estar guardado como número', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await updateDoc(doc(ctx.firestore(), 'churches', C), { adminPin: 12345678 });
+    });
+    await assertSucceeds(enter('x1', { key: ADMIN, name: 'Leonardo', role: 'admin', pin: 12345678 }));
+    await assertSucceeds(getDoc(song(as('x1'))));
+  });
+  it('si cambia el PIN del director, su sesión vieja deja de servir', async () => {
+    await assertSucceeds(getDoc(song(as('u-dora'))));
+    await assertSucceeds(setDoc(doc(as('u-admin'), 'churches', C, 'private', 'pins'), { pins: { dora: '99999999' } }, { merge: true }));
+    await assertFails(getDoc(song(as('u-dora'))));
+  });
+  it('si cambia el PIN del admin, su sesión vieja deja de servir', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await updateDoc(doc(ctx.firestore(), 'churches', C), { adminPin: '87654321' });
+    });
+    await assertFails(getDoc(song(as('u-admin'))));
+  });
+  it('si se pone o cambia el código de acceso, los colaboradores vuelven a entrar', async () => {
+    await assertSucceeds(getDoc(song(as('u-carlos'))));
+    await assertSucceeds(updateDoc(doc(as('u-admin'), 'churches', C), { accessCode: 'ABCDEF' }));
+    await assertFails(getDoc(song(as('u-carlos'))));
+    await assertSucceeds(getDoc(song(as('u-dora'))));
+  });
+  it('si a un colaborador lo hacen director, entra con su PIN', async () => {
+    await assertSucceeds(updateDoc(doc(as('u-admin'), 'churches', C, 'people', 'carlos'), { role: 'director' }));
+    await assertFails(getDoc(song(as('u-carlos'))));
+  });
+});
+
+describe('límites de tamaño', () => {
+  beforeEach(seedSessions);
+  it('sugerencias: el nombre es el de quien entró y sin campos extra', async () => {
+    const sug = (id) => doc(as('u-carlos'), 'churches', C, 'suggestions', id);
+    const ok = { text: 'Hola', songId: '', songTitle: '', personKey: 'carlos', name: 'Carlos', at: 1 };
+    await assertSucceeds(setDoc(sug('a'), ok));
+    await assertFails(setDoc(sug('b'), { ...ok, name: 'Dora' }));
+    await assertFails(setDoc(sug('c'), { ...ok, extra: 'x'.repeat(1000) }));
+  });
+  it('inscripciones sin campos extra', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'churches', C, 'events', 'e1'), { name: 'Culto', date: '2026-11-22' });
+    });
+    const d = { eventId: 'e1', personKey: 'carlos', name: 'Carlos', role: 'Bajo', group: 'instrumentos', date: '2026-11-22', at: 1 };
+    const ref = doc(as('u-carlos'), 'churches', C, 'participations', 'e1__carlos');
+    await assertSucceeds(setDoc(ref, d));
+    await assertFails(setDoc(ref, { ...d, basura: 'x' }));
+  });
+  it('canciones de hasta 50.000 letras', async () => {
+    await assertSucceeds(updateDoc(song(as('u-dora')), { content: 'a'.repeat(1000) }));
+    await assertFails(updateDoc(song(as('u-dora')), { content: 'a'.repeat(60000) }));
   });
 });

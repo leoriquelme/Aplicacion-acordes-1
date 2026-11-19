@@ -157,10 +157,6 @@ export function useStore() {
   return { ...useContext(DataContext), ...useContext(SettingsContext) };
 }
 
-export function useSettings() {
-  return useContext(SettingsContext);
-}
-
 // ---------- Tono personal (cada músico, en su equipo) ----------
 
 const PERSONAL_KEY = 'cancionero-tonos';

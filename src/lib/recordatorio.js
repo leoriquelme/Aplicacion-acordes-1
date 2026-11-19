@@ -1,3 +1,5 @@
+import { descargar } from './descargar.js';
+
 // Recordatorios gratis: un archivo de calendario (.ics) que el celular agrega a su calendario
 // con avisos antes del culto. Funciona en iPhone y Android sin servidor.
 
@@ -5,17 +7,7 @@ const pad = (n) => String(n).padStart(2, '0');
 const stamp = (d) => `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`;
 const esc = (t = '') => t.replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/[,;]/g, (c) => `\\${c}`);
 
-function descargar(nombre, texto) {
-  const blob = new Blob([texto], { type: 'text/calendar;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = nombre;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
-}
+const descargarICS = (nombre, texto) => descargar(nombre, texto, 'text/calendar;charset=utf-8');
 
 /** Texto .ics de un evento con avisos 1 día y 1 hora antes. */
 export function eventoICS(event, now = new Date()) {
@@ -59,9 +51,9 @@ export function oracionICS(hora, now = new Date()) {
 }
 
 export function descargarRecordatorio(event) {
-  descargar(`${event.name.replace(/[^\wáéíóúñ -]/gi, '').trim() || 'evento'}.ics`, eventoICS(event));
+  descargarICS(`${event.name.replace(/[^\wáéíóúñ -]/gi, '').trim() || 'evento'}.ics`, eventoICS(event));
 }
 
 export function descargarOracion(hora) {
-  descargar('oracion-diaria.ics', oracionICS(hora));
+  descargarICS('oracion-diaria.ics', oracionICS(hora));
 }

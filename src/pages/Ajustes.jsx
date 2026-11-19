@@ -7,6 +7,7 @@ import InstalarCard from '../components/InstalarCard.jsx';
 import IglesiaPrueba from '../components/IglesiaPrueba.jsx';
 import { Respaldo } from '../components/Administracion.jsx';
 import Icon from '../components/Icon.jsx';
+import { descargar } from '../lib/descargar.js';
 
 const MUESTRA = '[G]Cuán grande es [C]Él, [G]cuán grande es [D]Él';
 
@@ -17,12 +18,7 @@ export default function Ajustes() {
   const [msg, setMsg] = useState('');
 
   const exportar = () => {
-    const blob = new Blob([JSON.stringify({ songs, events, settings }, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `cancionero-respaldo-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(a.href);
+    descargar(`cancionero-respaldo-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify({ songs, events, settings }, null, 2));
     setMsg('Respaldo descargado.');
   };
 

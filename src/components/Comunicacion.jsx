@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ROLES, useStore } from '../lib/store.jsx';
-import { enterChurch, leaveChurch, useAuth } from '../lib/cloud.jsx';
+import { leaveChurch, useAuth } from '../lib/cloud.jsx';
 import { APP_VERSION } from '../lib/version.js';
 import { Avatar } from './Avatares.jsx';
 import { EquiposPerfil } from './MisEquipos.jsx';
@@ -21,13 +21,12 @@ function useOnline() {
 
 /** Arriba de Ajustes: mi nombre (con Editar), mi perfil y el estado de la app. */
 export function PerfilCard() {
-  const { mode, church, me, role, pendingRole, songs, updateMyName } = useStore();
+  const { mode, church, me, role, songs, updateMyName } = useStore();
   const online = useOnline();
   const [offlineReady, setOfflineReady] = useState(false);
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState('');
   const [msg, setMsg] = useState('');
-  const [pin, setPin] = useState('');
   useEffect(() => {
     navigator.serviceWorker?.getRegistration?.().then((r) => setOfflineReady(Boolean(r?.active))).catch(() => {});
   }, []);
@@ -65,27 +64,6 @@ export function PerfilCard() {
           <button className="btn small" onClick={() => { setName(me?.name || ''); setEditing(true); }}><Icon name="edit" /> Editar</button>
         )}
       </div>
-
-      {cloud && pendingRole && (
-        <form
-          className="code-box"
-          onSubmit={async (e) => {
-            e.preventDefault();
-            try {
-              await enterChurch({ church: church.name, name: me.name, pin });
-              setPin('');
-            } catch (err) {
-              setMsg(err.message);
-            }
-          }}
-        >
-          <span>Te asignaron el perfil <strong>{ROLES[pendingRole]?.label}</strong>. Escribe tu PIN para activarlo.</span>
-          <div className="row gap">
-            <input value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} inputMode="numeric" type="password" placeholder="PIN" />
-            <button className="btn primary small" disabled={!pin}>Activar</button>
-          </div>
-        </form>
-      )}
 
       {cloud && <EquiposPerfil />}
 

@@ -9,7 +9,7 @@ function Gate() {
   if (user === undefined) return <div className="loading">Cargando…</div>;
   if (!user || !session) return <Bienvenida />;
   return (
-    <CloudStoreProvider churchId={session.churchId} churchName={session.churchName} key={session.churchId}>
+    <CloudStoreProvider churchId={session.churchId} churchName={session.churchName} key={`${session.churchId}-${session.at || ''}`}>
       <MemberCheck />
     </CloudStoreProvider>
   );
@@ -18,7 +18,7 @@ function Gate() {
 function MemberCheck() {
   const { me, error, clearError } = useContext(DataContext);
   if (me === undefined) return <div className="loading">Abriendo la iglesia…</div>;
-  if (me === null) return <Bienvenida notice="Vuelve a entrar con tu iglesia y tu nombre." />;
+  if (me === null) return <Bienvenida notice="Vuelve a entrar con tu iglesia y tu nombre (si cambió tu PIN, tu perfil o el código de acceso, usa los nuevos)." />;
   return (
     <>
       {error && (

@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { cleanCode, enterChurch, useAuth } from '../lib/cloud.jsx';
-import { ROLES } from '../lib/store.jsx';
 import Icon from '../components/Icon.jsx';
 
 const LAST = 'cancionero-ultimo-ingreso';
@@ -21,7 +20,6 @@ export default function Bienvenida({ notice }) {
   const [name, setName] = useState(last.name || '');
   const [pin, setPin] = useState('');
   const [code, setCode] = useState(last.code || '');
-  const [needsPin, setNeedsPin] = useState(null); // { role, result }
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -32,11 +30,7 @@ export default function Bienvenida({ notice }) {
     try {
       const r = await enterChurch({ church, name, pin, code });
       localStorage.setItem(LAST, JSON.stringify({ church: church.trim(), name: name.trim(), code: cleanCode(code) }));
-      if (r.needsPin && !pin) {
-        setNeedsPin({ role: r.needsPin, result: r });
-      } else {
-        setSession({ churchId: r.churchId, churchName: r.churchName });
-      }
+      setSession({ churchId: r.churchId, churchName: r.churchName, at: Date.now() }); // "at": vuelve a abrir la iglesia desde cero
     } catch (err) {
       setError(err.message?.includes('network') ? 'No hay conexión a internet.' : err.message);
     } finally {
@@ -76,17 +70,12 @@ export default function Bienvenida({ notice }) {
             Tu nombre
             <input
               value={name}
-              onChange={(e) => { setName(e.target.value); setNeedsPin(null); }}
+              onChange={(e) => setName(e.target.value)}
               placeholder="Ej. Leonardo Riquelme"
               autoFocus={Boolean(church)}
               autoComplete="name"
             />
           </label>
-          {needsPin && (
-            <p className="pin-notice">
-              Este nombre tiene el perfil <strong>{ROLES[needsPin.role]?.label}</strong>. Escribe tu PIN para entrar con ese perfil.
-            </p>
-          )}
           <label>
             PIN <span className="muted small">(solo si eres Director o Administrador)</span>
             <input
@@ -95,24 +84,14 @@ export default function Bienvenida({ notice }) {
               inputMode="numeric"
               type="password"
               placeholder="Déjalo vacío si eres Colaborador"
-              autoFocus={Boolean(needsPin)}
               autoComplete="off"
             />
           </label>
         </fieldset>
 
-        <button className="btn primary big" disabled={busy || !church.trim() || !name.trim() || (needsPin && !pin)}>
+        <button className="btn primary big" disabled={busy || !church.trim() || !name.trim()}>
           {busy ? 'Entrando…' : 'Entrar'}
         </button>
-        {needsPin && (
-          <button
-            type="button"
-            className="btn ghost small"
-            onClick={() => setSession({ churchId: needsPin.result.churchId, churchName: needsPin.result.churchName })}
-          >
-            Entrar como Colaborador
-          </button>
-        )}
         {error && <p className="error">{error}</p>}
       </form>
     </div>

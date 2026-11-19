@@ -20,31 +20,43 @@ service cloud.firestore {
     function personPath(c, key) { return /databases/$(database)/documents/churches/$(c)/people/$(key); }
     function pinsPath(c) { return /databases/$(database)/documents/churches/$(c)/private/pins; }
 
-    function isMember(c) { return signedIn() && exists(sessionPath(c)); }
+    function church(c) { return get(churchPath(c)).data; }
+    // PIN de al menos 8 números (uno de 4 se adivina probando las 10.000 combinaciones).
+    function longPin(p) { return string(p).size() >= 8; }
+    // Un nombre "común": no es el del administrador ni el de un director.
+    function plainName(c, key) {
+      return key != church(c).adminKey
+        && (!exists(personPath(c, key)) || get(personPath(c, key)).data.role == 'colaborador');
+    }
+    // ¿La sesión sigue siendo válida? Se revisa en cada lectura y escritura, así que si cambia
+    // el PIN, el perfil o el código de acceso, las sesiones viejas dejan de servir al instante.
+    function sessionOk(c, s) {
+      return (s.role == 'colaborador'
+          && (!('accessCode' in church(c)) || s.get('code', '') == church(c).accessCode)
+          && plainName(c, s.key))
+        || (s.role == 'admin' && s.key == church(c).adminKey
+          && s.get('pin', '') == church(c).adminPin && longPin(church(c).adminPin))
+        || (s.role == 'director' && exists(personPath(c, s.key))
+          && get(personPath(c, s.key)).data.role == 'director'
+          && s.get('pin', '') == get(pinsPath(c)).data.pins[s.key] && longPin(s.pin));
+    }
+
+    function isMember(c) { return signedIn() && exists(sessionPath(c)) && sessionOk(c, sess(c)); }
     function sess(c) { return get(sessionPath(c)).data; }
-    function isAdmin(c) {
-      return isMember(c) && sess(c).role == 'admin' && sess(c).key == get(churchPath(c)).data.adminKey;
-    }
-    function isDirector(c) {
-      return isMember(c) && sess(c).role == 'director'
-        && exists(personPath(c, sess(c).key)) && get(personPath(c, sess(c).key)).data.role == 'director';
-    }
+    function isAdmin(c) { return isMember(c) && sess(c).role == 'admin'; }
+    function isDirector(c) { return isMember(c) && sess(c).role == 'director'; }
     function canEdit(c) { return isAdmin(c) || isDirector(c); }
     function validName(n) { return n is string && n.size() > 0 && n.size() <= 60; }
+    function shortText(t, max) { return t is string && t.size() <= max; }
 
-    // Entrar: colaborador siempre (si la iglesia existe); director o admin solo con su PIN.
+    // Entrar: colaborador con un nombre común (y el código, si la iglesia tiene);
+    // director o administrador solo con su PIN. Un nombre de director o administrador
+    // no puede entrar como colaborador (así nadie ve las notas de otro).
     function validSession(c, uid) {
       let d = request.resource.data;
       return signedIn() && request.auth.uid == uid && exists(churchPath(c))
         && d.key is string && validName(d.key) && validName(d.name)
-        && (
-          // Colaborador: si la iglesia tiene código de acceso, debe escribirlo bien.
-          (d.role == 'colaborador'
-            && (!('accessCode' in get(churchPath(c)).data) || d.code == get(churchPath(c)).data.accessCode))
-          || (d.role == 'admin' && d.key == get(churchPath(c)).data.adminKey && d.pin == get(churchPath(c)).data.adminPin)
-          || (d.role == 'director' && get(personPath(c, d.key)).data.role == 'director'
-              && d.pin == get(pinsPath(c)).data.pins[d.key])
-        );
+        && sessionOk(c, d);
     }
 
     // Biblioteca compartida entre iglesias: cada iglesia comparte voluntariamente sus canciones
@@ -54,7 +66,10 @@ service cloud.firestore {
       return canEdit(d.churchId)
         && pid == d.churchId + '__' + d.songId
         && d.confirmed == true
-        && validName(d.title) && d.content is string && d.content.size() < 20000;
+        && d.keys().hasOnly(['churchId', 'churchName', 'songId', 'title', 'author', 'key', 'content', 'order', 'sharedBy', 'confirmed', 'sharedAt'])
+        && validName(d.title) && d.content is string && d.content.size() < 20000
+        && shortText(d.get('churchName', ''), 60) && shortText(d.get('sharedBy', ''), 60)
+        && shortText(d.get('author', ''), 120) && (!('order' in d) || (d.order is list && d.order.size() <= 60));
     }
     match /library/{pid} {
       allow read: if signedIn();
@@ -107,7 +122,8 @@ service cloud.firestore {
 
       match /songs/{song} {
         allow read: if isMember(c);
-        allow create, update: if canEdit(c);
+        allow create, update: if canEdit(c)
+          && (!('content' in request.resource.data) || shortText(request.resource.data.content, 50000));
         allow delete: if isAdmin(c);
       }
 
@@ -126,6 +142,8 @@ service cloud.firestore {
           && pid == request.resource.data.eventId + '__' + request.resource.data.personKey
           && validName(request.resource.data.name)
           && request.resource.data.role is string && request.resource.data.role.size() <= 40
+          && request.resource.data.keys().hasOnly(['eventId', 'personKey', 'name', 'role', 'group', 'date', 'at', 'prueba'])
+          && shortText(request.resource.data.get('group', ''), 40) && shortText(request.resource.data.get('date', ''), 10)
           && (canEdit(c) || request.resource.data.personKey == sess(c).key);
         allow delete: if canEdit(c) || (isMember(c) && resource.data.personKey == sess(c).key);
       }
@@ -136,14 +154,17 @@ service cloud.firestore {
         allow create, update: if isMember(c) && key == sess(c).key
           && request.resource.data.keys().hasOnly(['songs', 'notes'])
           && (!('songs' in request.resource.data) || (request.resource.data.songs is list && request.resource.data.songs.size() <= 500))
-          && (!('notes' in request.resource.data) || request.resource.data.notes is map);
+          && (!('notes' in request.resource.data) || (request.resource.data.notes is map && request.resource.data.notes.size() <= 500));
       }
 
       // Sugerencias de mejoras: cualquiera que entró envía; solo el Administrador las lee y resuelve.
       match /suggestions/{sid} {
         allow read, delete: if isAdmin(c);
         allow create: if isMember(c)
+          && request.resource.data.keys().hasOnly(['text', 'songId', 'songTitle', 'personKey', 'name', 'at'])
           && request.resource.data.personKey == sess(c).key
+          && request.resource.data.name == sess(c).name
+          && shortText(request.resource.data.songId, 100)
           && request.resource.data.text is string
           && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 1000
           && request.resource.data.songTitle is string && request.resource.data.songTitle.size() <= 120;

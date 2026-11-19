@@ -62,11 +62,21 @@ export function randomCode(n = 6) {
   crypto.getRandomValues(arr);
   return [...arr].map((x) => abc[x % abc.length]).join('');
 }
-const NO_ENTRA = (church) => `No pudimos entrar a "${church.trim()}". Revisa el nombre de la iglesia y, si tiene, el código de acceso.`;
+const NO_ENTRA = (church) => `No pudimos entrar a "${church.trim()}". Revisa el nombre de la iglesia y, si tiene, el código de acceso. Si en esta iglesia eres Director o Administrador, escribe también tu PIN.`;
+
+/** Guarda muchos cambios de a 400 (el máximo de Firebase por envío es 500). */
+async function commitAll(ops) {
+  for (let i = 0; i < ops.length; i += 400) {
+    const b = writeBatch(db);
+    ops.slice(i, i + 400).forEach((op) => op(b));
+    await b.commit();
+  }
+}
 
 /**
  * Entrar a una iglesia. Con PIN intenta Administrador y luego Director.
- * Devuelve { churchId, churchName, needsPin } (needsPin = perfil que pide PIN).
+ * Un nombre de Director o Administrador solo entra con su PIN (lo exigen las reglas).
+ * Devuelve { churchId, churchName }.
  */
 export async function enterChurch({ church, name, pin, code = '' }) {
   const churchId = keyOf(church);
@@ -119,8 +129,7 @@ export async function enterChurch({ church, name, pin, code = '' }) {
   }
   // El nombre no se toca: la persona pudo cambiarlo en Ajustes.
   await updateDoc(personRef(churchId, key), { lastSeen: now });
-  const role = person.data().role;
-  return { churchId, churchName: base.churchName, needsPin: role !== 'colaborador' ? role : null };
+  return { churchId, churchName: base.churchName };
 }
 
 export async function leaveChurch(churchId) {
@@ -150,6 +159,9 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
   const [myNotes, setMyNotesState] = useState({});
   const [suggestions, setSuggestions] = useState([]);
   const [error, setError] = useState('');
+  // La sesión venció: cambió el PIN, el perfil o el código de acceso. Hay que volver a entrar
+  // (al entrar de nuevo, CloudRoot vuelve a crear este componente desde cero).
+  const [expired, setExpired] = useState(false);
 
   useEffect(() => {
     const unsub = onSnapshot(sessionRef(churchId, user.uid), (s) => setMySession(s.exists() ? s.data() : null), () => setMySession(null));
@@ -159,7 +171,7 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
   useEffect(() => {
     if (!mySession) return undefined;
     const base = doc(db, 'churches', churchId);
-    const fail = (e) => setError(e.message);
+    const fail = (e) => (e.code === 'permission-denied' ? setExpired(true) : setError(e.message));
     const subs = [
       onSnapshot(collection(base, 'songs'), (s) => setSongs(s.docs.map((d) => ({ ...d.data(), id: d.id }))), fail),
       onSnapshot(collection(base, 'events'), (s) => setEvents(s.docs.map((d) => ({ items: [], ...d.data(), id: d.id }))), fail),
@@ -292,21 +304,9 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
   /** Sube canciones de este equipo a la iglesia, saltando títulos que ya existen. */
   const uploadLocal = useCallback(async ({ songs: localSongs }) => {
     const existing = new Set(songs.map((s) => normalize(s.title)));
-    let b = writeBatch(db);
-    let n = 0;
-    let added = 0;
-    for (const s of localSongs) {
-      if (existing.has(normalize(s.title))) continue;
-      b.set(doc(col('songs')), { ...sinId(s), updatedAt: Date.now() });
-      added++;
-      if (++n >= 400) {
-        await b.commit();
-        b = writeBatch(db);
-        n = 0;
-      }
-    }
-    if (n) await b.commit();
-    return added;
+    const nuevas = localSongs.filter((s) => !existing.has(normalize(s.title)));
+    await commitAll(nuevas.map((s) => (b) => b.set(doc(col('songs')), { ...sinId(s), updatedAt: Date.now() })));
+    return nuevas.length;
   }, [songs, col]);
 
   // ---------- Biblioteca compartida ----------
@@ -358,23 +358,12 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
       ...data.songs.filter((s) => s.id && s.title).map((s) => (b) => b.set(doc(col('songs'), s.id), { ...sinId(s), updatedAt: Date.now() })),
       ...(Array.isArray(data.events) ? data.events : []).filter((e) => e.id && e.name).map((e) => (b) => b.set(doc(col('events'), e.id), sinId(e))),
     ];
-    for (let i = 0; i < ops.length; i += 400) {
-      const b = writeBatch(db);
-      ops.slice(i, i + 400).forEach((op) => op(b));
-      await b.commit();
-    }
+    await commitAll(ops);
     return { songs: data.songs.length, events: (data.events || []).length };
   }, [col]);
 
   // ---------- Iglesia de prueba: llenar con datos inventados y reiniciar ----------
   const isTest = churchId === PRUEBA_ID;
-  const commitAll = async (ops) => {
-    for (let i = 0; i < ops.length; i += 400) {
-      const b = writeBatch(db);
-      ops.slice(i, i + 400).forEach((op) => op(b));
-      await b.commit();
-    }
-  };
   const fillTestData = useCallback(async () => {
     if (!isTest) throw new Error('Solo en la iglesia de prueba.');
     const d = datosPrueba();
@@ -400,16 +389,15 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
   const person = mySession ? people.find((p) => p.key === mySession.key) : null;
   let role = mySession?.role || 'colaborador';
   if (role === 'director' && person && person.role !== 'director') role = 'colaborador';
-  const pendingRole = person && person.role !== 'colaborador' && person.role !== role ? person.role : null;
   const can = ROLES[role] || ROLES.colaborador;
-  const me = mySession === undefined ? undefined : mySession && { name: person?.name || mySession.name, key: mySession.key, teams: person?.teams || [] };
+  const me = mySession === undefined ? undefined : expired ? null : mySession && { name: person?.name || mySession.name, key: mySession.key, teams: person?.teams || [] };
   const church = { id: churchId, name: churchName };
 
   const value = useMemo(() => ({
-    mode: 'cloud', churchId, church, me, role, pendingRole, can, people, songs, events, participations, error,
+    mode: 'cloud', churchId, church, me, role, can, people, songs, events, participations, error,
     clearError: () => setError(''), saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples, myShares, shareSong, unshareSong, loadLibrary,
     favorites, toggleFavorite, suggestions, sendSuggestion, resolveSuggestion, prayers, pray, updateMyName, setMyTeams, isTest, fillTestData, resetTestChurch, getAccessCode, setAccessCode, restoreBackup, myNotes, setMyNotes,
-  }), [churchId, church.name, me?.name, me?.key, role, pendingRole, can, people, songs, events, participations, error, saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples, myShares, shareSong, unshareSong, loadLibrary, favorites, toggleFavorite, suggestions, sendSuggestion, resolveSuggestion, prayers, pray, updateMyName, setMyTeams, person?.teams?.join('|'), isTest, fillTestData, resetTestChurch, getAccessCode, setAccessCode, restoreBackup, myNotes, setMyNotes]); // eslint-disable-line react-hooks/exhaustive-deps
+  }), [churchId, church.name, me?.name, me?.key, expired, role, can, people, songs, events, participations, error, saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples, myShares, shareSong, unshareSong, loadLibrary, favorites, toggleFavorite, suggestions, sendSuggestion, resolveSuggestion, prayers, pray, updateMyName, setMyTeams, person?.teams?.join('|'), isTest, fillTestData, resetTestChurch, getAccessCode, setAccessCode, restoreBackup, myNotes, setMyNotes]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }
