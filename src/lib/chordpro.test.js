@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { arrangeSections, nextSectionName, sectionHeader, parseLine, parseSong, parseMeta, transposeChord, transposeKey, displayKey, normalize } from './chordpro.js';
+import { syncOrder, arrangeSections, customBases, groupOrder, flattenGroups, sectionKind, validCustomName, cleanCustomName, nextSectionName, sectionHeader, parseLine, parseSong, parseMeta, transposeChord, transposeKey, displayKey, normalize } from './chordpro.js';
 
 describe('transposeChord', () => {
   it('sube y baja medio tono', () => {
@@ -70,8 +70,50 @@ describe('arrangeSections', () => {
       .toEqual(['Coro', 'Verso 1', 'Coro', 'Verso 2', 'Coro']);
   });
   it('usa el orden original si no hay orden válido', () => {
-    expect(arrangeSections(secs, undefined)).toBe(secs);
-    expect(arrangeSections(secs, ['No existe'])).toBe(secs);
+    const names = (l) => l.map((s) => s.name);
+    expect(names(arrangeSections(secs, undefined))).toEqual(names(secs));
+    expect(names(arrangeSections(secs, ['No existe']))).toEqual(names(secs));
+  });
+  it('junta las repeticiones seguidas en ×2', () => {
+    const r = arrangeSections(secs, ['Verso 1', 'Coro', 'Coro', 'Verso 2']);
+    expect(r.map((s) => [s.name, s.times])).toEqual([['Verso 1', 1], ['Coro', 2], ['Verso 2', 1]]);
+  });
+  it('acepta marcas sin letra', () => {
+    const r = arrangeSections(secs, ['~INSTRUMENTAL', 'Coro']);
+    expect(r.map((s) => [s.name, s.kind, s.lines.length])).toEqual([['INSTRUMENTAL', 'instrumental', 0], ['Coro', 'chorus', 1]]);
+  });
+});
+
+describe('secciones nuevas y personalizadas', () => {
+  it('reconoce los tipos y colores', () => {
+    const secs = parseSong('[INTRO]\n[G]\n\n[INTERLUDIO]\n[C]\n\n[ALABANZA LIBRE]\nla la\n\n[CORO 2]\nhola');
+    expect(secs.map((s) => [s.name, s.kind])).toEqual([
+      ['INTRO', 'intro'], ['INTERLUDIO', 'interlude'], ['ALABANZA LIBRE', 'custom'], ['CORO 2', 'chorus'],
+    ]);
+  });
+  it('no confunde acordes con secciones', () => {
+    const secs = parseSong('[VERSO]\n[Am]\n[SOL]\n[G]hola');
+    expect(secs).toHaveLength(1);
+    expect(sectionKind('Verso 1')).toBe('verse');
+  });
+  it('cuenta las personalizadas', () => {
+    expect(customBases('[VERSO]\na\n\n[GLORIA]\nb\n\n[GLORIA 2]\nc\n\n[ALELUYA]\nd')).toEqual(['GLORIA', 'ALELUYA']);
+    expect(cleanCustomName(' solo  de guitarra! ')).toBe('SOLO DE GUITARRA');
+    expect(validCustomName('SOL')).toBe(false);
+    expect(validCustomName('CORO')).toBe(false);
+    expect(validCustomName('GLORIA')).toBe(true);
+  });
+  it('agrega al orden las secciones nuevas de la letra', () => {
+    const a = '[VERSO]\na\n\n[CORO]\nb';
+    const b = '[VERSO]\na\n\n[CORO]\nb\n\n[PUENTE]\nc';
+    expect(syncOrder(['CORO', '~SOLO', 'VERSO'], a, b)).toEqual(['CORO', '~SOLO', 'VERSO', 'PUENTE']);
+    expect(syncOrder(['CORO', 'VERSO'], b, '[VERSO]\na')).toEqual(['VERSO']);
+    expect(syncOrder(undefined, a, b)).toBe(undefined);
+  });
+  it('agrupa y desagrupa el orden', () => {
+    const g = groupOrder(['A', 'A', 'B', 'A']);
+    expect(g).toEqual([{ name: 'A', times: 2 }, { name: 'B', times: 1 }, { name: 'A', times: 1 }]);
+    expect(flattenGroups(g)).toEqual(['A', 'A', 'B', 'A']);
   });
 });
 

@@ -1,9 +1,26 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useStore } from '../lib/store.jsx';
-import { KEYS, parseMeta, parseSong } from '../lib/chordpro.js';
+import { KEYS, customBases, parseMeta, parseSong, syncOrder } from '../lib/chordpro.js';
 import SectionButtons from '../components/SectionButtons.jsx';
 import SongView from '../components/SongView.jsx';
+
+const BORRADOR = 'cancionero-borrador';
+const pick = (f) => ({ title: f.title, author: f.author, key: f.key, content: f.content });
+function leerBorrador() {
+  try {
+    const b = JSON.parse(localStorage.getItem(BORRADOR));
+    return b && b.content ? b : null;
+  } catch {
+    return null;
+  }
+}
+function guardarBorrador(f) {
+  try { localStorage.setItem(BORRADOR, JSON.stringify(pick(f))); } catch { /* sin espacio */ }
+}
+function borrarBorrador() {
+  try { localStorage.removeItem(BORRADOR); } catch { /* nada */ }
+}
 
 const PLANTILLA = `[VERSO]
 [G]Escribe aquí la [C]letra con los [G]acordes
@@ -21,9 +38,34 @@ export default function EditarCancion() {
   const pendingCursor = useRef(null);
   const existing = songs.find((s) => s.id === id);
   const [form, setForm] = useState(
-    existing || location.state?.imported || { title: '', author: '', key: 'G', content: PLANTILLA }
+    () => existing || location.state?.imported || (!id && leerBorrador()) || { title: '', author: '', key: 'G', content: PLANTILLA }
   );
   const [error, setError] = useState('');
+  const [saved, setSaved] = useState('');
+  const lastSaved = useRef(existing ? JSON.stringify(pick(existing)) : null);
+
+  // Canción existente: los cambios se guardan solos, un momento después de dejar de escribir.
+  // Canción nueva: se guarda un borrador en este equipo hasta pulsar "Guardar".
+  useEffect(() => {
+    if (!can.edit) return undefined;
+    if (!existing) {
+      if (!id) guardarBorrador(form);
+      return undefined;
+    }
+    const now = JSON.stringify(pick(form));
+    if (now === lastSaved.current) return undefined;
+    setSaved('Cambios sin guardar…');
+    const t = setTimeout(() => {
+      if (!form.title.trim()) {
+        setSaved('Escribe un título para guardar.');
+        return;
+      }
+      saveSong({ ...existing, ...pick(form), order: syncOrder(existing.order, existing.content, form.content), title: form.title.trim(), author: form.author.trim() });
+      lastSaved.current = now;
+      setSaved('✓ Guardado');
+    }, 900);
+    return () => clearTimeout(t);
+  }, [form]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const set = (field) => (e) => setForm({ ...form, [field]: e.target.value });
 
@@ -87,7 +129,8 @@ export default function EditarCancion() {
       setError('La canción necesita un título.');
       return;
     }
-    const newId = saveSong({ ...form, title: form.title.trim(), author: form.author.trim() });
+    const newId = saveSong({ ...(existing || {}), ...form, ...(existing ? { order: syncOrder(existing.order, existing.content, form.content) } : {}), title: form.title.trim(), author: form.author.trim() });
+    if (!existing) borrarBorrador();
     navigate(`/canciones/${newId}`);
   };
 
@@ -117,7 +160,7 @@ export default function EditarCancion() {
           <div className="field">
             <label htmlFor="letra" className="field-label">Letra y acordes</label>
             <div className="row gap wrap between">
-              <SectionButtons existingNames={sectionNames} onInsert={insertSection} />
+              <SectionButtons existingNames={sectionNames} customBases={customBases(form.content)} onInsert={insertSection} />
               {!existing && (
                 <Link className="btn small primary" to="/canciones/importar">⤓ Importar desde la web</Link>
               )}
@@ -127,8 +170,9 @@ export default function EditarCancion() {
           <details className="help">
             <summary>¿Cómo escribir la canción?</summary>
             <ul>
-              <li>Para empezar una sección usa los botones de arriba. Ponen el nombre entre corchetes donde está el cursor, por ejemplo <code>[CORO]</code>.</li>
-              <li>Secciones disponibles: INTRO, VERSO, PRE CORO, CORO, PUENTE y CODA. La segunda vez se numeran solas (<code>[VERSO 2]</code>), hasta 5.</li>
+              <li>Para empezar una sección elige su tipo en "＋ Agregar sección". Se escribe entre corchetes donde está el cursor, por ejemplo <code>[CORO]</code>.</li>
+              <li>Tipos: INTRO, VERSO, PRE CORO, CORO, PUENTE, INTERLUDIO, INSTRUMENTAL, FINAL y CODA. La segunda vez se numeran solas (<code>[VERSO 2]</code>), hasta 5.</li>
+              <li>La última opción, "Personalizada", te deja escribir otro nombre (en MAYÚSCULAS), hasta 3 por canción.</li>
               <li>Una sección termina con una línea vacía (un Enter extra).</li>
               <li>Pon el acorde entre corchetes justo antes de la sílaba: <code>[G]Cuán grande es [C]Él</code></li>
               <li>Acordes como <code>[Am]</code>, <code>[D7]</code>, <code>[G/B]</code> o en latino: <code>[Sol]</code>, <code>[Lam]</code>.</li>
@@ -137,8 +181,9 @@ export default function EditarCancion() {
           </details>
           {error && <p className="error">{error}</p>}
           <div className="row gap">
-            <button type="submit" className="btn primary">Guardar</button>
-            <Link className="btn" to={existing ? `/canciones/${existing.id}` : '/canciones'}>Cancelar</Link>
+            <button type="submit" className="btn primary">{existing ? 'Listo' : 'Guardar'}</button>
+            {!existing && <Link className="btn" to="/canciones" onClick={borrarBorrador}>Cancelar</Link>}
+            {saved && <span className={`small ${saved.startsWith('✓') ? 'ok' : 'muted'}`}>{saved}</span>}
           </div>
         </div>
         <div className="editor-preview">

@@ -15,8 +15,11 @@ const SECTION_WORDS = [
   [/^(pre[\s-]*coro|precoro|pre[\s-]*chorus|prechorus|pre[\s-]*estribillo)$/i, 'PRE CORO'],
   [/^(coro|estribillo|chorus|refr[aá]n)$/i, 'CORO'],
   [/^(verso|estrofa|verse)$/i, 'VERSO'],
-  [/^(puente|bridge|interludio|instrumental)$/i, 'PUENTE'],
-  [/^(coda|final|outro|cierre|tag)$/i, 'CODA'],
+  [/^(puente|bridge)$/i, 'PUENTE'],
+  [/^(interludio|interlude)$/i, 'INTERLUDIO'],
+  [/^(instrumental|solo)$/i, 'INSTRUMENTAL'],
+  [/^(final|outro|cierre)$/i, 'FINAL'],
+  [/^(coda|tag)$/i, 'CODA'],
 ];
 const HEADER_RE = /^\s*[[(]?\s*([a-záéíóúñ]+(?:[\s-]+[a-záéíóúñ]+)*)\s*(\d+)?\s*[\])]?\s*:?\s*(.*)$/i;
 const KEY_RE = /^\s*(?:tono|tonalidad|key|tono original)\s*:?\s*((?:Do|Re|Mi|Fa|Sol|La|Si|[A-G])[#b]?m?)\b/i;

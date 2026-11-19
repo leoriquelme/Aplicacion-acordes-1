@@ -41,8 +41,11 @@ export default function SongView({ content, songKey, steps = 0, order, settings,
   return (
     <div className={`song ${className}`} style={{ fontSize: fontSize ?? settings.fontSize }}>
       {blocks.map((b, i) => (
-        <section className={`block ${b.type}`} key={i}>
-          <div className="block-label">{b.name}</div>
+        <section className={`block ${b.type} k-${b.kind} ${b.marker ? 'marker' : ''}`} key={i} id={`seccion-${i}`}>
+          <div className="block-label">
+            <span className="sec-chip">{b.name}</span>
+            {b.times > 1 && <span className="times">×{b.times}</span>}
+          </div>
           {b.lines.map((l, j) =>
             l.type === 'comment' ? (
               <div className="comment" key={j}>{l.text}</div>

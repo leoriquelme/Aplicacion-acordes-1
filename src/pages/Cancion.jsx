@@ -72,21 +72,21 @@ export default function Cancion() {
         {added && <span className="ok">✓ {added}</span>}
       </div>
 
-      {can.edit && (
-      <details className="card arrangement-card">
-        <summary>
-          <strong>Orden de las secciones</strong>
-          <span className="muted small"> · arrastra para mover, repite o quita secciones</span>
-        </summary>
-        <ArrangementEditor
-          content={song.content}
-          order={song.order}
-          onChange={(order) => saveSong({ ...song, order })}
-        />
-      </details>
-      )}
-
-      <SongView content={song.content} songKey={song.key} steps={steps} order={song.order} settings={settings} />
+      <div className="song-layout">
+        <SongView content={song.content} songKey={song.key} steps={steps} order={song.order} settings={settings} />
+        <aside className="order-panel">
+          <h3>Orden</h3>
+          <p className="muted small">
+            {can.edit ? 'Arrastra para mover. Usa + para repetir (×2).' : 'Secuencia de la canción.'}
+          </p>
+          <ArrangementEditor
+            content={song.content}
+            order={song.order}
+            readOnly={!can.edit}
+            onChange={(order) => saveSong({ ...song, order })}
+          />
+        </aside>
+      </div>
 
       {can.delete && (
         <div className="danger-zone">

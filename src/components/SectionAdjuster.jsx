@@ -1,4 +1,4 @@
-import { MAX_SECTION_NUMBER, SECTION_NAMES } from '../lib/chordpro.js';
+import { MAX_SECTION_NUMBER, SECTION_NAMES, sectionKind } from '../lib/chordpro.js';
 import { mergeWithPrevious, removeSection, sectionNames, setSectionType, splitSection } from '../lib/importar.js';
 
 const plain = (line) => line.replace(/\[([^\]]*)\]/g, '');
@@ -18,7 +18,7 @@ export default function SectionAdjuster({ state, onChange }) {
         para cortar una sección en dos, o une una sección con la de arriba.
       </p>
       {state.sections.map((sec, i) => (
-        <div key={i} className={`adj-section adj-${sec.base.replace(' ', '-').toLowerCase()}`}>
+        <div key={i} className={`adj-section k-${sectionKind(sec.base)}`}>
           <div className="adj-head">
             <select
               value={sec.base}

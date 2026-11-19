@@ -107,16 +107,79 @@ function typeFromLabel(label) {
 const DEFAULT_NAMES = { verse: 'Verso', chorus: 'Coro', bridge: 'Puente' };
 
 /** Secciones permitidas. Se escriben solas en una línea: [VERSO], [CORO 2]… (número del 2 al 5). */
-export const SECTION_NAMES = ['INTRO', 'VERSO', 'PRE CORO', 'CORO', 'PUENTE', 'CODA'];
+export const SECTION_NAMES = ['INTRO', 'VERSO', 'PRE CORO', 'CORO', 'PUENTE', 'INTERLUDIO', 'INSTRUMENTAL', 'FINAL', 'CODA'];
 export const MAX_SECTION_NUMBER = 5;
-const SECTION_LINE_RE = /^\[\s*(INTRO|VERSO|PRE[\s-]*CORO|CORO|PUENTE|CODA)(?:\s+([1-5]))?\s*\]$/i;
+/** Máximo de secciones personalizadas distintas por canción. */
+export const MAX_CUSTOM = 3;
+const SECTION_LINE_RE = /^\[\s*(INTRO|VERSO|PRE[\s-]*CORO|CORO|PUENTE|INTERLUDIO|INSTRUMENTAL|FINAL|CODA)(?:\s+([1-5]))?\s*\]$/i;
+// Sección personalizada: solo MAYÚSCULAS (mínimo 3 letras), para no confundirla con un acorde.
+const CUSTOM_LINE_RE = /^\[\s*([A-ZÁÉÍÓÚÑÜ][A-ZÁÉÍÓÚÑÜ ]{1,22}[A-ZÁÉÍÓÚÑÜ])(?:\s+([1-5]))?\s*\]$/;
+const LATIN_UPPER = /^(DO|RE|MI|FA|SOL|LA|SI)M?$/;
+
+/** Limpia el nombre que escribe el usuario para una sección personalizada. */
+export function cleanCustomName(text = '') {
+  return text
+    .toUpperCase()
+    .replace(/[^A-ZÁÉÍÓÚÑÜ ]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 24);
+}
+
+/** ¿Se puede usar este nombre como sección personalizada? */
+export function validCustomName(name) {
+  return Boolean(name) && CUSTOM_LINE_RE.test(`[${name}]`) && !LATIN_UPPER.test(name) && !SECTION_LINE_RE.test(`[${name}]`);
+}
 
 /** Si la línea es un título de sección como "[CORO 2]", devuelve "CORO 2". */
 export function sectionHeader(line) {
-  const m = line.trim().match(SECTION_LINE_RE);
-  if (!m) return null;
-  const base = m[1].toUpperCase().replace(/^PRE[\s-]*CORO$/, 'PRE CORO');
-  return m[2] ? `${base} ${m[2]}` : base;
+  const t = line.trim();
+  const m = t.match(SECTION_LINE_RE);
+  if (m) {
+    const base = m[1].toUpperCase().replace(/^PRE[\s-]*CORO$/, 'PRE CORO');
+    return m[2] ? `${base} ${m[2]}` : base;
+  }
+  const c = t.match(CUSTOM_LINE_RE);
+  if (c && !LATIN_UPPER.test(c[1].trim())) {
+    const base = c[1].trim().replace(/\s+/g, ' ');
+    return c[2] ? `${base} ${c[2]}` : base;
+  }
+  return null;
+}
+
+/** Nombre sin el número final: "CORO 2" → "CORO". */
+export function sectionBase(name = '') {
+  return name.replace(/\s+\d+$/, '').trim();
+}
+
+/**
+ * Tipo visual de una sección según su nombre (para el color):
+ * intro, verse, prechorus, chorus, bridge, interlude, instrumental, final, coda o custom.
+ */
+export function sectionKind(name = '') {
+  const b = normalize(sectionBase(name)).replace(/[-\s]+/g, ' ');
+  if (/^(intro|introduccion)$/.test(b)) return 'intro';
+  if (/^(verso|estrofa|verse)$/.test(b)) return 'verse';
+  if (/^(pre ?coro|pre ?chorus|pre ?estribillo)$/.test(b)) return 'prechorus';
+  if (/^(coro|estribillo|chorus|refran)$/.test(b)) return 'chorus';
+  if (/^(puente|bridge)$/.test(b)) return 'bridge';
+  if (/^interludio$/.test(b)) return 'interlude';
+  if (/^(instrumental|solo)$/.test(b)) return 'instrumental';
+  if (/^(final|outro|cierre)$/.test(b)) return 'final';
+  if (/^(coda|tag)$/.test(b)) return 'coda';
+  return 'custom';
+}
+
+/** Nombres base de las secciones personalizadas que hay en el texto (sin repetir). */
+export function customBases(content = '') {
+  const out = [];
+  for (const raw of content.split('\n')) {
+    const h = sectionHeader(raw);
+    if (!h || SECTION_LINE_RE.test(raw.trim())) continue;
+    const base = sectionBase(h);
+    if (!out.includes(base)) out.push(base);
+  }
+  return out;
 }
 
 /**
@@ -219,19 +282,68 @@ export function parseSong(content = '') {
       let unique = name;
       for (let k = 2; used.has(unique); k++) unique = `${name} ${k}`;
       used.add(unique);
-      return { name: unique, type: b.type, lines: b.lines };
+      return { name: unique, type: b.type, kind: sectionKind(unique), lines: b.lines };
     });
 }
 
+/** En un orden, las "marcas" (secciones sin letra, ej. un instrumental) se guardan con "~" adelante. */
+export const MARKER = '~';
+export const isMarker = (n) => typeof n === 'string' && n.startsWith(MARKER);
+export const markerName = (n) => (isMarker(n) ? n.slice(1) : n);
+
 /**
  * Ordena las secciones según una lista de nombres (se pueden repetir).
+ * Las repeticiones seguidas se juntan en una sola sección con `times` (×2, ×3…).
  * Si no hay orden o ningún nombre coincide, se usa el orden original.
  */
 export function arrangeSections(sections, order) {
-  if (!Array.isArray(order) || order.length === 0) return sections;
-  const byName = new Map(sections.map((s) => [s.name, s]));
-  const arranged = order.map((n) => byName.get(n)).filter(Boolean);
-  return arranged.length ? arranged : sections;
+  let list = sections;
+  if (Array.isArray(order) && order.length > 0) {
+    const byName = new Map(sections.map((s) => [s.name, s]));
+    const arranged = order
+      .map((n) => (isMarker(n)
+        ? { name: markerName(n), type: 'verse', kind: sectionKind(markerName(n)), lines: [], marker: true }
+        : byName.get(n)))
+      .filter(Boolean);
+    if (arranged.some((s) => !s.marker)) list = arranged;
+  }
+  const out = [];
+  for (const s of list) {
+    const prev = out[out.length - 1];
+    if (prev && prev.name === s.name) prev.times += 1;
+    else out.push({ ...s, times: 1 });
+  }
+  return out;
+}
+
+/** Agrupa repeticiones seguidas: ['CORO','CORO','VERSO'] → [{name:'CORO', times:2}, {name:'VERSO', times:1}]. */
+export function groupOrder(order = []) {
+  const out = [];
+  for (const name of order) {
+    const prev = out[out.length - 1];
+    if (prev && prev.name === name) prev.times += 1;
+    else out.push({ name, times: 1 });
+  }
+  return out;
+}
+
+/**
+ * Al editar la letra: las secciones nuevas se agregan al final del orden elegido
+ * y se quitan las que ya no existen (las marcas sin letra se mantienen).
+ */
+export function syncOrder(order, oldContent, newContent) {
+  if (!Array.isArray(order) || order.length === 0) return order;
+  const before = new Set(parseSong(oldContent).map((s) => s.name));
+  const now = parseSong(newContent).map((s) => s.name);
+  const nowSet = new Set(now);
+  const kept = order.filter((n) => isMarker(n) || nowSet.has(n));
+  const added = now.filter((n) => !before.has(n) && !kept.includes(n));
+  const result = [...kept, ...added];
+  return result.some((n) => !isMarker(n)) ? result : undefined;
+}
+
+export function flattenGroups(groups) {
+  return groups.flatMap((g) => Array(g.times).fill(g.name));
 }
 
 /** Lee {title}, {artist} y {key} si vienen en el texto. */
