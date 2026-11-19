@@ -7,10 +7,12 @@ import AgregarEjemplos from '../components/AgregarEjemplos.jsx';
 import { displayKey, normalize } from '../lib/chordpro.js';
 
 export default function Canciones() {
-  const { songs, settings, can, mode } = useStore();
+  const { songs, settings, can, mode, favorites = [] } = useStore();
   const [q, setQ] = useState('');
+  const [onlyFav, setOnlyFav] = useState(false);
   const query = normalize(q.trim());
   const list = songs
+    .filter((s) => !onlyFav || favorites.includes(s.id))
     .filter((s) => !query || normalize(s.title).includes(query) || normalize(s.author).includes(query))
     .sort((a, b) => a.title.replace(/^[¡¿]/, '').localeCompare(b.title.replace(/^[¡¿]/, ''), 'es'));
 
@@ -32,10 +34,15 @@ export default function Canciones() {
         onChange={(e) => setQ(e.target.value)}
         autoFocus
       />
-      <p className="muted small">{list.length} de {songs.length} canciones</p>
+      <div className="row between wrap">
+        <p className="muted small">{list.length} de {songs.length} canciones</p>
+        <button className={`btn small ${onlyFav ? 'primary' : ''}`} onClick={() => setOnlyFav(!onlyFav)} aria-pressed={onlyFav}>
+          ★ Mis favoritas{favorites.length ? ` (${favorites.length})` : ''}
+        </button>
+      </div>
       {list.length === 0 ? (
         <div className="empty card">
-          <p>{songs.length ? 'No se encontraron canciones.' : 'Todavía no hay canciones.'}</p>
+          <p>{onlyFav && !favorites.length ? 'Aún no tienes favoritas. Abre una canción y toca la ☆ junto al título.' : songs.length ? 'No se encontraron canciones.' : 'Todavía no hay canciones.'}</p>
           {!songs.length && (
             <>
               <p className="muted small">Puedes empezar con himnos clásicos de dominio público (sin derechos de autor).</p>
@@ -49,6 +56,7 @@ export default function Canciones() {
             <li key={s.id}>
               <Link to={`/canciones/${s.id}`} className="song-row">
                 <span>
+                  {favorites.includes(s.id) && <span className="fav-mini" aria-label="Favorita">★ </span>}
                   <strong>{s.title}</strong>
                   {s.author && <span className="muted"> · {s.author}</span>}
                 </span>

@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom';
 import { formatLong, relativeDay } from '../lib/dates.js';
+import { eventLines } from '../lib/evento.js';
 
 export default function EventCard({ event, songs, showSongs = true }) {
-  const byId = new Map(songs.map((s) => [s.id, s]));
-  const list = event.items.map((i) => byId.get(i.songId)).filter(Boolean);
+  const lines = eventLines(event, songs);
+  const list = lines.filter((l) => l.song);
   const rel = relativeDay(event.date);
   return (
     <article className="card event-card">
@@ -13,9 +14,9 @@ export default function EventCard({ event, songs, showSongs = true }) {
       </div>
       <h3>{event.name}</h3>
       {showSongs && (
-        list.length ? (
+        lines.length ? (
           <ol className="event-songs">
-            {list.map((s, i) => <li key={i}>{s.title}</li>)}
+            {lines.map((l, i) => <li key={i} className={l.song ? '' : 'muted'}>{l.song ? l.song.title : l.item.label}</li>)}
           </ol>
         ) : (
           <p className="muted">Todavía no tiene canciones.</p>

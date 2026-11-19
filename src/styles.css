@@ -535,3 +535,83 @@ textarea.mono { font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
 .add-menu-panel a span { font-weight: 400; font-size: 0.82rem; color: var(--muted); }
 .page-head.center { align-items: center; flex-wrap: nowrap; }
 .btn { -webkit-tap-highlight-color: transparent; }
+
+/* Partes del culto */
+.setlist-item.parte { background: var(--surface-2); }
+.parte-edit { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+.parte-edit input { flex: 1; min-width: 10rem; padding: 0.35rem 0.6rem; }
+.partes .btn { font-weight: 500; }
+.event-tools { margin: -0.4rem 0 1rem; }
+
+/* Hoja para imprimir / PDF */
+.hoja { background: #fff; color: #111; border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem 1.75rem; }
+.hoja-head { text-align: center; border-bottom: 2px solid #111; padding-bottom: 0.8rem; margin-bottom: 1rem; }
+.hoja-head h1 { margin: 0.2rem 0; }
+.hoja-iglesia { font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; font-size: 0.85rem; color: #555; }
+.hoja-notas { margin: 0.5rem 0 0; font-style: italic; }
+.hoja h2 { font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #ccc; padding-bottom: 0.3rem; }
+.hoja-tabla { width: 100%; border-collapse: collapse; }
+.hoja-tabla th, .hoja-tabla td { text-align: left; padding: 0.4rem 0.5rem; border-bottom: 1px solid #e5e5e5; font-size: 0.95rem; }
+.hoja-tabla th { font-size: 0.8rem; color: #555; }
+.hoja-grupos { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.5rem 1.5rem; }
+.hoja-grupos h3 { font-size: 0.9rem; margin: 0 0 0.3rem; }
+.hoja-grupos ul { margin: 0; padding-left: 1.1rem; line-height: 1.6; }
+@media print {
+  @page { size: A4; margin: 14mm; }
+  body, :root { background: #fff !important; }
+  .topbar, .tabs, .no-print { display: none !important; }
+  .content { padding: 0 !important; }
+  .hoja { border: none; padding: 0; }
+}
+
+/* Canción: favoritas, tempo, capo, tono del culto */
+.grow-col { min-width: 0; display: flex; flex-direction: column; gap: 0.75rem; }
+.fav-star {
+  background: none; border: none; cursor: pointer; font-size: 1.4rem; line-height: 1; padding: 0 0.15rem;
+  color: var(--muted); vertical-align: middle;
+}
+.fav-star.on { color: #e0a100; }
+.song-meta { display: flex; gap: 0.75rem; margin: 0.2rem 0 0; color: var(--muted); font-size: 0.9rem; }
+.song-meta span { background: var(--surface-2, rgba(127,127,127,.12)); border-radius: 999px; padding: 0.1rem 0.6rem; }
+.toolbar label.capo, .present-menu-panel label.capo { display: inline-flex; flex-direction: row; align-items: center; gap: 0.4rem; margin: 0; }
+.capo select { width: auto; }
+.event-key { display: inline-flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.key-pill.big { font-size: 1rem; padding: 0.2rem 0.7rem; }
+
+/* Diagramas de guitarra */
+.diagramas-grid { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 0.6rem; }
+.diagramas figure {
+  margin: 0; padding: 0.4rem 0.5rem; border: 1px solid var(--border); border-radius: 10px;
+  background: var(--surface); text-align: center; width: 104px;
+}
+.diagramas figure.simple { border-style: dashed; }
+.diagramas figcaption { font-size: 0.85rem; line-height: 1.2; min-height: 2.1em; }
+.diagrama { width: 84px; height: 100px; color: var(--text); }
+.diagrama .dot { fill: var(--primary); }
+.fav-mini { color: #e0a100; }
+
+/* Ajustes: estado y sugerencias */
+.estado-list { list-style: none; padding: 0; margin: 0 0 0.8rem; display: grid; gap: 0.35rem; }
+.dot-status { display: inline-block; width: 0.6rem; height: 0.6rem; border-radius: 50%; margin-right: 0.2rem; }
+.dot-status.ok { background: #2e9e5b; }
+.dot-status.off { background: #d48a00; }
+.sugerencias { margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 0.6rem; }
+.sugerencias ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.5rem; }
+.sugerencias li { display: flex; gap: 0.6rem; align-items: flex-start; padding: 0.5rem; border: 1px solid var(--border); border-radius: 10px; }
+.sug-text { white-space: pre-wrap; }
+.badge { background: var(--danger); color: #fff; border-radius: 999px; font-size: 0.75rem; padding: 0.05rem 0.45rem; vertical-align: middle; }
+.pasos { margin: 0.4rem 0 0; padding-left: 1.2rem; display: grid; gap: 0.3rem; }
+
+/* Apoyo */
+.apoyo .center { justify-content: center; text-align: center; }
+.oracion { display: flex; flex-direction: column; align-items: center; gap: 0.8rem; }
+.oracion > p.muted { align-self: stretch; }
+.reloj {
+  width: 210px; height: 210px; border-radius: 50%; display: grid; place-items: center;
+  background: conic-gradient(var(--primary) calc(var(--p) * 360deg), var(--border) 0);
+}
+.reloj-num {
+  width: 180px; height: 180px; border-radius: 50%; background: var(--surface); display: grid; place-items: center;
+  font-size: 2.4rem; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.donar button[disabled] { opacity: 0.55; cursor: not-allowed; }

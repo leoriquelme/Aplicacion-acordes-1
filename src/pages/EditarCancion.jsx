@@ -7,7 +7,7 @@ import { autodetect } from '../lib/importar.js';
 import SongView from '../components/SongView.jsx';
 
 const BORRADOR = 'cancionero-borrador';
-const pick = (f) => ({ title: f.title, author: f.author, key: f.key, content: f.content });
+const pick = (f) => ({ title: f.title, author: f.author, key: f.key, content: f.content, bpm: f.bpm || '', compas: f.compas || '' });
 function leerBorrador() {
   try {
     const b = JSON.parse(localStorage.getItem(BORRADOR));
@@ -157,6 +157,24 @@ export default function EditarCancion() {
                 <option value="">—</option>
                 {KEYS.map((k) => <option key={k} value={k}>{k}</option>)}
               </select>
+            </label>
+          </div>
+          <div className="row gap">
+            <label>
+              Tempo (BPM)
+              <input
+                type="number" min="30" max="260" inputMode="numeric" style={{ width: '7rem' }}
+                value={form.bpm || ''}
+                onChange={(e) => setForm((f) => ({ ...f, bpm: e.target.value ? Math.min(260, Math.max(0, Number(e.target.value))) : '' }))}
+                placeholder="Ej. 72"
+              />
+            </label>
+            <label className="grow">
+              Compás / estilo
+              <input list="compases" value={form.compas || ''} onChange={(e) => setForm((f) => ({ ...f, compas: e.target.value.slice(0, 30) }))} placeholder="Ej. 4/4 balada" />
+              <datalist id="compases">
+                {['4/4', '3/4', '6/8', '2/4', '4/4 balada', '4/4 rápido', '6/8 vals', 'Rock', 'Pop', 'Ranchera', 'Cumbia'].map((c) => <option key={c} value={c} />)}
+              </datalist>
             </label>
           </div>
           <div className="field">

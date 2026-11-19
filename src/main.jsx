@@ -25,3 +25,8 @@ createRoot(document.getElementById('root')).render(
     </SettingsProvider>
   </StrictMode>
 );
+
+// App instalable y que abre sin internet (solo en la versión publicada).
+if (import.meta.env.PROD && !import.meta.env.VITE_EMULATOR && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+}

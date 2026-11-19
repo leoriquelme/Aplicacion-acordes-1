@@ -26,3 +26,13 @@ describe('participación', () => {
     expect(h[0].roles).toEqual({ Coro: 1, 'Voz principal': 1 });
   });
 });
+
+import { eventLines, isSongItem } from './evento.js';
+describe('partes del evento', () => {
+  it('mezcla canciones y partes de texto', () => {
+    const ev = { items: [{ type: 'text', label: 'Oración' }, { songId: 's1' }, { songId: 'borrada' }, { type: 'song', songId: 's1' }] };
+    const r = eventLines(ev, [{ id: 's1', title: 'A' }]);
+    expect(r.map((x) => (x.song ? x.song.title : x.item.label))).toEqual(['Oración', 'A', 'A']);
+    expect(isSongItem({ songId: 'x' })).toBe(true);
+  });
+});

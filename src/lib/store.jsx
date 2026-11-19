@@ -4,6 +4,7 @@ import { cancionesEjemplo, eventosEjemplo } from '../data/ejemplos.js';
 // Datos guardados solo en este equipo (modo sin iglesia) y ajustes personales.
 export const STORAGE_KEY = 'cancionero-v1';
 const SETTINGS_KEY = 'cancionero-ajustes';
+const FAV_KEY = 'cancionero-favoritas';
 
 export const DEFAULT_SETTINGS = {
   fontSize: 22,
@@ -130,9 +131,19 @@ export function LocalStoreProvider({ children }) {
 
   const deleteAll = useCallback(() => setData({ songs: [], events: [] }), []);
 
+  // Favoritas en este equipo.
+  const [favorites, setFavorites] = useState(() => readJSON(FAV_KEY) || []);
+  const toggleFavorite = useCallback((songId) => {
+    setFavorites((f) => {
+      const next = f.includes(songId) ? f.filter((x) => x !== songId) : [...f, songId];
+      writeJSON(FAV_KEY, next);
+      return next;
+    });
+  }, []);
+
   const value = useMemo(
-    () => ({ ...data, participations: [], mode: 'local', can: LOCAL_CAN, saveSong, deleteSong, saveEvent, deleteEvent, importData, restoreExamples, deleteAll }),
-    [data, saveSong, deleteSong, saveEvent, deleteEvent, importData, restoreExamples, deleteAll]
+    () => ({ ...data, participations: [], suggestions: [], favorites, toggleFavorite, mode: 'local', can: LOCAL_CAN, saveSong, deleteSong, saveEvent, deleteEvent, importData, restoreExamples, deleteAll }),
+    [data, favorites, toggleFavorite, saveSong, deleteSong, saveEvent, deleteEvent, importData, restoreExamples, deleteAll]
   );
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }
@@ -156,4 +167,17 @@ export function setPersonalKey(songId, steps) {
   if (steps) all[songId] = steps;
   else delete all[songId];
   writeJSON(PERSONAL_KEY, all);
+}
+
+// ---------- Capo personal (cada músico, en su equipo) ----------
+
+const CAPO_KEY = 'cancionero-capo';
+export function getCapo(songId) {
+  return readJSON(CAPO_KEY)?.[songId] || 0;
+}
+export function setCapo(songId, capo) {
+  const all = readJSON(CAPO_KEY) || {};
+  if (capo) all[songId] = capo;
+  else delete all[songId];
+  writeJSON(CAPO_KEY, all);
 }

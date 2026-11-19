@@ -152,3 +152,32 @@ describe('biblioteca compartida', () => {
     await assertSucceeds(deleteDoc(lib(as('u-dora'), `${C}__s1`)));
   });
 });
+
+describe('favoritas', () => {
+  beforeEach(seedSessions);
+  const fav = (db, key) => doc(db, 'churches', C, 'favorites', key);
+  it('cada uno ve y cambia solo las suyas', async () => {
+    await assertSucceeds(setDoc(fav(as('u-carlos'), 'carlos'), { songs: ['s1'] }));
+    await assertSucceeds(getDoc(fav(as('u-carlos'), 'carlos')));
+    await assertFails(getDoc(fav(as('u-dora'), 'carlos')));
+    await assertFails(getDoc(fav(as('u-admin'), 'carlos')));
+    await assertFails(setDoc(fav(as('u-carlos'), 'dora'), { songs: [] }));
+    await assertFails(setDoc(fav(as('u-carlos'), 'carlos'), { songs: [], otro: 1 }));
+  });
+});
+
+describe('sugerencias', () => {
+  beforeEach(seedSessions);
+  const sug = (db, id) => doc(db, 'churches', C, 'suggestions', id);
+  const data = (personKey, extra = {}) => ({ text: 'Falta un acorde', songId: '', songTitle: '', personKey, name: 'X', at: 1, ...extra });
+  it('todos envían; solo admin y director leen y resuelven', async () => {
+    await assertSucceeds(setDoc(sug(as('u-carlos'), 'x1'), data('carlos')));
+    await assertFails(setDoc(sug(as('u-carlos'), 'x2'), data('dora')));
+    await assertFails(setDoc(sug(as('u-carlos'), 'x3'), data('carlos', { text: '' })));
+    await assertFails(setDoc(sug(as('extraño'), 'x4'), data('carlos')));
+    await assertFails(getDoc(sug(as('u-carlos'), 'x1')));
+    await assertSucceeds(getDoc(sug(as('u-dora'), 'x1')));
+    await assertFails(updateDoc(sug(as('u-dora'), 'x1'), { text: 'otro' }));
+    await assertSucceeds(deleteDoc(sug(as('u-admin'), 'x1')));
+  });
+});

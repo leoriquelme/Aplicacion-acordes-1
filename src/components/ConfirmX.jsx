@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
  * Botón ✕ que pide dos clics: el primero lo pone en rojo ("¿Quitar?"),
  * el segundo confirma. Si no se confirma en 3 segundos, vuelve a la normalidad.
  */
-export default function ConfirmX({ label, onConfirm, disabled = false, className = 'mini x' }) {
+export default function ConfirmX({ label, onConfirm, disabled = false, className = 'mini x', text = '✕', armedText = '¿Quitar?' }) {
   const [armed, setArmed] = useState(false);
 
   useEffect(() => {
@@ -31,7 +31,7 @@ export default function ConfirmX({ label, onConfirm, disabled = false, className
       }}
       onBlur={() => setArmed(false)}
     >
-      {armed ? '¿Quitar?' : '✕'}
+      {armed ? armedText : text}
     </button>
   );
 }

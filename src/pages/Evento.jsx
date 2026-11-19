@@ -1,9 +1,11 @@
-import { songKey } from '../lib/importar.js';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useStore } from '../lib/store.jsx';
 import { displayKey, normalize } from '../lib/chordpro.js';
 import { formatLong, todayISO } from '../lib/dates.js';
+import { songKey } from '../lib/importar.js';
+import { PARTES, eventLines } from '../lib/evento.js';
+import { descargarRecordatorio } from '../lib/recordatorio.js';
 import TransposeControls from '../components/TransposeControls.jsx';
 import ArrangementEditor from '../components/ArrangementEditor.jsx';
 import Participacion from '../components/Participacion.jsx';
@@ -15,6 +17,7 @@ export default function Evento() {
   const { events, songs, settings, saveEvent, deleteEvent, can } = useStore();
   const [q, setQ] = useState('');
   const [openOrder, setOpenOrder] = useState(null);
+  const [otra, setOtra] = useState('');
   // Evento nuevo: se arma aquí y solo se guarda al pulsar "Crear evento".
   const isNew = id === 'nuevo';
   const [draft, setDraft] = useState(() => ({ name: 'Culto dominical', date: todayISO(), time: '11:00', notes: '', items: [] }));
@@ -40,7 +43,9 @@ export default function Evento() {
     );
   }
 
-  const byId = new Map(songs.map((s) => [s.id, s]));
+  const lines = eventLines(event, songs);
+  const hasSongs = lines.some((l) => l.song);
+  const when = `${formatLong(event.date)}${event.time ? ` · ${event.time}` : ''}`;
 
   // Vista de lectura (la de siempre durante el servicio). Quien puede editar ve el botón "Editar".
   if (!can.events || (!isNew && !editing)) {
@@ -50,37 +55,48 @@ export default function Evento() {
         <div className="page-head">
           <div>
             <h1>{event.name}</h1>
-            <p className="muted">{formatLong(event.date)}{event.time ? ` · ${event.time}` : ''}</p>
+            <p className="muted">{when}</p>
           </div>
           <div className="row gap wrap">
             {can.events && <button className="btn" onClick={() => setEditing(true)}>✏️ Editar</button>}
-            {event.items.length > 0 && (
-              <Link className="btn primary" to={`/presentar/evento/${event.id}`}>▶ Presentar</Link>
-            )}
+            {hasSongs && <Link className="btn primary" to={`/presentar/evento/${event.id}`}>▶ Presentar</Link>}
           </div>
         </div>
+        <div className="row gap wrap event-tools">
+          <Link className="btn small" to={`/imprimir/evento/${event.id}`}>🖨 PDF del culto</Link>
+          <button className="btn small" onClick={() => descargarRecordatorio(event)}>📅 Recordarme</button>
+        </div>
         {event.notes && <p className="card">{event.notes}</p>}
-        <h2>Lista de canciones</h2>
-        {event.items.length === 0 && <p className="muted">Todavía no hay canciones en este evento.</p>}
+        <h2>Orden del culto</h2>
+        {lines.length === 0 && <p className="muted">Todavía no hay nada en este evento.</p>}
         <ol className="setlist">
-          {event.items.map((item, i) => {
-            const s = byId.get(item.songId);
-            if (!s) return null;
-            return (
-              <li key={i} className="setlist-item">
-                <span className="setlist-num">{i + 1}</span>
-                <Link className="grow" to={`/canciones/${s.id}`}><strong>{s.title}</strong></Link>
-                {songKey(s) && <span className="key-pill">{displayKey(songKey(s), item.transpose || 0, settings.notation)}</span>}
-              </li>
-            );
-          })}
+          {lines.map(({ item, index, song }, n) => (
+            <li key={index} className={`setlist-item ${song ? '' : 'parte'}`}>
+              <span className="setlist-num">{n + 1}</span>
+              {song ? (
+                <>
+                  <Link className="grow" to={`/canciones/${song.id}?t=${item.transpose || 0}&ev=${event.id}`}>
+                    <strong>{song.title}</strong>
+                  </Link>
+                  {songKey(song) && <span className="key-pill">{displayKey(songKey(song), item.transpose || 0, settings.notation)}</span>}
+                </>
+              ) : (
+                <span className="grow">
+                  <strong>{item.label}</strong>
+                  {item.detail && <span className="muted"> · {item.detail}</span>}
+                </span>
+              )}
+            </li>
+          ))}
         </ol>
         <Participacion event={event} />
       </div>
     );
   }
+
   const update = (patch) => (isNew ? setDraft((d) => ({ ...d, ...patch })) : saveEvent({ ...event, ...patch }));
   const setItems = (items) => update({ items });
+  const setItem = (i, patch) => setItems(event.items.map((x, k) => (k === i ? { ...x, ...patch } : x)));
 
   const move = (i, dir) => {
     const items = [...event.items];
@@ -96,6 +112,13 @@ export default function Evento() {
     ? songs.filter((s) => normalize(s.title).includes(query) || normalize(s.author).includes(query)).slice(0, 8)
     : [];
 
+  const addParte = (label) => {
+    const l = label.trim();
+    if (!l) return;
+    setItems([...event.items, { type: 'text', label: l.slice(0, 40), detail: '' }]);
+    setOtra('');
+  };
+
   const remove = () => {
     if (window.confirm(`¿Eliminar el evento "${event.name}"?`)) {
       deleteEvent(event.id);
@@ -110,7 +133,7 @@ export default function Evento() {
         <div>
           <h1>{isNew ? 'Nuevo evento' : event.name}</h1>
           <p className="muted">
-            {isNew ? 'Elige los datos y las canciones. El evento se guarda al pulsar "Crear evento".' : `${formatLong(event.date)}${event.time ? ` · ${event.time}` : ''}`}
+            {isNew ? 'Elige los datos, las canciones y las partes del culto. El evento se guarda al pulsar "Crear evento".' : when}
           </p>
         </div>
         {!isNew && (
@@ -139,55 +162,64 @@ export default function Evento() {
         </label>
       </div>
 
-      <h2>Lista de canciones</h2>
-      {event.items.length === 0 ? (
-        <p className="muted">Busca canciones abajo para agregarlas.</p>
+      <h2>Orden del culto</h2>
+      {lines.length === 0 ? (
+        <p className="muted">Agrega canciones y partes del culto abajo.</p>
       ) : (
         <ol className="setlist">
-          {event.items.map((item, i) => {
-            const s = byId.get(item.songId);
-            if (!s) return null;
-            return (
-              <li key={i} className="setlist-item">
-                <span className="setlist-num">{i + 1}</span>
-                <Link className="grow" to={`/canciones/${s.id}`}><strong>{s.title}</strong></Link>
-                <TransposeControls
-                  compact
-                  songKey={songKey(s)}
-                  steps={item.transpose || 0}
-                  notation={settings.notation}
-                  onChange={(t) => setItems(event.items.map((x, k) => (k === i ? { ...x, transpose: t } : x)))}
-                />
-                <button
-                  className={`btn small ${item.order?.length ? 'primary' : ''}`}
-                  onClick={() => setOpenOrder(openOrder === i ? null : i)}
-                  title="Elegir el orden de las secciones para este evento"
-                >
-                  Orden{item.order?.length ? ' ✓' : ''}
-                </button>
-                <div className="row">
-                  <button className="btn ghost small" onClick={() => move(i, -1)} disabled={i === 0} aria-label="Subir">↑</button>
-                  <button className="btn ghost small" onClick={() => move(i, 1)} disabled={i === event.items.length - 1} aria-label="Bajar">↓</button>
-                  <ConfirmX className="btn ghost small" label={`Quitar ${s.title}`} onConfirm={() => { setItems(event.items.filter((_, k) => k !== i)); setOpenOrder(null); }} />
+          {lines.map(({ item, index: i, song: s }, n) => (
+            <li key={i} className={`setlist-item ${s ? '' : 'parte'}`}>
+              <span className="setlist-num">{n + 1}</span>
+              {s ? (
+                <>
+                  <Link className="grow" to={`/canciones/${s.id}`}><strong>{s.title}</strong></Link>
+                  <TransposeControls
+                    compact
+                    songKey={songKey(s)}
+                    steps={item.transpose || 0}
+                    notation={settings.notation}
+                    onChange={(t) => setItem(i, { transpose: t })}
+                  />
+                  <button
+                    className={`btn small ${item.order?.length ? 'primary' : ''}`}
+                    onClick={() => setOpenOrder(openOrder === i ? null : i)}
+                    title="Elegir el orden de las secciones para este evento"
+                  >
+                    Orden{item.order?.length ? ' ✓' : ''}
+                  </button>
+                </>
+              ) : (
+                <span className="grow parte-edit">
+                  <strong>{item.label}</strong>
+                  <input
+                    value={item.detail || ''}
+                    placeholder={item.label === 'Predicación' ? 'Ej. Juan Pérez · Juan 3:16' : item.label === 'Lectura bíblica' ? 'Ej. Salmo 23' : 'Detalle (opcional)'}
+                    onChange={(e) => setItem(i, { detail: e.target.value.slice(0, 80) })}
+                  />
+                </span>
+              )}
+              <div className="row">
+                <button className="btn ghost small" onClick={() => move(i, -1)} disabled={i === 0} aria-label="Subir">↑</button>
+                <button className="btn ghost small" onClick={() => move(i, 1)} disabled={i === event.items.length - 1} aria-label="Bajar">↓</button>
+                <ConfirmX className="btn ghost small" label={`Quitar ${s ? s.title : item.label}`} onConfirm={() => { setItems(event.items.filter((_, k) => k !== i)); setOpenOrder(null); }} />
+              </div>
+              {s && openOrder === i && (
+                <div className="setlist-order">
+                  <p className="muted small">
+                    Orden de "{s.title}" solo para este evento.
+                    {!item.order?.length && ' Ahora usa el orden de la canción.'}
+                  </p>
+                  <ArrangementEditor
+                    content={s.content}
+                    order={item.order}
+                    fallbackOrder={s.order}
+                    resetLabel="Usar orden de la canción"
+                    onChange={(order) => setItem(i, { order })}
+                  />
                 </div>
-                {openOrder === i && (
-                  <div className="setlist-order">
-                    <p className="muted small">
-                      Orden de "{s.title}" solo para este evento.
-                      {!item.order?.length && ' Ahora usa el orden de la canción.'}
-                    </p>
-                    <ArrangementEditor
-                      content={s.content}
-                      order={item.order}
-                      fallbackOrder={s.order}
-                      resetLabel="Usar orden de la canción"
-                      onChange={(order) => setItems(event.items.map((x, k) => (k === i ? { ...x, order } : x)))}
-                    />
-                  </div>
-                )}
-              </li>
-            );
-          })}
+              )}
+            </li>
+          ))}
         </ol>
       )}
 
@@ -215,6 +247,23 @@ export default function Evento() {
           </ul>
         )}
         {query && results.length === 0 && <p className="muted">No se encontraron canciones.</p>}
+
+        <div className="field-label" style={{ marginTop: '0.6rem' }}>Agregar parte del culto</div>
+        <div className="row gap wrap partes">
+          {PARTES.map((p) => (
+            <button key={p} className="btn small" onClick={() => addParte(p)}>+ {p}</button>
+          ))}
+        </div>
+        <div className="row gap" style={{ marginTop: '0.5rem' }}>
+          <input
+            className="grow"
+            value={otra}
+            placeholder="Otra parte (texto propio)…"
+            onChange={(e) => setOtra(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && addParte(otra)}
+          />
+          <button className="btn small" disabled={!otra.trim()} onClick={() => addParte(otra)}>Agregar</button>
+        </div>
       </div>
 
       {!isNew && <Participacion event={event} />}

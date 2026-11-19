@@ -1,7 +1,7 @@
 import { songKey } from '../lib/importar.js';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { useStore } from '../lib/store.jsx';
+import { getCapo, setCapo as saveCapo, useStore } from '../lib/store.jsx';
 import { displayKey } from '../lib/chordpro.js';
 import SongView from '../components/SongView.jsx';
 
@@ -46,6 +46,11 @@ export default function Presentacion() {
   const current = items[index];
   // En la presentación no se cambia el tono: se usa el del evento (o el de la canción).
   const steps = current ? current.transpose : 0;
+  // Capo personal (solo cambia las formas de los acordes que veo yo).
+  const songId = current?.song.id;
+  const [capo, setCapoState] = useState(0);
+  useEffect(() => { if (songId) setCapoState(getCapo(songId)); }, [songId]);
+  const setCapo = (n) => { setCapoState(n); if (songId) saveCapo(songId, n); };
 
   const go = useCallback((dir) => {
     setIndex((i) => Math.min(Math.max(i + dir, 0), Math.max(items.length - 1, 0)));
@@ -123,7 +128,7 @@ export default function Presentacion() {
       <SongView
         content={current.song.content}
         songKey={songKey(current.song)}
-        steps={steps}
+        steps={steps - capo}
         order={current.order}
         settings={{ ...settings, showChords }}
         fontSize={size}
@@ -149,6 +154,13 @@ export default function Presentacion() {
               <span className="present-size">{size}</span>
               <button className="btn" onClick={() => setSize((s) => Math.min(96, s + 3))} aria-label="Letra más grande">A+</button>
             </div>
+            <label className="present-menu-row capo">
+              Capo
+              <select value={capo} onChange={(e) => setCapo(Number(e.target.value))}>
+                <option value={0}>Sin capo</option>
+                {[1, 2, 3, 4, 5, 6, 7].map((n) => <option key={n} value={n}>Traste {n}</option>)}
+              </select>
+            </label>
             <button className="btn" onClick={() => setShowChords((v) => !v)}>{showChords ? 'Ocultar acordes' : 'Mostrar acordes'}</button>
             <button className="btn" onClick={toggleFull}>{isFull ? 'Salir de pantalla completa' : '⛶ Pantalla completa'}</button>
             <button className="btn danger-solid" onClick={exit}>✕ Salir de la presentación</button>

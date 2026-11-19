@@ -8,6 +8,8 @@ import Evento from './pages/Evento.jsx';
 import Ajustes from './pages/Ajustes.jsx';
 import Presentacion from './pages/Presentacion.jsx';
 import Biblioteca from './pages/Biblioteca.jsx';
+import Apoyo from './pages/Apoyo.jsx';
+import Imprimir from './pages/Imprimir.jsx';
 import Importar from './pages/Importar.jsx';
 import { useStore } from './lib/store.jsx';
 
@@ -53,7 +55,9 @@ export default function App() {
           <Route path="/eventos" element={<Eventos />} />
           <Route path="/eventos/:id" element={<Evento />} />
           <Route path="/ajustes" element={<Ajustes />} />
+          <Route path="/apoyo" element={<Apoyo />} />
           <Route path="/presentar/:tipo/:id" element={<Presentacion />} />
+          <Route path="/imprimir/evento/:id" element={<Imprimir />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import {
-  collection, deleteDoc, deleteField, doc, getDoc, getDocs, onSnapshot, query, setDoc, updateDoc, where, writeBatch,
+  addDoc, collection, deleteDoc, deleteField, doc, getDoc, getDocs, onSnapshot, query, setDoc, updateDoc, where, writeBatch,
 } from 'firebase/firestore';
 import { grupoDe, participationId } from './participacion.js';
 import { cancionesEjemplo } from '../data/ejemplos.js';
@@ -130,6 +130,8 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
   const [people, setPeople] = useState([]);
   const [participations, setParticipations] = useState([]);
   const [myShares, setMyShares] = useState([]);
+  const [favorites, setFavorites] = useState([]);
+  const [suggestions, setSuggestions] = useState([]);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -158,6 +160,22 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
     ];
     return () => subs.forEach((u) => u());
   }, [churchId, mySession]);
+
+  // Favoritas: un documento por persona que solo esa persona puede leer.
+  const myKey = mySession?.key;
+  useEffect(() => {
+    if (!myKey) return undefined;
+    return onSnapshot(doc(db, 'churches', churchId, 'favorites', myKey), (s) => setFavorites(s.data()?.songs || []), () => setFavorites([]));
+  }, [churchId, myKey]);
+
+  // Sugerencias: solo Administrador y Director las leen.
+  const canReview = mySession?.role === 'admin' || mySession?.role === 'director';
+  useEffect(() => {
+    if (!myKey || !canReview) { setSuggestions([]); return undefined; }
+    return onSnapshot(collection(db, 'churches', churchId, 'suggestions'), (s) => setSuggestions(
+      s.docs.map((d) => ({ ...d.data(), id: d.id })).sort((a, b) => b.at - a.at),
+    ), () => setSuggestions([]));
+  }, [churchId, myKey, canReview]);
 
   const col = useCallback((name) => collection(db, 'churches', churchId, name), [churchId]);
   const report = useCallback((e) => setError(`No se pudo guardar: ${e.message}`), []);
@@ -196,6 +214,23 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
 
   const leaveEvent = useCallback((eventId, personKey) => {
     deleteDoc(doc(col('participations'), participationId(eventId, personKey))).catch(report);
+  }, [col, report]);
+
+  const toggleFavorite = useCallback((songId) => {
+    if (!myKey) return;
+    const next = favorites.includes(songId) ? favorites.filter((x) => x !== songId) : [...favorites, songId];
+    setFavorites(next);
+    setDoc(doc(col('favorites'), myKey), { songs: next.slice(-500) }).catch(report);
+  }, [myKey, favorites, col, report]);
+
+  /** Sugerir una corrección o comentario. Devuelve una promesa. */
+  const sendSuggestion = useCallback(({ text, songId = '', songTitle = '' }) => addDoc(col('suggestions'), {
+    text: text.trim().slice(0, 1000), songId, songTitle: songTitle.slice(0, 120),
+    personKey: mySession?.key || '', name: mySession?.name || '', at: Date.now(),
+  }), [col, mySession?.key, mySession?.name]);
+
+  const resolveSuggestion = useCallback((id) => {
+    deleteDoc(doc(col('suggestions'), id)).catch(report);
   }, [col, report]);
 
   /** El administrador cambia el perfil. Director necesita PIN. */
@@ -277,7 +312,8 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
   const value = useMemo(() => ({
     mode: 'cloud', churchId, church, me, role, pendingRole, can, people, songs, events, participations, error,
     clearError: () => setError(''), saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples, myShares, shareSong, unshareSong, loadLibrary,
-  }), [churchId, church.name, me?.name, me?.key, role, pendingRole, can, people, songs, events, participations, error, saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples, myShares, shareSong, unshareSong, loadLibrary]); // eslint-disable-line react-hooks/exhaustive-deps
+    favorites, toggleFavorite, suggestions, sendSuggestion, resolveSuggestion,
+  }), [churchId, church.name, me?.name, me?.key, role, pendingRole, can, people, songs, events, participations, error, saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples, myShares, shareSong, unshareSong, loadLibrary, favorites, toggleFavorite, suggestions, sendSuggestion, resolveSuggestion]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }
