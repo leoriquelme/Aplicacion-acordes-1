@@ -51,10 +51,10 @@ Coro x2
     const r = importSong(raw);
     expect(r.key).toBe('G');
     const secs = parseSong(r.content);
-    expect(secs.map((s) => s.name)).toEqual(['INTRO', 'VERSO', 'CORO', 'VERSO 2']);
-    expect(r.order).toEqual(['INTRO', 'VERSO', 'CORO', 'VERSO 2', 'CORO', 'CORO']);
+    expect(secs.map((s) => s.name)).toEqual(['INTRO 1', 'VERSO 1', 'CORO 1', 'VERSO 2']);
+    expect(r.order).toEqual(['INTRO 1', 'VERSO 1', 'CORO 1', 'VERSO 2', 'CORO 1', 'CORO 1']);
     expect(r.content).toContain('[G]Primera línea a[D]quí');
-    expect(r.content).toContain('[INTRO]\n[G] [D] [Em] [C]');
+    expect(r.content).toContain('[INTRO 1]\n[G] [D] [Em] [C]');
   });
   it('sin títulos, adivina el coro por lo que se repite', () => {
     const raw = `G       D
@@ -70,9 +70,9 @@ C        G
 El coro`;
     const r = importSong(raw);
     expect(parseSong(r.content).map((s) => [s.name, s.type])).toEqual([
-      ['VERSO', 'verse'], ['CORO', 'chorus'], ['VERSO 2', 'verse'],
+      ['VERSO 1', 'verse'], ['CORO 1', 'chorus'], ['VERSO 2', 'verse'],
     ]);
-    expect(r.order).toEqual(['VERSO', 'CORO', 'VERSO 2', 'CORO']);
+    expect(r.order).toEqual(['VERSO 1', 'CORO 1', 'VERSO 2', 'CORO 1']);
   });
 });
 
@@ -88,8 +88,8 @@ describe('ajustes manuales', () => {
   };
   it('cambia el tipo y renumera', () => {
     const s = setSectionType(base, 2, 'PUENTE');
-    expect(sectionNames(s.sections)).toEqual(['VERSO', 'CORO', 'PUENTE']);
-    expect(buildSong(s.sections, s.order).order).toEqual(['VERSO', 'CORO', 'PUENTE', 'CORO']);
+    expect(sectionNames(s.sections)).toEqual(['VERSO 1', 'CORO 1', 'PUENTE 1']);
+    expect(buildSong(s.sections, s.order).order).toEqual(['VERSO 1', 'CORO 1', 'PUENTE 1', 'CORO 1']);
   });
   it('une con la anterior', () => {
     const s = mergeWithPrevious(base, 1);
@@ -98,13 +98,13 @@ describe('ajustes manuales', () => {
   });
   it('divide una sección', () => {
     const s = splitSection(base, 2, 1, 'CORO');
-    expect(sectionNames(s.sections)).toEqual(['VERSO', 'CORO', 'VERSO 2', 'CORO 2']);
+    expect(sectionNames(s.sections)).toEqual(['VERSO 1', 'CORO 1', 'VERSO 2', 'CORO 2']);
     expect(s.order).toEqual([0, 1, 2, 3, 1]);
   });
   it('quita una sección', () => {
     const s = removeSection(base, 1);
     expect(s.order).toEqual([0, 1]);
-    expect(buildSong(s.sections, s.order)).toEqual({ content: '[VERSO]\na\nb\n\n[VERSO 2]\nd\ne\nf', order: undefined });
+    expect(buildSong(s.sections, s.order)).toEqual({ content: '[VERSO 1]\na\nb\n\n[VERSO 2]\nd\ne\nf', order: undefined });
   });
 });
 
@@ -126,7 +126,7 @@ import { autodetect } from './importar.js';
 describe('autodetectar', () => {
   it('convierte acordes y títulos sin tocar lo que ya está bien', () => {
     const r = autodetect('[VERSO]\n[G]ya bien\n\nCoro:\nG     D\nSanto santo\n\nEstrofa\nEm\nfin');
-    expect(r.content).toBe('[VERSO]\n[G]ya bien\n\n[CORO]\n[G]Santo [D]santo\n\n[VERSO 2]\n[Em]fin');
+    expect(r.content).toBe('[VERSO]\n[G]ya bien\n\n[CORO 1]\n[G]Santo [D]santo\n\n[VERSO 2]\n[Em]fin');
     expect([r.chords, r.headers]).toEqual([2, 2]);
   });
 });

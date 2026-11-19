@@ -171,12 +171,12 @@ export function analyzeSong(raw) {
   return { sections: sections.map(({ base, lines }) => ({ base, lines })), order, key };
 }
 
-/** Nombres de cada sección según su tipo: VERSO, VERSO 2, CORO… */
+/** Nombres de cada sección según su tipo: VERSO 1, VERSO 2, CORO 1… */
 export function sectionNames(sections) {
   const seen = {};
   return sections.map((x) => {
     seen[x.base] = (seen[x.base] || 0) + 1;
-    return seen[x.base] === 1 ? x.base : `${x.base} ${seen[x.base]}`;
+    return `${x.base} ${seen[x.base]}`;
   });
 }
 

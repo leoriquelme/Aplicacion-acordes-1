@@ -1,4 +1,4 @@
-import { arrangeSections, chordOptions, guessKey, parseSong, transposeChord } from '../lib/chordpro.js';
+import { arrangeSections, chordOptions, guessKey, parseSong, sectionLabel, transposeChord } from '../lib/chordpro.js';
 import { convertPlainChords } from '../lib/importar.js';
 
 // Separa el texto en palabras para que las líneas largas se puedan cortar
@@ -57,7 +57,7 @@ export default function SongView({ content, songKey, steps = 0, order, settings,
       {blocks.map((b, i) => (
         <section className={`block ${b.type} k-${b.kind} ${b.marker ? 'marker' : ''}`} key={i} id={`seccion-${i}`}>
           <div className="block-label">
-            <span className="sec-chip">{b.name}</span>
+            <span className="sec-chip">{b.marker ? b.name : sectionLabel(b.name)}</span>
             {b.times > 1 && <span className="times">×{b.times}</span>}
           </div>
           {b.lines.map((l, j) =>

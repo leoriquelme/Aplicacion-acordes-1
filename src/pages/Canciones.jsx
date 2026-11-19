@@ -2,6 +2,7 @@ import { songKey } from '../lib/importar.js';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useStore } from '../lib/store.jsx';
+import AddMenu from '../components/AddMenu.jsx';
 import AgregarEjemplos from '../components/AgregarEjemplos.jsx';
 import { displayKey, normalize } from '../lib/chordpro.js';
 
@@ -15,17 +16,13 @@ export default function Canciones() {
 
   return (
     <div className="page">
-      <div className="page-head">
+      <div className="page-head center">
         <h1>Canciones</h1>
-        <div className="row gap wrap">
-          {mode === 'cloud' && <Link className="btn" to="/canciones/biblioteca">🌐 Otras iglesias</Link>}
-          {can.edit && (
-          <div className="row gap wrap">
-            <Link className="btn" to="/canciones/importar">⤓ Importar</Link>
-            <Link className="btn primary" to="/canciones/nueva">+ Nueva canción</Link>
-          </div>
-          )}
-        </div>
+        {can.edit ? (
+          <AddMenu cloud={mode === 'cloud'} />
+        ) : (
+          mode === 'cloud' && <Link className="btn" to="/canciones/biblioteca">🌐 Otras iglesias</Link>
+        )}
       </div>
       <input
         className="search"

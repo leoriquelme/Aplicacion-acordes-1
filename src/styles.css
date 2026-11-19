@@ -521,3 +521,17 @@ textarea.mono { font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
 }
 .word { display: inline-flex; align-items: flex-end; white-space: nowrap; }
 .present-menu-btn, .present-nav button { -webkit-tap-highlight-color: transparent; }
+
+/* Botón + de Canciones */
+.btn.square { width: 2.75rem; height: 2.75rem; padding: 0; font-size: 1.6rem; line-height: 1; border-radius: 12px; }
+.add-menu { position: relative; }
+.add-menu-panel {
+  position: absolute; right: 0; top: calc(100% + 0.4rem); z-index: 40; width: 16rem;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 10px 30px rgba(17, 24, 39, 0.15);
+  padding: 0.35rem; display: flex; flex-direction: column;
+}
+.add-menu-panel a { display: flex; flex-direction: column; padding: 0.6rem 0.7rem; border-radius: 8px; color: var(--text); font-weight: 600; }
+.add-menu-panel a:hover { background: var(--primary-soft); text-decoration: none; }
+.add-menu-panel a span { font-weight: 400; font-size: 0.82rem; color: var(--muted); }
+.page-head.center { align-items: center; flex-wrap: nowrap; }
+.btn { -webkit-tap-highlight-color: transparent; }

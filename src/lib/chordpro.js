@@ -162,6 +162,11 @@ export function sectionHeader(line) {
   return null;
 }
 
+/** Nombre para mostrar: la primera sección también lleva número ("CORO" → "CORO 1"). */
+export function sectionLabel(name = '') {
+  return /\s\d+$/.test(name) ? name : `${name} 1`;
+}
+
 /** Nombre sin el número final: "CORO 2" → "CORO". */
 export function sectionBase(name = '') {
   return name.replace(/\s+\d+$/, '').trim();
@@ -198,12 +203,12 @@ export function customBases(content = '') {
 }
 
 /**
- * Nombre para la siguiente sección de un tipo: "VERSO", luego "VERSO 2"… hasta 5.
+ * Nombre para la siguiente sección de un tipo: "VERSO 1", luego "VERSO 2"… hasta 5.
  * Devuelve null si ya se llegó al máximo.
  */
 export function nextSectionName(base, existingNames) {
   const names = new Set(existingNames.map((n) => n.toUpperCase()));
-  if (!names.has(base) && !names.has(`${base} 1`)) return base;
+  if (!names.has(base) && !names.has(`${base} 1`)) return `${base} 1`;
   for (let n = 2; n <= MAX_SECTION_NUMBER; n++) {
     if (!names.has(`${base} ${n}`)) return `${base} ${n}`;
   }

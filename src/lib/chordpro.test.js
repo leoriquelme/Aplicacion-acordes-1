@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { syncOrder, arrangeSections, customBases, groupOrder, flattenGroups, sectionKind, validCustomName, cleanCustomName, nextSectionName, sectionHeader, parseLine, parseSong, parseMeta, transposeChord, transposeKey, displayKey, normalize } from './chordpro.js';
+import { sectionLabel, syncOrder, arrangeSections, customBases, groupOrder, flattenGroups, sectionKind, validCustomName, cleanCustomName, nextSectionName, sectionHeader, parseLine, parseSong, parseMeta, transposeChord, transposeKey, displayKey, normalize } from './chordpro.js';
 
 describe('transposeChord', () => {
   it('sube y baja medio tono', () => {
@@ -142,9 +142,16 @@ describe('secciones con [NOMBRE]', () => {
     ]);
   });
   it('numera la siguiente sección hasta 5', () => {
-    expect(nextSectionName('VERSO', [])).toBe('VERSO');
+    expect(nextSectionName('VERSO', [])).toBe('VERSO 1');
     expect(nextSectionName('VERSO', ['VERSO', 'CORO'])).toBe('VERSO 2');
     expect(nextSectionName('VERSO', ['VERSO', 'VERSO 2', 'VERSO 3'])).toBe('VERSO 4');
     expect(nextSectionName('CORO', ['CORO', 'CORO 2', 'CORO 3', 'CORO 4', 'CORO 5'])).toBe(null);
+    expect(nextSectionName('CORO', ['CORO 1'])).toBe('CORO 2');
   });
+});
+
+it('muestra la primera sección con número', () => {
+  expect(sectionLabel('CORO')).toBe('CORO 1');
+  expect(sectionLabel('CORO 2')).toBe('CORO 2');
+  expect(sectionLabel('Verso 1')).toBe('Verso 1');
 });

@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import ConfirmX from './ConfirmX.jsx';
 import {
-  MARKER, MAX_CUSTOM, cleanCustomName, flattenGroups, groupOrder, isMarker, markerName, parseSong, sectionKind,
+  MARKER, MAX_CUSTOM, sectionLabel, cleanCustomName, flattenGroups, groupOrder, isMarker, markerName, parseSong, sectionKind,
   validCustomName,
 } from '../lib/chordpro.js';
 
@@ -95,7 +95,7 @@ export default function ArrangementEditor({ content, order, onChange, fallbackOr
     <div className="arrangement">
       <ol className={`order-list ${dragFrom !== null ? 'is-dragging' : ''}`} ref={listRef}>
         {groups.map((g, i) => {
-          const label = markerName(g.name);
+          const label = isMarker(g.name) ? markerName(g.name) : sectionLabel(g.name);
           const kind = sectionKind(label);
           return (
             <li
@@ -130,7 +130,7 @@ export default function ArrangementEditor({ content, order, onChange, fallbackOr
           <select className="section-select" value="" onChange={(e) => choose(e.target.value)} aria-label="Agregar sección al orden">
             <option value="">＋ Agregar sección…</option>
             <optgroup label="De la letra">
-              {sections.map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
+              {sections.map((s) => <option key={s.name} value={s.name}>{sectionLabel(s.name)}</option>)}
             </optgroup>
             <optgroup label="Sin letra (solo una marca)">
               {MARKERS.map((m) => <option key={m} value={MARKER + m}>{m}</option>)}
