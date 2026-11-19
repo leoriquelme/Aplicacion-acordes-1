@@ -4,6 +4,7 @@ import SongView from '../components/SongView.jsx';
 import AgregarEjemplos from '../components/AgregarEjemplos.jsx';
 import { AjustesFinal, IglesiaBoton, PerfilCard } from '../components/Comunicacion.jsx';
 import InstalarCard from '../components/InstalarCard.jsx';
+import VincularGoogle from '../components/VincularGoogle.jsx';
 import IglesiaPrueba from '../components/IglesiaPrueba.jsx';
 import { Respaldo } from '../components/Administracion.jsx';
 import Icon from '../components/Icon.jsx';
@@ -80,6 +81,7 @@ export default function Ajustes() {
 
       {store.mode === 'cloud' ? (
         <>
+          <VincularGoogle />
           <Respaldo />
           {store.can.edit && (
           <section className="card">

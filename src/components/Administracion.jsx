@@ -31,7 +31,7 @@ export function CodigoAcceso() {
     <section className="card">
       <h2>Código de acceso</h2>
       <p className="muted small">
-        Los Colaboradores deben escribir este código para entrar por primera vez. Directores y Administrador entran con su PIN.
+        Los Colaboradores deben escribir este código para entrar por primera vez. Directores y Administrador entran con su contraseña.
       </p>
       <p>Código actual: <strong className="codigo">{actual === null ? '…' : actual || 'sin código'}</strong></p>
       <div className="row gap wrap">

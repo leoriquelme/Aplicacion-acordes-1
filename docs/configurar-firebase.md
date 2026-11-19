@@ -44,3 +44,14 @@ Para agregar otra iglesia más adelante se repite este paso con otro documento
 - Los PIN deben tener **8 números o más** (uno de 4 se adivina probando).
 - Si cambias un PIN, un perfil o el código de acceso, las personas afectadas tienen que volver a entrar.
 - Cada vez que cambie `firestore.rules`, hay que volver a pegarlo en **Firestore → Reglas → Publicar**.
+
+## Inicio con Google, iglesias nuevas y Super Admin (19-nov-2026)
+
+1. Firebase Console → **Authentication** → **Sign-in method** → **Agregar proveedor nuevo** → **Google** → Habilitar → elegir correo de asistencia → Guardar.
+2. Authentication → **Configuración** → **Dominios autorizados** → Agregar dominio → `leoriquelme.github.io`.
+3. Pegar `firestore.rules` en Firestore → Reglas → Publicar.
+4. Abrir la app en `#/super`, entrar con Google y copiar el código que aparece.
+5. Firestore → Datos → Iniciar colección `superadmins` → ID del documento = ese código → un campo `nombre` (texto) → Guardar.
+
+- Las iglesias nuevas las crea cualquiera con cuenta de Google (máx. 3 por cuenta) y quedan activas al tiro. El id es el nombre normalizado (`keyOf`), así no hay dos con el mismo nombre.
+- El campo `adminPin` puede renombrarse a `adminPassword` (las reglas aceptan los dos; si están ambos, vale `adminPassword`).
