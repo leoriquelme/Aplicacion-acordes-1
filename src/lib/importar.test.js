@@ -137,3 +137,19 @@ describe('líneas de acordes con barras y puntuación', () => {
     expect(convertPlainChords('|D     |Esus\nCuán alto monte')).toContain('[Esus]');
   });
 });
+
+import { autodetect as detectar } from './importar.js';
+describe('texto pegado con caracteres invisibles', () => {
+  const base = '[VERSO 1]\n             A             Esus\nCuán grande abismo entre nosotros\n           D    F#m         Esus\nCuán alto monte fallé escalar';
+  it.each([
+    ['salto de línea especial (U+2028)', base.replace(/\n/g, ' ')],
+    ['salto de línea antiguo (\\r)', base.replace(/\n/g, '\r')],
+    ['Windows (\\r\\n)', base.replace(/\n/g, '\r\n')],
+    ['espacio invisible (U+200B)', base.replace(/ (?=[A-Z])/g, '​ ')],
+    ['espacio duro', base.replace(/ {2}/g, '  ')],
+  ])('%s', (_, text) => {
+    const r = detectar(text);
+    expect(r.chords).toBe(2);
+    expect(r.content).toContain('Cuán grande a[A]bismo entre no[Esus]sotros');
+  });
+});

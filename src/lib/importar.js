@@ -1,6 +1,6 @@
 // Convierte una canción copiada de una página web (acordes en la línea de arriba
 // de la letra) al formato de la app: [CORO], [VERSO 2] y acordes como [G].
-import { MAX_SECTION_NUMBER, guessKey, nextSectionName, sectionHeader } from './chordpro.js';
+import { MAX_SECTION_NUMBER, cleanText, guessKey, nextSectionName, sectionHeader } from './chordpro.js';
 
 const NOTE = '(?:Do|Re|Mi|Fa|Sol|La|Si|[A-G])[#b♯♭]?';
 const CHORD_TOKEN_RE = new RegExp(
@@ -94,7 +94,7 @@ const lyricKey = (lines) =>
  * - Las secciones repetidas se escriben una sola vez y se guarda el orden original.
  */
 export function analyzeSong(raw) {
-  const lines = raw.replace(/\r/g, '').replace(/\t/g, '    ').replace(/ /g, ' ').split('\n');
+  const lines = cleanText(raw).replace(/\t/g, '    ').replace(/ /g, ' ').split('\n');
   let key = '';
   const blocks = [];
   let cur = null;
@@ -237,7 +237,7 @@ export function setSectionType(state, i, base) {
  * (sin corchetes), los pasa al formato [G] para que también cambien de tono.
  */
 export function convertPlainChords(content = '') {
-  const lines = content.replace(/\r/g, '').split('\n');
+  const lines = cleanText(content).split('\n');
   const plain = (l) => l.trim() && !l.includes('[') && !l.trim().startsWith('{') && !l.trim().startsWith('#');
   const out = [];
   for (let i = 0; i < lines.length; i++) {
@@ -268,7 +268,7 @@ export function songKey(song) {
  * Devuelve { content, chords, headers } con cuántas líneas cambió.
  */
 export function autodetect(content = '') {
-  const lines = content.replace(/\r/g, '').split('\n');
+  const lines = cleanText(content).split('\n');
   const names = lines.map((l) => sectionHeader(l)).filter(Boolean);
   let headers = 0;
   const withHeaders = lines.map((line) => {

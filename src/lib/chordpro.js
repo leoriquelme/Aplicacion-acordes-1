@@ -238,7 +238,7 @@ export function parseSong(content = '') {
     current = null;
   };
 
-  for (const raw of content.replace(/\r/g, '').split('\n')) {
+  for (const raw of cleanText(content).split('\n')) {
     const line = raw.trimEnd();
     const trimmed = line.trim();
 
@@ -387,3 +387,14 @@ export function normalize(text = '') {
 
 export const KEYS = ['C', 'C#', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B',
   'Cm', 'C#m', 'Dm', 'Ebm', 'Em', 'Fm', 'F#m', 'Gm', 'G#m', 'Am', 'Bbm', 'Bm'];
+
+/**
+ * Limpia texto pegado de otras apps o páginas web: todos los tipos de salto de línea pasan a ser
+ * un Enter normal, los espacios especiales a espacio normal y se quitan caracteres invisibles.
+ */
+export function cleanText(text = '') {
+  return String(text)
+    .replace(/\r\n?|[\u2028\u2029\u0085\u000b\u000c]/g, '\n')
+    .replace(/[\u200b-\u200d\u2060\ufeff\u00ad]/g, '')
+    .replace(/[\u00a0\u1680\u2000-\u200a\u202f\u205f\u3000]/g, ' ');
+}
