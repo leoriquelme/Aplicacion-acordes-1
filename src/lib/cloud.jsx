@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import {
-  addDoc, collection, deleteDoc, increment, deleteField, doc, getDoc, getDocs, onSnapshot, query, setDoc, updateDoc, where, writeBatch,
+  addDoc, arrayRemove, collection, deleteDoc, getCountFromServer, increment, limit, orderBy, serverTimestamp, deleteField, doc, getDoc, getDocs, onSnapshot, query, setDoc, updateDoc, where, writeBatch,
 } from 'firebase/firestore';
 import { grupoDe, participationId } from './participacion.js';
 import { cancionesEjemplo } from '../data/ejemplos.js';
@@ -9,16 +9,14 @@ import { PRUEBA_ID, datosPrueba } from '../data/prueba.js';
 import { auth, db } from './firebase.js';
 import { DataContext, ROLES } from './store.jsx';
 import { normalize } from './chordpro.js';
+import { keyOf } from './claves.js';
 
 // Se entra con Iglesia + Nombre. Por detrás, cada equipo tiene una sesión anónima de Firebase
 // (invisible para la persona) que permite que las reglas de permisos funcionen.
 
 const SESSION_KEY = 'cancionero-sesion';
 
-/** "Leonardo  Riquelme" → "leonardo riquelme" (sin tildes ni mayúsculas) */
-export function keyOf(text) {
-  return normalize(text).replace(/[^a-z0-9ñ ]/g, ' ').replace(/\s+/g, ' ').trim();
-}
+export { keyOf };
 
 const AuthContext = createContext(null);
 
@@ -33,8 +31,11 @@ function readSession() {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(undefined); // undefined = cargando
   const [session, setSessionState] = useState(readSession); // { churchId, churchName }
+  // Sube cuando el mismo usuario vincula su cuenta de Google (Firebase no avisa ese cambio).
+  const [authVersion, setAuthVersion] = useState(0);
+  const refreshUser = useCallback(() => setAuthVersion((v) => v + 1), []);
 
-  useEffect(() => onAuthStateChanged(auth, (u) => setUser(u || null)), []);
+  useEffect(() => onAuthStateChanged(auth, (u) => { setUser(u || null); setAuthVersion((v) => v + 1); }), []);
 
   const setSession = useCallback((s) => {
     setSessionState(s);
@@ -42,7 +43,7 @@ export function AuthProvider({ children }) {
     else localStorage.removeItem(SESSION_KEY);
   }, []);
 
-  const value = useMemo(() => ({ user, session, setSession }), [user, session, setSession]);
+  const value = useMemo(() => ({ user, session, setSession, authVersion, refreshUser }), [user, session, setSession, authVersion, refreshUser]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
@@ -62,7 +63,7 @@ export function randomCode(n = 6) {
   crypto.getRandomValues(arr);
   return [...arr].map((x) => abc[x % abc.length]).join('');
 }
-const NO_ENTRA = (church) => `No pudimos entrar a "${church.trim()}". Revisa el nombre de la iglesia y, si tiene, el código de acceso. Si en esta iglesia eres Director o Administrador, escribe también tu PIN.`;
+const NO_ENTRA = (church) => `No pudimos entrar a "${church.trim()}". Revisa el nombre de la iglesia y, si tiene, el código de acceso. Si en esta iglesia eres Director o Administrador, escribe también tu contraseña.`;
 
 /** Guarda muchos cambios de a 400 (el máximo de Firebase por envío es 500). */
 async function commitAll(ops) {
@@ -74,8 +75,9 @@ async function commitAll(ops) {
 }
 
 /**
- * Entrar a una iglesia. Con PIN intenta Administrador y luego Director.
- * Un nombre de Director o Administrador solo entra con su PIN (lo exigen las reglas).
+ * Entrar a una iglesia. Con contraseña intenta Administrador y luego Director.
+ * Un nombre de Director o Administrador solo entra con su contraseña (lo exigen las reglas).
+ * (Por dentro el campo se sigue llamando "pin"; antes eran solo números.)
  * Devuelve { churchId, churchName }.
  */
 export async function enterChurch({ church, name, pin, code = '' }) {
@@ -90,8 +92,9 @@ export async function enterChurch({ church, name, pin, code = '' }) {
 
   if (pin) {
     const clean = String(pin).trim();
-    // El PIN puede estar guardado como texto o como número en Firebase: se prueban ambos.
-    const attempts = [['admin', clean], ['admin', Number(clean)], ['director', clean]];
+    // Una contraseña antigua de solo números puede estar guardada como número en Firebase: se prueban ambos.
+    const numeric = /^\d+$/.test(clean) && Number.isSafeInteger(Number(clean));
+    const attempts = [['admin', clean], ...(numeric ? [['admin', Number(clean)]] : []), ['director', clean]];
     for (const [role, value] of attempts) {
       try {
         await setDoc(sessionRef(churchId, user.uid), { ...base, role, pin: value });
@@ -114,7 +117,7 @@ export async function enterChurch({ church, name, pin, code = '' }) {
       throw new Error(NO_ENTRA(church));
     }
     await deleteDoc(sessionRef(churchId, user.uid)).catch(() => {});
-    throw new Error('El PIN no es correcto para ese nombre.');
+    throw new Error('La contraseña no es correcta para ese nombre (revisa mayúsculas y minúsculas).');
   }
 
   try {
@@ -130,6 +133,160 @@ export async function enterChurch({ church, name, pin, code = '' }) {
   // El nombre no se toca: la persona pudo cambiarlo en Ajustes.
   await updateDoc(personRef(churchId, key), { lastSeen: now });
   return { churchId, churchName: base.churchName };
+}
+
+// ---------- Con cuenta de Google ----------
+
+const linksRef = (uid) => doc(db, 'links', uid);
+const BLOQUEADA = 'Esta iglesia está bloqueada. Escríbele al encargado del Cancionero.';
+
+/** Iglesias donde puedo entrar con mi cuenta de Google: las que creé (o vinculé como Administrador) y donde soy Director. */
+export async function misIglesiasGoogle() {
+  const uid = auth.currentUser?.uid;
+  if (!uid) return [];
+  const [owned, links] = await Promise.all([
+    getDocs(query(collection(db, 'churches'), where('ownerUid', '==', uid))),
+    getDoc(linksRef(uid)).catch(() => null),
+  ]);
+  const list = owned.docs.map((d) => ({
+    churchId: d.id, churchName: d.data().name, role: 'admin', status: d.data().status || 'activa',
+  }));
+  Object.entries(links?.data()?.churches || {}).forEach(([churchId, l]) => {
+    if (!list.some((x) => x.churchId === churchId)) list.push({ churchId, churchName: l.churchName || churchId.toUpperCase(), role: 'director', key: l.key, name: l.name });
+  });
+  return list.sort((a, b) => a.churchName.localeCompare(b.churchName));
+}
+
+/** Entrar con Google a una iglesia de misIglesiasGoogle(): sin contraseña. */
+export async function entrarConCuenta(item) {
+  const uid = auth.currentUser.uid;
+  const now = Date.now();
+  const { churchId } = item;
+  if (item.role === 'admin') {
+    const snap = await getDoc(doc(db, 'churches', churchId));
+    const c = snap.data();
+    if (c.status === 'bloqueada') throw new Error(BLOQUEADA);
+    const name = c.ownerName || c.adminKey;
+    await setDoc(sessionRef(churchId, uid), { key: c.adminKey, name, churchName: c.name, role: 'admin' });
+    const ex = await getDoc(personRef(churchId, c.adminKey)).catch(() => null);
+    await setDoc(personRef(churchId, c.adminKey), {
+      ...(ex?.exists() ? {} : { name, firstSeen: now }), role: 'admin', lastSeen: now,
+    }, { merge: true });
+    return { churchId, churchName: c.name };
+  }
+  try {
+    await setDoc(sessionRef(churchId, uid), { key: item.key, name: item.name, churchName: item.churchName, role: 'director' });
+  } catch {
+    throw new Error(`No pudiste entrar a ${item.churchName} como Director. Puede que el Administrador te haya cambiado el perfil o que la iglesia esté bloqueada. Entra con tu nombre y contraseña.`);
+  }
+  await updateDoc(personRef(churchId, item.key), { lastSeen: now }).catch(() => {});
+  return { churchId, churchName: item.churchName };
+}
+
+/**
+ * Crear una iglesia nueva con la cuenta de Google. Queda activa al tiro y quien la crea es su Administrador.
+ * No puede haber dos iglesias con el mismo nombre: el id es el nombre sin mayúsculas, tildes ni espacios
+ * de más, y Firebase no deja crear un documento que ya existe (aunque dos lo intenten a la vez).
+ */
+export async function crearIglesia({ church, city = '', name }) {
+  const user = auth.currentUser;
+  const churchId = keyOf(church);
+  const adminKey = keyOf(name);
+  if (churchId.length < 3) throw new Error('El nombre de la iglesia debe tener al menos 3 letras.');
+  if (church.trim().length > 60) throw new Error('El nombre de la iglesia es muy largo (máximo 60 letras).');
+  if (!adminKey) throw new Error('Escribe tu nombre.');
+  const ownersRef = doc(db, 'owners', user.uid);
+  const prev = await getDoc(ownersRef).catch(() => null);
+  const mine = prev?.data()?.churches || [];
+  if (mine.length >= 3) throw new Error('Con una cuenta de Google se pueden crear hasta 3 iglesias.');
+  const churchName = church.trim().replace(/\s+/g, ' ').toUpperCase();
+  const b = writeBatch(db);
+  b.set(doc(db, 'churches', churchId), {
+    name: churchName, ...(city.trim() ? { city: city.trim().slice(0, 60) } : {}),
+    adminKey, ownerName: name.trim().slice(0, 60), ownerUid: user.uid, ownerEmail: user.email || googleMail(user),
+    status: 'activa', createdAt: serverTimestamp(),
+  });
+  b.set(ownersRef, { churches: [...mine, churchId] });
+  try {
+    await b.commit();
+  } catch (e) {
+    if (e.code === 'unavailable') throw new Error('No hay conexión a internet.');
+    throw new Error(`Ya existe una iglesia llamada "${churchName}" (o con un nombre igual sin contar tildes ni mayúsculas). Prueba con otro nombre, por ejemplo agregando tu ciudad o comuna.`);
+  }
+  return entrarConCuenta({ churchId, role: 'admin' });
+}
+const googleMail = (u) => u.providerData?.find((p) => p.providerId === 'google.com')?.email || '';
+
+/** Vincular la cuenta de Google con mi perfil en esta iglesia (Administrador o Director). */
+export async function vincularPerfil({ churchId, churchName, role, key, name }) {
+  const user = auth.currentUser;
+  if (role === 'admin') {
+    await updateDoc(doc(db, 'churches', churchId), { ownerUid: user.uid, ownerEmail: user.email || googleMail(user) });
+  } else if (role === 'director') {
+    await updateDoc(personRef(churchId, key), { uid: user.uid });
+    await setDoc(linksRef(user.uid), { churches: { [churchId]: { key, name, churchName } } }, { merge: true });
+  }
+}
+
+// ---------- Super Admin ----------
+
+export async function soySuperAdmin() {
+  const uid = auth.currentUser?.uid;
+  if (!uid) return false;
+  try {
+    return (await getDoc(doc(db, 'superadmins', uid))).exists();
+  } catch {
+    return false;
+  }
+}
+
+const SUBCOLECCIONES = ['sessions', 'people', 'private', 'songs', 'events', 'participations', 'favorites', 'suggestions'];
+
+/** Todas las iglesias (solo Super Admin). */
+export async function todasLasIglesias() {
+  const snap = await getDocs(collection(db, 'churches'));
+  return snap.docs.map((d) => {
+    const { adminPin, adminPassword, accessCode, ...rest } = d.data(); // eslint-disable-line no-unused-vars
+    return { ...rest, id: d.id, createdAt: rest.createdAt?.toMillis?.() || null, conCodigo: Boolean(accessCode) };
+  });
+}
+
+/** Cuántos miembros, canciones, eventos… tiene una iglesia, y cuándo entró alguien por última vez. */
+export async function actividadIglesia(churchId) {
+  const base = doc(db, 'churches', churchId);
+  const contar = (n) => getCountFromServer(collection(base, n)).then((r) => r.data().count).catch(() => null);
+  const [miembros, canciones, eventos, inscripciones, ultimo, ultimaCancion] = await Promise.all([
+    contar('people'), contar('songs'), contar('events'), contar('participations'),
+    getDocs(query(collection(base, 'people'), orderBy('lastSeen', 'desc'), limit(1))).catch(() => null),
+    getDocs(query(collection(base, 'songs'), orderBy('updatedAt', 'desc'), limit(1))).catch(() => null),
+  ]);
+  const ultimaVez = Math.max(ultimo?.docs[0]?.data().lastSeen || 0, ultimaCancion?.docs[0]?.data().updatedAt || 0) || null;
+  return { miembros, canciones, eventos, inscripciones, ultimaVez };
+}
+
+/** Totales que no son de una iglesia (biblioteca compartida). */
+export async function actividadGeneral() {
+  const compartidas = await getCountFromServer(collection(db, 'library')).then((r) => r.data().count).catch(() => null);
+  return { compartidas };
+}
+
+export async function cambiarEstadoIglesia(churchId, status) {
+  await updateDoc(doc(db, 'churches', churchId), { status });
+}
+
+/** Borra una iglesia con todo lo que tiene (solo Super Admin). No se puede deshacer. */
+export async function eliminarIglesia(iglesia) {
+  const base = doc(db, 'churches', iglesia.id);
+  for (const n of SUBCOLECCIONES) {
+    const snap = await getDocs(collection(base, n));
+    await commitAll(snap.docs.map((d) => (b) => b.delete(d.ref)));
+  }
+  const lib = await getDocs(query(collection(db, 'library'), where('churchId', '==', iglesia.id)));
+  await commitAll(lib.docs.map((d) => (b) => b.delete(d.ref)));
+  await deleteDoc(base);
+  if (iglesia.ownerUid) {
+    await updateDoc(doc(db, 'owners', iglesia.ownerUid), { churches: arrayRemove(iglesia.id) }).catch(() => {});
+  }
 }
 
 export async function leaveChurch(churchId) {

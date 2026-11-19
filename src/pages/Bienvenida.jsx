@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { cleanCode, enterChurch, useAuth } from '../lib/cloud.jsx';
 import Icon from '../components/Icon.jsx';
+import ConGoogle from '../components/ConGoogle.jsx';
 
 const LAST = 'cancionero-ultimo-ingreso';
 
@@ -12,13 +13,14 @@ function readLast() {
   }
 }
 
-/** Página de apertura: Iglesia + Nombre (+ PIN para Director o Administrador). */
+/** Página de apertura: Iglesia + Nombre (+ contraseña para Director o Administrador), o con Google. */
 export default function Bienvenida({ notice }) {
   const { setSession } = useAuth();
   const last = readLast();
   const [church, setChurch] = useState(last.church || '');
   const [name, setName] = useState(last.name || '');
-  const [pin, setPin] = useState('');
+  const [pin, setPin] = useState(''); // contraseña
+  const [ver, setVer] = useState(false);
   const [code, setCode] = useState(last.code || '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -77,15 +79,19 @@ export default function Bienvenida({ notice }) {
             />
           </label>
           <label>
-            PIN <span className="muted small">(solo si eres Director o Administrador)</span>
-            <input
-              value={pin}
-              onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
-              inputMode="numeric"
-              type="password"
-              placeholder="Déjalo vacío si eres Colaborador"
-              autoComplete="off"
-            />
+            Contraseña <span className="muted small">(solo si eres Director o Administrador)</span>
+            <span className="pass-field">
+              <input
+                value={pin}
+                onChange={(e) => setPin(e.target.value)}
+                type={ver ? 'text' : 'password'}
+                placeholder="Déjala vacía si eres Colaborador"
+                autoComplete="current-password"
+                autoCapitalize="off"
+                spellCheck={false}
+              />
+              <button type="button" className="btn small ghost" onClick={() => setVer((v) => !v)}>{ver ? 'Ocultar' : 'Ver'}</button>
+            </span>
           </label>
         </fieldset>
 
@@ -94,6 +100,7 @@ export default function Bienvenida({ notice }) {
         </button>
         {error && <p className="error">{error}</p>}
       </form>
+      <ConGoogle />
     </div>
   );
 }

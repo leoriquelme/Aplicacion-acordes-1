@@ -346,7 +346,7 @@ textarea.mono { font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
 .pin-link { align-self: center; margin: -0.3rem auto 0.8rem; display: block; }
 .pin-notice { background: var(--chorus-bg); border-radius: 8px; padding: 0.6rem 0.8rem; text-align: left; font-size: 0.95rem; }
 .welcome-card .btn.ghost.small { margin-top: 0.5rem; }
-.pin-input { width: 9rem; padding: 0.3rem 0.5rem; }
+.pin-input { width: 11rem; padding: 0.3rem 0.5rem; }
 .table-scroll { overflow-x: auto; }
 
 /* ===== Secciones con color ===== */
@@ -816,3 +816,31 @@ button.nota-chip { cursor: pointer; }
 .login-grupo { border: 1px solid var(--border); border-radius: 12px; padding: 0.7rem 0.9rem 0.1rem; margin: 0 0 0.9rem; background: var(--surface-2); text-align: left; min-width: 0; }
 .login-grupo legend { font-size: 0.8rem; font-weight: 700; color: var(--muted); padding: 0 0.35rem; text-transform: uppercase; letter-spacing: 0.04em; }
 .login-grupo label:last-child { margin-bottom: 0.7rem; }
+
+/* Entrada con Google y Super Admin */
+.welcome { gap: 1rem; align-content: center; }
+.google-box { text-align: left; }
+.google-box h2 { margin-top: 0; }
+.google-box .stack { display: grid; gap: 0.5rem; margin: 0.6rem 0; }
+.google-box > .btn { width: 100%; margin-top: 0.4rem; }
+.google-pie { margin-top: 1rem; justify-content: space-between; }
+.nueva-iglesia { display: grid; gap: 0.6rem; margin-top: 0.8rem; padding-top: 0.8rem; border-top: 1px solid var(--border, #ddd); }
+.pass-field { display: flex; gap: 0.4rem; align-items: center; }
+.pass-field input { flex: 1; min-width: 0; }
+.pass-field .btn.small { margin-top: 0 !important; }
+.super { max-width: 980px; margin: 0 auto; padding: 1rem; }
+.super-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.super-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.6rem; margin: 1rem 0; }
+.super-tile { background: var(--surface); border: 1px solid var(--border, #ddd); border-radius: 12px; padding: 0.7rem 0.9rem; }
+.super-tile b { display: block; font-size: 1.5rem; }
+.uso-barra { height: 10px; border-radius: 6px; background: var(--border, #e5e5e5); overflow: hidden; margin: 0.4rem 0; }
+.uso-barra > span { display: block; height: 100%; background: var(--primary, #3f51b5); }
+.super-lista { display: grid; gap: 0.6rem; }
+.super-iglesia { display: grid; gap: 0.4rem; }
+.super-iglesia .nums { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; }
+.etiqueta { display: inline-block; font-size: 0.75rem; padding: 0.1rem 0.5rem; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); margin-left: 0.4rem; vertical-align: middle; }
+.etiqueta.alerta { background: #fff3cd; color: #7a5a00; }
+.etiqueta.mal { background: #fde2e1; color: #9b1c1c; }
+.etiqueta.bien { background: #e3f6e8; color: #1e6b35; }
+.uid-box { font-family: ui-monospace, monospace; word-break: break-all; padding: 0.5rem; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border); }
+.super-iglesia .danger-zone { margin-top: 0.4rem; }
