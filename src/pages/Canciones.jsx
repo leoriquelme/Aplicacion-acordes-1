@@ -39,10 +39,10 @@ export default function Canciones() {
   return (
     <div className="page">
       <div className="canciones-head">
-        {can.edit && <AddMenu cloud={mode === 'cloud'} />}
         <div className="grow">
           <h1><span className="song-count">{songs.length}</span> {songs.length === 1 ? 'canción' : 'canciones'}</h1>
         </div>
+        {can.edit && <AddMenu cloud={mode !== 'local'} />}
         {!can.edit && mode === 'cloud' && <Link className="btn" to="/canciones/biblioteca"><Icon name="globe" /> Otras iglesias</Link>}
       </div>
       <input

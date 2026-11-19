@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom';
 import { useAuth } from '../lib/cloud.jsx';
 import Icon from '../components/Icon.jsx';
 import VersiculoDelDia from '../components/VersiculoDelDia.jsx';
@@ -17,7 +16,6 @@ export default function InicioPersonal() {
           <p className="muted">
             {tiene ? 'Para ver los eventos y el equipo de tu iglesia, ábrela en la pestaña Mi iglesia.' : 'Para ver los eventos y el equipo de tu iglesia, únete con su código o crea la tuya en la pestaña Mi iglesia.'}
           </p>
-          <Link className="btn primary" to="/mi-iglesia"><Icon name="church" /> Ir a Mi iglesia</Link>
         </div>
       </section>
       <VersiculoDelDia />
