@@ -1,11 +1,15 @@
 import { Link } from 'react-router-dom';
 import { formatLong, relativeDay } from '../lib/dates.js';
 import { eventLines } from '../lib/evento.js';
+import { useStore } from '../lib/store.jsx';
+import Avatares from './Avatares.jsx';
 
 export default function EventCard({ event, songs, showSongs = true }) {
   const lines = eventLines(event, songs);
   const list = lines.filter((l) => l.song);
   const rel = relativeDay(event.date);
+  const { participations = [] } = useStore();
+  const vol = participations.filter((p) => p.eventId === event.id);
   return (
     <article className="card event-card">
       <div className="event-date">
@@ -13,6 +17,9 @@ export default function EventCard({ event, songs, showSongs = true }) {
         <span>{formatLong(event.date)}{event.time ? ` · ${event.time}` : ''}</span>
       </div>
       <h3>{event.name}</h3>
+      {vol.length > 0 && (
+        <div className="voluntarios-linea"><Avatares people={vol} max={6} size="sm" /><span className="muted small">{vol.length} {vol.length === 1 ? 'voluntario' : 'voluntarios'}</span></div>
+      )}
       {showSongs && (
         lines.length ? (
           <ol className="event-songs">

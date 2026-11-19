@@ -18,12 +18,14 @@ export const GRUPOS = [
     nombre: 'Multimedia y audio',
     roles: ['Sonido', 'Proyección', 'Transmisión', 'Fotografía y video', 'Luces'],
   },
+  // Equipos que cada persona define en "Mi iglesia" (ej. Danza, Bienvenida, Niños).
+  { id: 'otros', nombre: 'Otros equipos', roles: [] },
 ];
 
 export const HISTORIAL_MESES = 3;
 
 export function grupoDe(role) {
-  return GRUPOS.find((g) => g.roles.includes(role))?.id || 'instrumentos';
+  return GRUPOS.find((g) => g.roles.includes(role))?.id || 'otros';
 }
 
 /** Id del registro: uno por persona y evento, así nadie queda con dos roles en el mismo servicio. */
@@ -36,7 +38,7 @@ export function inscritosPorGrupo(participations, eventId) {
     ...g,
     personas: mine
       .filter((p) => p.group === g.id)
-      .sort((a, b) => g.roles.indexOf(a.role) - g.roles.indexOf(b.role) || a.name.localeCompare(b.name, 'es')),
+      .sort((a, b) => g.roles.indexOf(a.role) - g.roles.indexOf(b.role) || a.role.localeCompare(b.role, 'es') || a.name.localeCompare(b.name, 'es')),
   }));
 }
 
@@ -65,4 +67,20 @@ export function historial(participations, events, now = new Date()) {
   return [...people.values()]
     .map((st) => ({ ...st, items: st.items.sort((a, b) => b.date.localeCompare(a.date)) }))
     .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'es'));
+}
+
+/** Iniciales para el círculo: primera letra del nombre y del apellido ("Leo Riquelme" → "LR"). */
+export function iniciales(name = '') {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return '?';
+  const first = words[0][0];
+  const last = words.length > 1 ? words[words.length - 1][0] : words[0][1] || '';
+  return (first + last).toUpperCase();
+}
+
+/** Color estable para cada persona. */
+export function colorDe(key = '') {
+  let h = 0;
+  for (const ch of key) h = (h * 31 + ch.charCodeAt(0)) % 360;
+  return `hsl(${h} 55% 45%)`;
 }

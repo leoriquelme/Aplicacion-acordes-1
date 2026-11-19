@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ROLES, useStore } from '../lib/store.jsx';
+import { enterChurch, leaveChurch, useAuth } from '../lib/cloud.jsx';
 import { APP_VERSION } from '../lib/version.js';
-import ConfirmX from './ConfirmX.jsx';
+import { Avatar } from './Avatares.jsx';
 
 function useOnline() {
   const [online, setOnline] = useState(() => navigator.onLine);
@@ -16,111 +17,124 @@ function useOnline() {
   return online;
 }
 
-const instalada = () => window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone === true;
-
-/** Estado: conexión, perfil, iglesia, si funciona sin internet y versión. */
-export function EstadoCard() {
-  const { mode, church, me, role, songs } = useStore();
+/** Arriba de Ajustes: mi nombre (con Editar), mi perfil y el estado de la app. */
+export function PerfilCard() {
+  const { mode, church, me, role, pendingRole, songs, updateMyName } = useStore();
   const online = useOnline();
   const [offlineReady, setOfflineReady] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState('');
+  const [msg, setMsg] = useState('');
+  const [pin, setPin] = useState('');
   useEffect(() => {
     navigator.serviceWorker?.getRegistration?.().then((r) => setOfflineReady(Boolean(r?.active))).catch(() => {});
   }, []);
+  const cloud = mode === 'cloud';
+
+  const guardar = async () => {
+    if (!name.trim()) return;
+    try {
+      await updateMyName(name);
+      setEditing(false);
+      setMsg('');
+    } catch {
+      setMsg('No se pudo guardar. Revisa tu conexión.');
+    }
+  };
+
   return (
-    <section className="card estado">
-      <h2>Estado</h2>
+    <section className="card perfil">
+      <div className="perfil-head">
+        {cloud && <Avatar name={me?.name || '?'} personKey={me?.key} size="lg" />}
+        <div className="grow">
+          {editing ? (
+            <div className="row gap wrap">
+              <input value={name} maxLength={60} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && guardar()} autoFocus aria-label="Tu nombre" />
+              <button className="btn primary small" disabled={!name.trim()} onClick={guardar}>Guardar</button>
+              <button className="btn ghost small" onClick={() => setEditing(false)}>Cancelar</button>
+            </div>
+          ) : (
+            <h1 className="perfil-nombre">{cloud ? me?.name : 'Mi equipo'}</h1>
+          )}
+          {cloud && <span className={`role-pill role-${role}`}>{ROLES[role]?.label || 'Colaborador'}</span>}
+          {msg && <p className="error small">{msg}</p>}
+        </div>
+        {cloud && !editing && (
+          <button className="btn small" onClick={() => { setName(me?.name || ''); setEditing(true); }}>✏️ Editar</button>
+        )}
+      </div>
+
+      {cloud && pendingRole && (
+        <form
+          className="code-box"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            try {
+              await enterChurch({ church: church.name, name: me.name, pin });
+              setPin('');
+            } catch (err) {
+              setMsg(err.message);
+            }
+          }}
+        >
+          <span>Te asignaron el perfil <strong>{ROLES[pendingRole]?.label}</strong>. Escribe tu PIN para activarlo.</span>
+          <div className="row gap">
+            <input value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} inputMode="numeric" type="password" placeholder="PIN" />
+            <button className="btn primary small" disabled={!pin}>Activar</button>
+          </div>
+        </form>
+      )}
+
       <ul className="estado-list">
         <li><span className={`dot-status ${online ? 'ok' : 'off'}`} /> {online ? 'Con internet' : 'Sin internet: puedes seguir viendo tus canciones'}</li>
-        {mode === 'cloud' ? (
+        {cloud ? (
           <>
             <li>⛪ Iglesia: <strong>{church?.name}</strong></li>
-            <li>👤 {me?.name || '—'} · <strong>{ROLES[role]?.label || 'Colaborador'}</strong></li>
+            <li>👤 {me?.name} · {ROLES[role]?.label || 'Colaborador'}</li>
           </>
         ) : (
           <li>💻 Usando la app solo en este equipo</li>
         )}
-        <li>🎵 {songs.length} {songs.length === 1 ? 'canción' : 'canciones'} {offlineReady ? 'guardadas para usar sin internet' : ''}</li>
-        <li>📱 {instalada() ? 'Instalada como app' : 'Puedes instalarla como app (ver abajo)'}</li>
-        <li className="muted small">Versión {APP_VERSION}</li>
+        <li>🎵 {songs.length} {songs.length === 1 ? 'canción' : 'canciones'}{offlineReady ? ' guardadas para usar sin internet' : ''}</li>
       </ul>
-      <Link className="btn apoyo-btn" to="/apoyo">🙏 Apoyo: orar y donar</Link>
     </section>
   );
 }
 
-/** Sugerir una corrección (todos) y revisar las sugerencias (Administrador y Director). */
-export function SugerenciasCard() {
-  const { mode, songs, can, suggestions = [], sendSuggestion, resolveSuggestion } = useStore();
-  const [text, setText] = useState('');
-  const [songId, setSongId] = useState('');
-  const [msg, setMsg] = useState('');
-  const [sending, setSending] = useState(false);
-  if (mode !== 'cloud') {
-    return (
-      <section className="card">
-        <h2>Sugerir una corrección</h2>
-        <p className="muted">Para enviar sugerencias a los directores, entra con tu iglesia.</p>
-      </section>
-    );
-  }
-  const send = async () => {
-    if (!text.trim()) return;
-    setSending(true);
-    try {
-      const song = songs.find((s) => s.id === songId);
-      await sendSuggestion({ text, songId, songTitle: song?.title || '' });
-      setText('');
-      setSongId('');
-      setMsg('✓ Enviada. Gracias, los directores la revisarán.');
-    } catch {
-      setMsg('No se pudo enviar. Revisa tu conexión e inténtalo de nuevo.');
-    }
-    setSending(false);
-  };
-  const sorted = [...songs].sort((a, b) => a.title.localeCompare(b.title, 'es'));
+/** Botón a la página de la iglesia y sus miembros. */
+export function IglesiaBoton() {
+  const { mode, church, people = [] } = useStore();
+  if (mode !== 'cloud') return null;
   return (
-    <section className="card">
-      <h2>Sugerir una corrección</h2>
-      <p className="muted small">¿Un acorde mal puesto, una letra con error o una idea para la app? Escríbelo aquí y le llega al Administrador y a los Directores.</p>
-      <label>
-        Canción (opcional)
-        <select value={songId} onChange={(e) => setSongId(e.target.value)}>
-          <option value="">— Sobre la app en general —</option>
-          {sorted.map((s) => <option key={s.id} value={s.id}>{s.title}</option>)}
-        </select>
-      </label>
-      <label>
-        Tu mensaje
-        <textarea rows={3} maxLength={1000} value={text} onChange={(e) => { setText(e.target.value); setMsg(''); }} placeholder="Ej. En el coro, el segundo acorde es Em, no G." />
-      </label>
-      <div className="row gap">
-        <button className="btn primary" disabled={!text.trim() || sending} onClick={send}>{sending ? 'Enviando…' : 'Enviar sugerencia'}</button>
-        {msg && <span className="muted small">{msg}</span>}
-      </div>
+    <Link to="/mi-iglesia/miembros" className="card iglesia-boton">
+      <span className="bloque-icono" aria-hidden="true">⛪</span>
+      <span className="grow">
+        <span className="muted small">Perteneces a</span>
+        <strong>{church?.name}</strong>
+        <span className="muted small">{people.length} {people.length === 1 ? 'miembro' : 'miembros'}</span>
+      </span>
+      <span className="chevron" aria-hidden="true">›</span>
+    </Link>
+  );
+}
 
-      {can.edit && (
-        <div className="sugerencias">
-          <h3>Sugerencias recibidas {suggestions.length > 0 && <span className="badge">{suggestions.length}</span>}</h3>
-          {suggestions.length === 0 ? (
-            <p className="muted small">No hay sugerencias pendientes.</p>
-          ) : (
-            <ul>
-              {suggestions.map((s) => (
-                <li key={s.id}>
-                  <div className="grow">
-                    <div className="small muted">
-                      {s.name || 'Alguien'} · {new Date(s.at).toLocaleDateString('es')}
-                      {s.songTitle && <> · {songs.some((x) => x.id === s.songId) ? <Link to={`/canciones/${s.songId}`}>{s.songTitle}</Link> : s.songTitle}</>}
-                    </div>
-                    <div className="sug-text">{s.text}</div>
-                  </div>
-                  <ConfirmX className="btn small" label="Marcar como resuelta" text="✓ Resuelta" armedText="¿Confirmar?" onConfirm={() => resolveSuggestion(s.id)} />
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
+/** Abajo de Ajustes: sugerir mejoras, apoyo, salir y versión. */
+export function AjustesFinal() {
+  const { mode, churchId, can, suggestions = [] } = useStore();
+  const { setSession } = useAuth() || {};
+  const salir = async () => {
+    await leaveChurch(churchId);
+    setSession?.(null);
+  };
+  return (
+    <section className="ajustes-final">
+      <Link className="btn big-inline" to="/sugerencias">
+        💡 Sugerir mejoras
+        {can.users && suggestions.length > 0 && <span className="badge">{suggestions.length}</span>}
+      </Link>
+      <Link className="btn big-inline" to="/apoyo">🙏 Apoyo: orar y donar</Link>
+      {mode === 'cloud' && <button className="btn ghost" onClick={salir}>Salir / cambiar de iglesia</button>}
+      <p className="muted small">Versión {APP_VERSION}</p>
     </section>
   );
 }

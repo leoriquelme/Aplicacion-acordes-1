@@ -18,13 +18,12 @@ export default function Canciones() {
 
   return (
     <div className="page">
-      <div className="page-head center">
-        <h1>Canciones</h1>
-        {can.edit ? (
-          <AddMenu cloud={mode === 'cloud'} />
-        ) : (
-          mode === 'cloud' && <Link className="btn" to="/canciones/biblioteca">🌐 Otras iglesias</Link>
-        )}
+      <div className="canciones-head">
+        {can.edit && <AddMenu cloud={mode === 'cloud'} />}
+        <div className="grow">
+          <h1><span className="song-count">{songs.length}</span> {songs.length === 1 ? 'canción' : 'canciones'}</h1>
+        </div>
+        {!can.edit && mode === 'cloud' && <Link className="btn" to="/canciones/biblioteca">🌐 Otras iglesias</Link>}
       </div>
       <input
         className="search"
@@ -35,7 +34,7 @@ export default function Canciones() {
         autoFocus
       />
       <div className="row between wrap">
-        <p className="muted small">{list.length} de {songs.length} canciones</p>
+        <p className="muted small">{list.length === songs.length ? 'Todas' : `${list.length} de ${songs.length}`}</p>
         <button className={`btn small ${onlyFav ? 'primary' : ''}`} onClick={() => setOnlyFav(!onlyFav)} aria-pressed={onlyFav}>
           ★ Mis favoritas{favorites.length ? ` (${favorites.length})` : ''}
         </button>
@@ -51,16 +50,16 @@ export default function Canciones() {
           )}
         </div>
       ) : (
-        <ul className="song-list">
+        <ul className="song-grid">
           {list.map((s) => (
             <li key={s.id}>
-              <Link to={`/canciones/${s.id}`} className="song-row">
-                <span>
-                  {favorites.includes(s.id) && <span className="fav-mini" aria-label="Favorita">★ </span>}
-                  <strong>{s.title}</strong>
-                  {s.author && <span className="muted"> · {s.author}</span>}
-                </span>
-                {songKey(s) && <span className="key-pill">{displayKey(songKey(s), 0, settings.notation)}</span>}
+              <Link to={`/canciones/${s.id}`} className="song-tile">
+                <div className="song-tile-top">
+                  {songKey(s) ? <span className="key-pill">{displayKey(songKey(s), 0, settings.notation)}</span> : <span />}
+                  {favorites.includes(s.id) && <span className="fav-mini" aria-label="Favorita">★</span>}
+                </div>
+                <strong className="song-tile-title">{s.title}</strong>
+                {s.author && <span className="muted small song-tile-author">{s.author}</span>}
               </Link>
             </li>
           ))}

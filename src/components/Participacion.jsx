@@ -3,6 +3,8 @@ import { useStore } from '../lib/store.jsx';
 import { eventDateTime } from '../lib/stats.js';
 import { GRUPOS, inscritosPorGrupo, participationId } from '../lib/participacion.js';
 import ConfirmX from './ConfirmX.jsx';
+import Avatares, { Avatar } from './Avatares.jsx';
+import { Link } from 'react-router-dom';
 
 /**
  * Zona de inscripción de un evento: cada hermano elige UN rol para servir
@@ -17,6 +19,8 @@ export default function Participacion({ event }) {
   const total = grupos.reduce((n, g) => n + g.personas.length, 0);
   const mine = me && participations.find((p) => p.id === participationId(event.id, me.key));
   const past = eventDateTime(event) < new Date();
+  const teams = me?.teams || [];
+  const todos = participations.filter((p) => p.eventId === event.id);
 
   const pick = (role) => {
     joinEvent(event, role, me);
@@ -28,6 +32,7 @@ export default function Participacion({ event }) {
       <div className="page-head">
         <div>
           <h2>Participación</h2>
+          <Avatares people={todos} max={8} />
           <p className="muted small">
             {total === 0 ? 'Todavía no hay nadie inscrito.' : `${total} ${total === 1 ? 'persona inscrita' : 'personas inscritas'}.`}
             {' '}Cada persona elige un solo rol por servicio.
@@ -46,10 +51,32 @@ export default function Participacion({ event }) {
         )}
       </div>
 
+      {me && !past && !mine && !choosing && teams.length > 0 && (
+        <div className="rapido">
+          <span className="small muted">Inscríbete con un toque:</span>
+          <div className="row gap wrap">
+            {teams.map((t) => <button key={t} className="btn small role-btn" onClick={() => pick(t)}>🙋 {t}</button>)}
+          </div>
+        </div>
+      )}
+
       {choosing && !past && (
         <div className="role-picker">
-          <p className="small muted">Elige cómo vas a servir. Con un clic quedas asignado.</p>
-          {GRUPOS.map((g) => (
+          <p className="small muted">
+            Elige cómo vas a servir. Con un clic quedas asignado.
+            {' '}<Link to="/mi-iglesia">Configura tus equipos</Link> para verlos primero.
+          </p>
+          {teams.length > 0 && (
+            <div className="role-group g-otros">
+              <h3>Mis equipos</h3>
+              <div className="row gap wrap">
+                {teams.map((r) => (
+                  <button key={r} className={`btn small role-btn ${mine?.role === r ? 'selected' : ''}`} onClick={() => pick(r)}>{r}</button>
+                ))}
+              </div>
+            </div>
+          )}
+          {GRUPOS.filter((g) => g.roles.length).map((g) => (
             <div key={g.id} className={`role-group g-${g.id}`}>
               <h3>{g.nombre}</h3>
               <div className="row gap wrap">
@@ -76,6 +103,7 @@ export default function Participacion({ event }) {
               <ul>
                 {g.personas.map((p) => (
                   <li key={p.id}>
+                    <Avatar name={p.name} personKey={p.personKey} size="sm" />
                     <span className="role-tag">{p.role}</span>
                     <span className="grow">{p.name}{me && p.personKey === me.key ? ' (tú)' : ''}</span>
                     {can.events && (!me || p.personKey !== me.key) && (

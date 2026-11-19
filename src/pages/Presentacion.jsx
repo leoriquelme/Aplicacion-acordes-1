@@ -73,16 +73,41 @@ export default function Presentacion() {
     return () => document.removeEventListener('fullscreenchange', onFs);
   }, []);
 
+  // Flecha abajo / arriba: pasa a la sección siguiente o anterior de la canción.
+  // En la última sección, la flecha abajo pasa a la próxima canción.
+  const goSection = useCallback((dir) => {
+    const root = rootRef.current;
+    if (!root) return;
+    const blocks = [...root.querySelectorAll('.song .block')];
+    if (!blocks.length) return;
+    const top = root.getBoundingClientRect().top;
+    const pos = blocks.map((b) => b.getBoundingClientRect().top - top);
+    // Sección actual: la última cuyo inicio ya llegó arriba de la pantalla.
+    let cur = 0;
+    pos.forEach((p, i) => { if (p <= 24) cur = i; });
+    if (root.scrollTop < 8) cur = dir > 0 ? -1 : 0;
+    // Abajo del todo: la sección actual es la última que se ve.
+    else if (root.scrollTop + root.clientHeight >= root.scrollHeight - 4) {
+      pos.forEach((p, i) => { if (p < root.clientHeight - 40) cur = i; });
+    }
+    const next = cur + dir;
+    if (next >= blocks.length) { go(1); return; }
+    if (next < 0) { root.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+    root.scrollTo({ top: root.scrollTop + pos[next] - 16, behavior: 'smooth' });
+  }, [go]);
+
   useEffect(() => {
     const onKey = (e) => {
-      if (['ArrowRight', 'PageDown'].includes(e.key)) { e.preventDefault(); go(1); }
+      if (e.key === 'ArrowDown') { e.preventDefault(); goSection(1); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); goSection(-1); }
+      else if (['ArrowRight', 'PageDown'].includes(e.key)) { e.preventDefault(); go(1); }
       else if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); go(-1); }
       else if (e.key.toLowerCase() === 'f') toggleFull();
       else if (e.key === 'Escape' && !document.fullscreenElement) exit();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [go, toggleFull, exit]);
+  }, [go, goSection, toggleFull, exit]);
 
   // Oculta los controles después de unos segundos sin mover el mouse.
   const poke = useCallback(() => {
@@ -108,7 +133,7 @@ export default function Presentacion() {
 
   return (
     <div
-      className="present"
+      className={`present ${controlsVisible || menuOpen ? '' : 'sin-cursor'}`}
       ref={rootRef}
       onMouseMove={poke}
       onTouchStart={(e) => { poke(); touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }}

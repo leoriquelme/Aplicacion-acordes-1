@@ -1,9 +1,8 @@
 import { useRef, useState } from 'react';
 import { readLocalData, useStore } from '../lib/store.jsx';
-import { ChurchCard, UsersCard } from '../components/ChurchAdmin.jsx';
 import SongView from '../components/SongView.jsx';
 import AgregarEjemplos from '../components/AgregarEjemplos.jsx';
-import { EstadoCard, SugerenciasCard } from '../components/Comunicacion.jsx';
+import { AjustesFinal, IglesiaBoton, PerfilCard } from '../components/Comunicacion.jsx';
 import InstalarCard from '../components/InstalarCard.jsx';
 
 const MUESTRA = '[G]Cuán grande es [C]Él, [G]cuán grande es [D]Él';
@@ -41,10 +40,8 @@ export default function Ajustes() {
 
   return (
     <div className="page">
-      <h1>Ajustes</h1>
-
-      <EstadoCard />
-      <SugerenciasCard />
+      <PerfilCard />
+      <IglesiaBoton />
 
       <section className="card">
         <h2>Lectura</h2>
@@ -83,8 +80,6 @@ export default function Ajustes() {
 
       {store.mode === 'cloud' ? (
         <>
-          <ChurchCard />
-          {store.can.users && <UsersCard />}
           <section className="card">
             <h2>Datos</h2>
             <p className="muted">
@@ -136,6 +131,7 @@ export default function Ajustes() {
       )}
 
       <InstalarCard />
+      <AjustesFinal />
     </div>
   );
 }

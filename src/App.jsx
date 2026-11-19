@@ -9,6 +9,9 @@ import Ajustes from './pages/Ajustes.jsx';
 import Presentacion from './pages/Presentacion.jsx';
 import Biblioteca from './pages/Biblioteca.jsx';
 import Apoyo from './pages/Apoyo.jsx';
+import MiIglesia from './pages/MiIglesia.jsx';
+import Miembros from './pages/Miembros.jsx';
+import Sugerencias from './pages/Sugerencias.jsx';
 import Imprimir from './pages/Imprimir.jsx';
 import Importar from './pages/Importar.jsx';
 import { useStore } from './lib/store.jsx';
@@ -17,6 +20,7 @@ const TABS = [
   { to: '/', label: 'Inicio', icon: '🏠', end: true },
   { to: '/canciones', label: 'Canciones', icon: '🎵' },
   { to: '/eventos', label: 'Eventos', icon: '📅' },
+  { to: '/mi-iglesia', label: 'Mi iglesia', icon: '⛪' },
   { to: '/ajustes', label: 'Ajustes', icon: '⚙️' },
 ];
 
@@ -54,6 +58,9 @@ export default function App() {
           <Route path="/canciones/:id/editar" element={<EditarCancion />} />
           <Route path="/eventos" element={<Eventos />} />
           <Route path="/eventos/:id" element={<Evento />} />
+          <Route path="/mi-iglesia" element={<MiIglesia />} />
+          <Route path="/mi-iglesia/miembros" element={<Miembros />} />
+          <Route path="/sugerencias" element={<Sugerencias />} />
           <Route path="/ajustes" element={<Ajustes />} />
           <Route path="/apoyo" element={<Apoyo />} />
           <Route path="/presentar/:tipo/:id" element={<Presentacion />} />

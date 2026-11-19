@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
-/** Botón cuadrado "+" que despliega las formas de agregar una canción. */
+/** Botón redondo "+" que despliega las formas de agregar una canción. */
 export default function AddMenu({ cloud }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);

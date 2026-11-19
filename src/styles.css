@@ -523,7 +523,7 @@ textarea.mono { font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
 .present-menu-btn, .present-nav button { -webkit-tap-highlight-color: transparent; }
 
 /* Botón + de Canciones */
-.btn.square { width: 2.75rem; height: 2.75rem; padding: 0; font-size: 1.6rem; line-height: 1; border-radius: 12px; }
+.btn.square { width: 2.75rem; height: 2.75rem; padding: 0; font-size: 1.6rem; line-height: 1; border-radius: 50%; }
 .add-menu { position: relative; }
 .add-menu-panel {
   position: absolute; right: 0; top: calc(100% + 0.4rem); z-index: 40; width: 16rem;
@@ -606,12 +606,108 @@ textarea.mono { font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
 .apoyo .center { justify-content: center; text-align: center; }
 .oracion { display: flex; flex-direction: column; align-items: center; gap: 0.8rem; }
 .oracion > p.muted { align-self: stretch; }
-.reloj {
-  width: 210px; height: 210px; border-radius: 50%; display: grid; place-items: center;
-  background: conic-gradient(var(--primary) calc(var(--p) * 360deg), var(--border) 0);
-}
-.reloj-num {
-  width: 180px; height: 180px; border-radius: 50%; background: var(--surface); display: grid; place-items: center;
-  font-size: 2.4rem; font-weight: 700; font-variant-numeric: tabular-nums;
-}
 .donar button[disabled] { opacity: 0.55; cursor: not-allowed; }
+
+/* Avatares con iniciales */
+.avatar {
+  display: inline-grid; place-items: center; border-radius: 50%; color: #fff; font-weight: 700;
+  width: 2.1rem; height: 2.1rem; font-size: 0.8rem; letter-spacing: 0.02em; flex-shrink: 0;
+  border: 2px solid var(--surface); box-sizing: border-box; user-select: none;
+}
+.avatar-sm { width: 1.7rem; height: 1.7rem; font-size: 0.66rem; }
+.avatar-lg { width: 3.4rem; height: 3.4rem; font-size: 1.2rem; }
+.avatar-more { background: var(--muted) !important; }
+.avatares { display: inline-flex; align-items: center; padding-left: 0.5rem; }
+.avatares .avatar { margin-left: -0.5rem; }
+.avatares-sm { padding-left: 0.4rem; }
+.avatares-sm .avatar { margin-left: -0.4rem; }
+.voluntarios-linea { display: flex; align-items: center; gap: 0.5rem; margin: 0.2rem 0 0.6rem; }
+
+/* Inicio en bloques */
+.bloque-iglesia { display: flex; align-items: center; gap: 1rem; }
+.bloque-iglesia h1 { margin: 0; }
+.bloque-iglesia p { margin: 0.15rem 0 0; }
+.bloque-icono {
+  width: 3.2rem; height: 3.2rem; border-radius: 16px; display: grid; place-items: center; font-size: 1.7rem;
+  background: var(--primary-soft); flex-shrink: 0;
+}
+.bloque-titulo { margin: 1.4rem 0 0.6rem; }
+.bloques-eventos { display: flex; flex-direction: column; gap: 0.7rem; }
+.bloque-evento {
+  display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; color: var(--text); text-decoration: none;
+  border: 2px solid var(--border); transition: transform 0.1s;
+}
+.bloque-evento:hover { text-decoration: none; transform: translateY(-1px); }
+.bloque-evento h3 { margin: 0.1rem 0; font-size: 1.15rem; }
+.bloque-evento p { margin: 0; }
+.bloque-evento.proximo { border-color: #d4a017; box-shadow: 0 0 0 3px rgba(212, 160, 23, 0.18), var(--shadow); }
+.badge-dorado {
+  display: inline-block; background: linear-gradient(135deg, #f3cf55, #d4a017); color: #3d2c00;
+  font-size: 0.72rem; font-weight: 700; border-radius: 999px; padding: 0.1rem 0.55rem; text-transform: uppercase; letter-spacing: 0.04em;
+}
+.voluntarios { display: flex; flex-direction: column; align-items: flex-end; gap: 0.25rem; }
+@media (max-width: 520px) { .voluntarios { align-items: flex-start; width: 100%; } }
+
+/* Canciones en cuadros */
+.canciones-head { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 0.8rem; }
+.canciones-head h1 { margin: 0; }
+.canciones-head .add-menu-panel { left: 0; right: auto; }
+.song-count { color: var(--primary); }
+.song-grid {
+  list-style: none; padding: 0; margin: 0.6rem 0 0;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.7rem;
+}
+.song-tile {
+  display: flex; flex-direction: column; gap: 0.3rem; aspect-ratio: 1 / 1; padding: 0.8rem;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--shadow);
+  color: var(--text); text-decoration: none; overflow: hidden; transition: transform 0.1s, border-color 0.1s;
+}
+.song-tile:hover { text-decoration: none; border-color: var(--primary); transform: translateY(-1px); }
+.song-tile-top { display: flex; justify-content: space-between; align-items: center; min-height: 1.6rem; }
+.song-tile-title { font-size: 1.02rem; line-height: 1.25; margin-top: auto; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+.song-tile-author { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 420px) { .song-grid { grid-template-columns: repeat(2, 1fr); } }
+
+/* Mi iglesia */
+.datos-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.7rem; margin: 0.8rem 0; }
+.dato { display: flex; flex-direction: column; align-items: flex-start; gap: 0.1rem; color: var(--text); text-decoration: none; margin: 0; }
+a.dato:hover { text-decoration: none; border-color: var(--primary); }
+.dato strong { font-size: 1.8rem; color: var(--primary); line-height: 1.1; }
+.dato span { color: var(--muted); font-size: 0.9rem; }
+.miembros { list-style: none; padding: 0.4rem 0.9rem; }
+.miembros li { display: flex; align-items: center; gap: 0.7rem; padding: 0.5rem 0; border-bottom: 1px solid var(--border); }
+.miembros li:last-child { border-bottom: none; }
+.rapido { display: flex; flex-direction: column; gap: 0.35rem; margin: 0.4rem 0 0.8rem; }
+
+/* Ajustes: perfil */
+.perfil-head { display: flex; align-items: center; gap: 0.9rem; flex-wrap: wrap; margin-bottom: 0.8rem; }
+.perfil-nombre { margin: 0 0 0.25rem; font-size: 1.5rem; }
+.iglesia-boton { display: flex; align-items: center; gap: 0.9rem; color: var(--text); text-decoration: none; }
+.iglesia-boton:hover { text-decoration: none; border-color: var(--primary); }
+.iglesia-boton .grow { display: flex; flex-direction: column; }
+.iglesia-boton strong { font-size: 1.15rem; }
+.chevron { font-size: 1.8rem; color: var(--muted); }
+.ajustes-final { display: flex; flex-direction: column; align-items: stretch; gap: 0.6rem; margin: 1.2rem 0 0.5rem; text-align: center; }
+.ajustes-final .badge { margin-left: 0.4rem; }
+
+/* Apoyo: contador y ventana de gracias */
+.contador { display: flex; flex-direction: column; align-items: center; }
+.contador strong { font-size: 3.4rem; line-height: 1; color: var(--primary); font-variant-numeric: tabular-nums; }
+.orar-btn { font-size: 1.15rem; padding: 0.9rem 1.6rem; border-radius: 999px; }
+.modal-fondo {
+  position: fixed; inset: 0; background: rgba(15, 20, 35, 0.55); display: grid; place-items: center; z-index: 100; padding: 1rem;
+  animation: aparecer 0.15s ease-out;
+}
+.modal {
+  background: var(--surface); color: var(--text); border-radius: 20px; padding: 1.6rem 1.4rem; max-width: 22rem; width: 100%;
+  text-align: center; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+}
+.modal h2 { margin: 0.3rem 0; }
+.modal-icono { font-size: 2.8rem; }
+@keyframes aparecer { from { opacity: 0; } to { opacity: 1; } }
+
+/* Presentación: sin cursor de texto ni selección; el mouse se oculta cuando no se usa */
+.present, .present * { cursor: default; user-select: none; -webkit-user-select: none; caret-color: transparent; }
+.present button, .present select, .present a { cursor: pointer; }
+.present.sin-cursor, .present.sin-cursor * { cursor: none; }
+.present:focus { outline: none; }

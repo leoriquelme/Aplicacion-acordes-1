@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import {
-  addDoc, collection, deleteDoc, deleteField, doc, getDoc, getDocs, onSnapshot, query, setDoc, updateDoc, where, writeBatch,
+  addDoc, collection, deleteDoc, increment, deleteField, doc, getDoc, getDocs, onSnapshot, query, setDoc, updateDoc, where, writeBatch,
 } from 'firebase/firestore';
 import { grupoDe, participationId } from './participacion.js';
 import { cancionesEjemplo } from '../data/ejemplos.js';
@@ -73,9 +73,11 @@ export async function enterChurch({ church, name, pin }) {
       try {
         await setDoc(sessionRef(churchId, user.uid), { ...base, role, pin: value });
         if (role === 'admin') {
-          await setDoc(personRef(churchId, key), { name: base.name, role: 'admin', lastSeen: now }, { merge: true });
+          const ex = await getDoc(personRef(churchId, key)).catch(() => null);
+          const keepName = ex?.exists() && ex.data().name;
+          await setDoc(personRef(churchId, key), { ...(keepName ? {} : { name: base.name }), role: 'admin', lastSeen: now }, { merge: true });
         } else {
-          await updateDoc(personRef(churchId, key), { lastSeen: now, name: base.name });
+          await updateDoc(personRef(churchId, key), { lastSeen: now });
         }
         return { churchId, churchName: base.churchName };
       } catch {
@@ -102,7 +104,8 @@ export async function enterChurch({ church, name, pin }) {
     await setDoc(personRef(churchId, key), { name: base.name, role: 'colaborador', firstSeen: now, lastSeen: now });
     return { churchId, churchName: base.churchName };
   }
-  await updateDoc(personRef(churchId, key), { lastSeen: now, name: base.name });
+  // El nombre no se toca: la persona pudo cambiarlo en Ajustes.
+  await updateDoc(personRef(churchId, key), { lastSeen: now });
   const role = person.data().role;
   return { churchId, churchName: base.churchName, needsPin: role !== 'colaborador' ? role : null };
 }
@@ -168,8 +171,8 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
     return onSnapshot(doc(db, 'churches', churchId, 'favorites', myKey), (s) => setFavorites(s.data()?.songs || []), () => setFavorites([]));
   }, [churchId, myKey]);
 
-  // Sugerencias: solo Administrador y Director las leen.
-  const canReview = mySession?.role === 'admin' || mySession?.role === 'director';
+  // Sugerencias de mejoras: solo el Administrador las lee.
+  const canReview = mySession?.role === 'admin';
   useEffect(() => {
     if (!myKey || !canReview) { setSuggestions([]); return undefined; }
     return onSnapshot(collection(db, 'churches', churchId, 'suggestions'), (s) => setSuggestions(
@@ -215,6 +218,28 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
   const leaveEvent = useCallback((eventId, personKey) => {
     deleteDoc(doc(col('participations'), participationId(eventId, personKey))).catch(report);
   }, [col, report]);
+
+  // Contador de oraciones por el proyecto (uno para toda la app).
+  const [prayers, setPrayers] = useState(null);
+  useEffect(() => {
+    if (!myKey) return undefined;
+    return onSnapshot(doc(db, 'stats', 'oracion'), (s) => setPrayers(s.data()?.count || 0), () => setPrayers(null));
+  }, [myKey]);
+  const pray = useCallback(() => {
+    setDoc(doc(db, 'stats', 'oracion'), { count: increment(1) }, { merge: true }).catch(report);
+  }, [report]);
+
+  /** Cambiar el nombre que ven los demás (la persona sigue siendo la misma). */
+  const updateMyName = useCallback((name) => {
+    if (!myKey) return Promise.resolve();
+    return updateDoc(personRef(churchId, myKey), { name: name.trim().slice(0, 60) });
+  }, [churchId, myKey]);
+
+  /** Equipos en los que sirvo (para inscribirme más rápido en los eventos). */
+  const setMyTeams = useCallback((teams) => {
+    if (!myKey) return;
+    updateDoc(personRef(churchId, myKey), { teams: teams.slice(0, 12) }).catch(report);
+  }, [churchId, myKey, report]);
 
   const toggleFavorite = useCallback((songId) => {
     if (!myKey) return;
@@ -306,14 +331,14 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
   if (role === 'director' && person && person.role !== 'director') role = 'colaborador';
   const pendingRole = person && person.role !== 'colaborador' && person.role !== role ? person.role : null;
   const can = ROLES[role] || ROLES.colaborador;
-  const me = mySession === undefined ? undefined : mySession && { name: mySession.name, key: mySession.key };
+  const me = mySession === undefined ? undefined : mySession && { name: person?.name || mySession.name, key: mySession.key, teams: person?.teams || [] };
   const church = { id: churchId, name: churchName };
 
   const value = useMemo(() => ({
     mode: 'cloud', churchId, church, me, role, pendingRole, can, people, songs, events, participations, error,
     clearError: () => setError(''), saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples, myShares, shareSong, unshareSong, loadLibrary,
-    favorites, toggleFavorite, suggestions, sendSuggestion, resolveSuggestion,
-  }), [churchId, church.name, me?.name, me?.key, role, pendingRole, can, people, songs, events, participations, error, saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples, myShares, shareSong, unshareSong, loadLibrary, favorites, toggleFavorite, suggestions, sendSuggestion, resolveSuggestion]); // eslint-disable-line react-hooks/exhaustive-deps
+    favorites, toggleFavorite, suggestions, sendSuggestion, resolveSuggestion, prayers, pray, updateMyName, setMyTeams,
+  }), [churchId, church.name, me?.name, me?.key, role, pendingRole, can, people, songs, events, participations, error, saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples, myShares, shareSong, unshareSong, loadLibrary, favorites, toggleFavorite, suggestions, sendSuggestion, resolveSuggestion, prayers, pray, updateMyName, setMyTeams, person?.teams?.join('|')]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }

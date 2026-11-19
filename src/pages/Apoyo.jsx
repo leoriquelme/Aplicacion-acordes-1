@@ -1,40 +1,29 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useStore } from '../lib/store.jsx';
 import { descargarOracion } from '../lib/recordatorio.js';
 
-const STATS_KEY = 'cancionero-oracion';
-const leer = () => { try { return JSON.parse(localStorage.getItem(STATS_KEY)) || { veces: 0, minutos: 0 }; } catch { return { veces: 0, minutos: 0 }; } };
-const guardar = (s) => { try { localStorage.setItem(STATS_KEY, JSON.stringify(s)); } catch { /* sin espacio */ } };
-const mmss = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+const MIS_KEY = 'cancionero-oraciones';
+const leer = () => { try { return Number(localStorage.getItem(MIS_KEY)) || 0; } catch { return 0; } };
+const guardar = (n) => { try { localStorage.setItem(MIS_KEY, String(n)); } catch { /* sin espacio */ } };
 
-/** Apoyo: un contador para orar y (más adelante) donar. */
+/** Apoyo: un botón para sumar oraciones por el proyecto y (más adelante) donar. */
 export default function Apoyo() {
-  const [minutos, setMinutos] = useState(5);
-  const [restante, setRestante] = useState(null); // segundos; null = detenido
-  const [pausa, setPausa] = useState(false);
-  const [stats, setStats] = useState(leer);
+  const { prayers, pray } = useStore();
+  const [mias, setMias] = useState(leer);
+  const [gracias, setGracias] = useState(false);
   const [hora, setHora] = useState('07:00');
-  const [fin, setFin] = useState(false);
-  const tick = useRef(null);
+  // Sin iglesia (o sin conexión al contador) se muestra el conteo de este equipo.
+  const total = typeof prayers === 'number' ? prayers : mias;
 
-  useEffect(() => {
-    if (restante === null || pausa) return undefined;
-    if (restante <= 0) {
-      const s = { veces: stats.veces + 1, minutos: stats.minutos + minutos };
-      setStats(s);
-      guardar(s);
-      setRestante(null);
-      setFin(true);
-      navigator.vibrate?.([200, 100, 200]);
-      return undefined;
-    }
-    tick.current = setTimeout(() => setRestante((r) => r - 1), 1000);
-    return () => clearTimeout(tick.current);
-  }, [restante, pausa]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const corriendo = restante !== null;
-  const total = minutos * 60;
-  const progreso = corriendo ? 1 - restante / total : fin ? 1 : 0;
+  const cerrar = () => {
+    // Al cerrar la ventana de gracias se aplica el conteo.
+    setGracias(false);
+    const n = mias + 1;
+    setMias(n);
+    guardar(n);
+    pray?.();
+  };
 
   return (
     <div className="page apoyo">
@@ -42,28 +31,25 @@ export default function Apoyo() {
       <h1>🙏 Apoyo</h1>
 
       <section className="card oracion">
-        <h2>Tiempo de oración</h2>
-        <p className="muted small">Elige cuánto tiempo quieres orar. El contador te avisa al terminar.</p>
-        <div className="reloj" style={{ '--p': progreso }}>
-          <div className="reloj-num" aria-live="polite">{corriendo ? mmss(restante) : fin ? 'Amén 🙏' : mmss(total)}</div>
+        <h2>Oremos por el proyecto</h2>
+        <div className="contador" aria-live="polite">
+          <strong>{total}</strong>
+          <span className="muted">{total === 1 ? 'oración' : 'oraciones'}</span>
         </div>
-        {!corriendo ? (
-          <>
-            <div className="row gap wrap center">
-              {[1, 5, 10, 15, 30].map((m) => (
-                <button key={m} className={`btn small ${minutos === m ? 'primary' : ''}`} onClick={() => { setMinutos(m); setFin(false); }}>{m} min</button>
-              ))}
-            </div>
-            <button className="btn primary big-inline" onClick={() => { setFin(false); setPausa(false); setRestante(minutos * 60); }}>▶ Comenzar a orar</button>
-          </>
-        ) : (
-          <div className="row gap center">
-            <button className="btn" onClick={() => setPausa(!pausa)}>{pausa ? '▶ Seguir' : '⏸ Pausa'}</button>
-            <button className="btn ghost" onClick={() => { setRestante(null); setPausa(false); }}>Detener</button>
-          </div>
-        )}
-        <p className="muted small center">Has orado {stats.veces} {stats.veces === 1 ? 'vez' : 'veces'} con el contador · {stats.minutos} minutos en total (en este equipo).</p>
+        <button className="btn primary orar-btn" onClick={() => setGracias(true)}>🙏 Oré por el proyecto</button>
+        <p className="muted small center">Tú has orado {mias} {mias === 1 ? 'vez' : 'veces'}.</p>
       </section>
+
+      {gracias && (
+        <div className="modal-fondo" role="dialog" aria-modal="true" aria-labelledby="gracias-titulo" onClick={cerrar}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-icono">🙏</div>
+            <h2 id="gracias-titulo">¡Gracias por orar por el proyecto!</h2>
+            <p className="muted">Tu oración ya suma.</p>
+            <button className="btn primary big-inline" onClick={cerrar} autoFocus>Amén</button>
+          </div>
+        </div>
+      )}
 
       <section className="card">
         <h2>Recordatorio diario para orar</h2>

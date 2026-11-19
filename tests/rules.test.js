@@ -170,14 +170,40 @@ describe('sugerencias', () => {
   beforeEach(seedSessions);
   const sug = (db, id) => doc(db, 'churches', C, 'suggestions', id);
   const data = (personKey, extra = {}) => ({ text: 'Falta un acorde', songId: '', songTitle: '', personKey, name: 'X', at: 1, ...extra });
-  it('todos envían; solo admin y director leen y resuelven', async () => {
+  it('todos envían; solo el admin lee y resuelve', async () => {
     await assertSucceeds(setDoc(sug(as('u-carlos'), 'x1'), data('carlos')));
     await assertFails(setDoc(sug(as('u-carlos'), 'x2'), data('dora')));
     await assertFails(setDoc(sug(as('u-carlos'), 'x3'), data('carlos', { text: '' })));
     await assertFails(setDoc(sug(as('extraño'), 'x4'), data('carlos')));
     await assertFails(getDoc(sug(as('u-carlos'), 'x1')));
-    await assertSucceeds(getDoc(sug(as('u-dora'), 'x1')));
-    await assertFails(updateDoc(sug(as('u-dora'), 'x1'), { text: 'otro' }));
+    await assertFails(getDoc(sug(as('u-dora'), 'x1')));
+    await assertSucceeds(getDoc(sug(as('u-admin'), 'x1')));
+    await assertFails(deleteDoc(sug(as('u-dora'), 'x1')));
+    await assertFails(updateDoc(sug(as('u-admin'), 'x1'), { text: 'otro' }));
     await assertSucceeds(deleteDoc(sug(as('u-admin'), 'x1')));
+  });
+});
+
+describe('perfil y equipos', () => {
+  beforeEach(seedSessions);
+  const person = (db, key) => doc(db, 'churches', C, 'people', key);
+  it('cada uno cambia su nombre y sus equipos, no los de otros', async () => {
+    await assertSucceeds(updateDoc(person(as('u-carlos'), 'carlos'), { name: 'Carlos Soto', teams: ['Bajo', 'Danza'] }));
+    await assertFails(updateDoc(person(as('u-carlos'), 'carlos'), { name: '' }));
+    await assertFails(updateDoc(person(as('u-carlos'), 'carlos'), { role: 'director' }));
+    await assertFails(updateDoc(person(as('u-carlos'), 'dora'), { teams: ['Coro'] }));
+  });
+});
+
+describe('contador de oraciones', () => {
+  beforeEach(seedSessions);
+  const ref = (db) => doc(db, 'stats', 'oracion');
+  it('cualquiera que entró suma de a uno', async () => {
+    await assertSucceeds(setDoc(ref(as('u-carlos')), { count: 1 }));
+    await assertSucceeds(setDoc(ref(as('u-dora')), { count: 2 }));
+    await assertFails(setDoc(ref(as('u-dora')), { count: 10 }));
+    await assertFails(setDoc(ref(as('u-dora')), { count: 1 }));
+    await assertSucceeds(getDoc(ref(as('u-carlos'))));
+    await assertFails(setDoc(ref(env.unauthenticatedContext().firestore()), { count: 3 }));
   });
 });

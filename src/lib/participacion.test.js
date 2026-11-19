@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { grupoDe, historial, inscritosPorGrupo, participationId } from './participacion.js';
+import { colorDe, grupoDe, historial, iniciales, inscritosPorGrupo, participationId } from './participacion.js';
 
 const now = new Date(2026, 10, 19, 12, 0);
 const events = [
@@ -14,7 +14,7 @@ describe('participación', () => {
   it('agrupa los inscritos de un evento', () => {
     const g = inscritosPorGrupo([p('a', 'ana', 'Coro'), p('a', 'luis', 'Bajo'), p('b', 'eva', 'Sonido')], 'a');
     expect(g.map((x) => [x.id, x.personas.map((y) => y.personKey)])).toEqual([
-      ['instrumentos', ['luis']], ['voces', ['ana']], ['multimedia', []],
+      ['instrumentos', ['luis']], ['voces', ['ana']], ['multimedia', []], ['otros', []],
     ]);
   });
   it('cuenta solo los últimos 3 meses y eventos ya realizados', () => {
@@ -34,5 +34,15 @@ describe('partes del evento', () => {
     const r = eventLines(ev, [{ id: 's1', title: 'A' }]);
     expect(r.map((x) => (x.song ? x.song.title : x.item.label))).toEqual(['Oración', 'A', 'A']);
     expect(isSongItem({ songId: 'x' })).toBe(true);
+  });
+});
+
+describe('iniciales', () => {
+  it('toma nombre y apellido', () => {
+    expect(iniciales('Leo Riquelme')).toBe('LR');
+    expect(iniciales('ana maría soto')).toBe('AS');
+    expect(iniciales('Dora')).toBe('DO');
+    expect(grupoDe('Danza')).toBe('otros');
+    expect(colorDe('ana')).toBe(colorDe('ana'));
   });
 });
