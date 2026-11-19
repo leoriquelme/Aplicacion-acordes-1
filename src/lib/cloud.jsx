@@ -5,6 +5,7 @@ import {
 } from 'firebase/firestore';
 import { grupoDe, participationId } from './participacion.js';
 import { cancionesEjemplo } from '../data/ejemplos.js';
+import { PRUEBA_ID, datosPrueba } from '../data/prueba.js';
 import { auth, db } from './firebase.js';
 import { DataContext, ROLES } from './store.jsx';
 import { normalize } from './chordpro.js';
@@ -324,6 +325,35 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
     return added;
   }, [songs, col]);
 
+  // ---------- Iglesia de prueba: llenar con datos inventados y reiniciar ----------
+  const isTest = churchId === PRUEBA_ID;
+  const commitAll = async (ops) => {
+    for (let i = 0; i < ops.length; i += 400) {
+      const b = writeBatch(db);
+      ops.slice(i, i + 400).forEach((op) => op(b));
+      await b.commit();
+    }
+  };
+  const fillTestData = useCallback(async () => {
+    if (!isTest) throw new Error('Solo en la iglesia de prueba.');
+    const d = datosPrueba();
+    const ops = [
+      ...d.people.filter((p) => p.key !== mySession?.key).map(({ key, ...p }) => (b) => b.set(personRef(churchId, key), p)),
+      ...d.songs.map((s) => (b) => b.set(doc(col('songs'), s.id), { ...sinId(s), updatedAt: Date.now() })),
+      ...d.events.map((e) => (b) => b.set(doc(col('events'), e.id), sinId(e))),
+    ];
+    await commitAll(ops);
+    // Las inscripciones necesitan que los eventos ya existan.
+    await commitAll(d.participations.map((p) => (b) => b.set(doc(col('participations'), p.id), sinId(p))));
+    return d;
+  }, [isTest, churchId, col, mySession?.key]); // eslint-disable-line react-hooks/exhaustive-deps
+  const resetTestChurch = useCallback(async () => {
+    if (!isTest) throw new Error('Solo en la iglesia de prueba.');
+    const [ps, ss, es, sg] = await Promise.all(['participations', 'songs', 'events', 'suggestions'].map((n) => getDocs(col(n))));
+    await commitAll([...ps.docs, ...ss.docs, ...es.docs, ...sg.docs].map((d) => (b) => b.delete(d.ref)));
+    await commitAll(people.filter((p) => p.key !== mySession?.key && p.role !== 'admin').map((p) => (b) => b.delete(personRef(churchId, p.key))));
+  }, [isTest, churchId, col, people, mySession?.key]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Perfil efectivo (igual que en las reglas): si el administrador cambió el perfil,
   // el que vale es el menor hasta que la persona vuelva a entrar con su PIN.
   const person = mySession ? people.find((p) => p.key === mySession.key) : null;
@@ -337,8 +367,8 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
   const value = useMemo(() => ({
     mode: 'cloud', churchId, church, me, role, pendingRole, can, people, songs, events, participations, error,
     clearError: () => setError(''), saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples, myShares, shareSong, unshareSong, loadLibrary,
-    favorites, toggleFavorite, suggestions, sendSuggestion, resolveSuggestion, prayers, pray, updateMyName, setMyTeams,
-  }), [churchId, church.name, me?.name, me?.key, role, pendingRole, can, people, songs, events, participations, error, saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples, myShares, shareSong, unshareSong, loadLibrary, favorites, toggleFavorite, suggestions, sendSuggestion, resolveSuggestion, prayers, pray, updateMyName, setMyTeams, person?.teams?.join('|')]); // eslint-disable-line react-hooks/exhaustive-deps
+    favorites, toggleFavorite, suggestions, sendSuggestion, resolveSuggestion, prayers, pray, updateMyName, setMyTeams, isTest, fillTestData, resetTestChurch,
+  }), [churchId, church.name, me?.name, me?.key, role, pendingRole, can, people, songs, events, participations, error, saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples, myShares, shareSong, unshareSong, loadLibrary, favorites, toggleFavorite, suggestions, sendSuggestion, resolveSuggestion, prayers, pray, updateMyName, setMyTeams, person?.teams?.join('|'), isTest, fillTestData, resetTestChurch]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }

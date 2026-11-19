@@ -4,6 +4,7 @@ import SongView from '../components/SongView.jsx';
 import AgregarEjemplos from '../components/AgregarEjemplos.jsx';
 import { AjustesFinal, IglesiaBoton, PerfilCard } from '../components/Comunicacion.jsx';
 import InstalarCard from '../components/InstalarCard.jsx';
+import IglesiaPrueba from '../components/IglesiaPrueba.jsx';
 import Icon from '../components/Icon.jsx';
 
 const MUESTRA = '[G]Cuán grande es [C]Él, [G]cuán grande es [D]Él';
@@ -43,6 +44,7 @@ export default function Ajustes() {
     <div className="page">
       <PerfilCard />
       <IglesiaBoton />
+      <IglesiaPrueba />
 
       <section className="card">
         <h2>Lectura</h2>
