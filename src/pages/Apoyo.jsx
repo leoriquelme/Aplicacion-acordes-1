@@ -5,6 +5,9 @@ import { useStore } from '../lib/store.jsx';
 import { descargarOracion } from '../lib/recordatorio.js';
 import Icon from '../components/Icon.jsx';
 
+// Recordatorio diario para orar (archivo de calendario). Escondido por ahora; poner true para volver a mostrarlo.
+const MOSTRAR_RECORDATORIO = false;
+
 const MIS_KEY = 'cancionero-oraciones';
 const leer = () => { try { return Number(localStorage.getItem(MIS_KEY)) || 0; } catch { return 0; } };
 const guardar = (n) => { try { localStorage.setItem(MIS_KEY, String(n)); } catch { /* sin espacio */ } };
@@ -52,14 +55,14 @@ export default function Apoyo() {
         </div>, document.body)
       )}
 
-      <section className="card">
+      {MOSTRAR_RECORDATORIO && <section className="card">
         <h2>Recordatorio diario para orar</h2>
         <p className="muted small">Se agrega a tu calendario y te avisa todos los días a esa hora.</p>
         <div className="row gap wrap">
           <input type="time" value={hora} onChange={(e) => setHora(e.target.value)} style={{ width: 'auto' }} />
           <button className="btn" disabled={!hora} onClick={() => descargarOracion(hora)}><Icon name="bell" /> Recordarme cada día</button>
         </div>
-      </section>
+      </section>}
 
       <section className="card donar">
         <h2>Donar</h2>
