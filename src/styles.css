@@ -807,3 +807,4 @@ button.nota-chip { cursor: pointer; }
 }
 .song .block { scroll-margin-top: 5rem; }
 .sec-chip { white-space: nowrap; } .block-label { flex-wrap: wrap; }
+.codigo-iglesia { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; } .codigo-iglesia .codigo { font-size: 1.3rem; letter-spacing: 0.15em; }

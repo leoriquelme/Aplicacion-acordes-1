@@ -110,7 +110,7 @@ export function IglesiaBoton() {
   const { mode, church, people = [] } = useStore();
   if (mode !== 'cloud') return null;
   return (
-    <Link to="/mi-iglesia/miembros" className="card iglesia-boton">
+    <Link to="/mi-iglesia/miembros" state={{ from: 'ajustes' }} className="card iglesia-boton">
       <span className="bloque-icono"><Icon name="church" /></span>
       <span className="grow">
         <span className="muted small">Perteneces a</span>
