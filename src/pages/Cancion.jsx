@@ -1,3 +1,4 @@
+import { songKey } from '../lib/importar.js';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { getPersonalKey, setPersonalKey, useStore } from '../lib/store.jsx';
@@ -60,7 +61,7 @@ export default function Cancion() {
       </div>
 
       <div className="toolbar">
-        <TransposeControls songKey={song.key} steps={steps} onChange={setSteps} notation={settings.notation} />
+        <TransposeControls songKey={songKey(song)} steps={steps} onChange={setSteps} notation={settings.notation} />
         {can.events && upcoming.length > 0 && (
           <select value="" onChange={(e) => addToEvent(e.target.value)} aria-label="Agregar a un evento">
             <option value="">+ Agregar a un evento…</option>
@@ -73,7 +74,7 @@ export default function Cancion() {
       </div>
 
       <div className="song-layout">
-        <SongView content={song.content} songKey={song.key} steps={steps} order={song.order} settings={settings} />
+        <SongView content={song.content} songKey={songKey(song)} steps={steps} order={song.order} settings={settings} />
         <aside className="order-panel">
           <h3>Orden</h3>
           <p className="muted small">

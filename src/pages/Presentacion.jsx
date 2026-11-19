@@ -1,3 +1,4 @@
+import { songKey } from '../lib/importar.js';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useStore } from '../lib/store.jsx';
@@ -111,7 +112,7 @@ export default function Presentacion() {
 
       <SongView
         content={current.song.content}
-        songKey={current.song.key}
+        songKey={songKey(current.song)}
         steps={steps}
         order={current.order}
         settings={{ ...settings, showChords }}
@@ -129,7 +130,7 @@ export default function Presentacion() {
         )}
         <span className="sep" />
         <button className="btn" onClick={() => transpose(-1)} title="Bajar tono (−)">−</button>
-        <span className="present-key">{displayKey(current.song.key, steps, settings.notation) || steps}</span>
+        <span className="present-key">{displayKey(songKey(current.song), steps, settings.notation) || steps}</span>
         <button className="btn" onClick={() => transpose(1)} title="Subir tono (+)">+</button>
         <span className="sep" />
         <button className="btn" onClick={() => setSize((s) => Math.max(16, s - 4))} title="Letra más chica">A−</button>

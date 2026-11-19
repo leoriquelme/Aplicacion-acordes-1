@@ -1,3 +1,4 @@
+import { songKey } from '../lib/importar.js';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useStore } from '../lib/store.jsx';
@@ -5,6 +6,8 @@ import { displayKey, normalize } from '../lib/chordpro.js';
 import { formatLong, todayISO } from '../lib/dates.js';
 import TransposeControls from '../components/TransposeControls.jsx';
 import ArrangementEditor from '../components/ArrangementEditor.jsx';
+import Participacion from '../components/Participacion.jsx';
+import ConfirmX from '../components/ConfirmX.jsx';
 
 export default function Evento() {
   const { id } = useParams();
@@ -62,11 +65,12 @@ export default function Evento() {
               <li key={i} className="setlist-item">
                 <span className="setlist-num">{i + 1}</span>
                 <Link className="grow" to={`/canciones/${s.id}`}><strong>{s.title}</strong></Link>
-                {s.key && <span className="key-pill">{displayKey(s.key, item.transpose || 0, settings.notation)}</span>}
+                {songKey(s) && <span className="key-pill">{displayKey(songKey(s), item.transpose || 0, settings.notation)}</span>}
               </li>
             );
           })}
         </ol>
+        <Participacion event={event} />
       </div>
     );
   }
@@ -144,7 +148,7 @@ export default function Evento() {
                 <Link className="grow" to={`/canciones/${s.id}`}><strong>{s.title}</strong></Link>
                 <TransposeControls
                   compact
-                  songKey={s.key}
+                  songKey={songKey(s)}
                   steps={item.transpose || 0}
                   notation={settings.notation}
                   onChange={(t) => setItems(event.items.map((x, k) => (k === i ? { ...x, transpose: t } : x)))}
@@ -159,7 +163,7 @@ export default function Evento() {
                 <div className="row">
                   <button className="btn ghost small" onClick={() => move(i, -1)} disabled={i === 0} aria-label="Subir">↑</button>
                   <button className="btn ghost small" onClick={() => move(i, 1)} disabled={i === event.items.length - 1} aria-label="Bajar">↓</button>
-                  <button className="btn ghost small" onClick={() => { setItems(event.items.filter((_, k) => k !== i)); setOpenOrder(null); }} aria-label="Quitar">✕</button>
+                  <ConfirmX className="btn ghost small" label={`Quitar ${s.title}`} onConfirm={() => { setItems(event.items.filter((_, k) => k !== i)); setOpenOrder(null); }} />
                 </div>
                 {openOrder === i && (
                   <div className="setlist-order">
@@ -199,7 +203,7 @@ export default function Evento() {
                   }}
                 >
                   <span>+ {s.title} {s.author && <span className="muted">· {s.author}</span>}</span>
-                  {s.key && <span className="key-pill">{displayKey(s.key, 0, settings.notation)}</span>}
+                  {songKey(s) && <span className="key-pill">{displayKey(songKey(s), 0, settings.notation)}</span>}
                 </button>
               </li>
             ))}
@@ -207,6 +211,8 @@ export default function Evento() {
         )}
         {query && results.length === 0 && <p className="muted">No se encontraron canciones.</p>}
       </div>
+
+      {!isNew && <Participacion event={event} />}
 
       {isNew ? (
         <div className="create-bar">

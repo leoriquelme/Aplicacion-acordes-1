@@ -433,3 +433,36 @@ textarea.mono { font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
   .song-layout { grid-template-columns: 1fr; }
   .order-panel { position: static; max-height: none; order: -1; }
 }
+
+/* Confirmar antes de quitar */
+.mini.armed {
+  width: auto; padding: 0 0.4rem; background: var(--danger); border-color: var(--danger); color: #fff;
+  font-size: 0.75rem; font-weight: 700;
+}
+.mini.armed:hover:not(:disabled) { color: #fff; border-color: var(--danger); }
+
+/* Participación en eventos */
+.participacion { margin-top: 1.5rem; }
+.participacion h2 { margin: 0 0 0.2rem; }
+.mi-rol { background: color-mix(in srgb, var(--ok) 14%, var(--surface)); color: var(--ok); padding: 0.35rem 0.7rem; border-radius: 999px; font-size: 0.92rem; }
+.role-picker { border-top: 1px solid var(--border); margin-top: 0.4rem; padding-top: 0.6rem; }
+.role-group { margin-bottom: 0.9rem; }
+.role-group h3 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin: 0 0 0.45rem; }
+.g-instrumentos { --g: #3f51b5; }
+.g-voces { --g: #e5484d; }
+.g-multimedia { --g: #0d9488; }
+.role-btn { border-color: color-mix(in srgb, var(--g) 35%, var(--border)); }
+.role-btn:hover { background: color-mix(in srgb, var(--g) 10%, var(--surface)); }
+.role-btn.selected { background: var(--g); border-color: var(--g); color: #fff; }
+.inscritos { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 0.5rem 1.25rem; margin-top: 0.6rem; }
+.inscritos ul { list-style: none; margin: 0; padding: 0; }
+.inscritos li { display: flex; align-items: center; gap: 0.5rem; padding: 0.3rem 0; border-bottom: 1px solid var(--border); }
+.role-tag {
+  font-size: 0.78rem; font-weight: 600; padding: 0.1rem 0.5rem; border-radius: 999px; white-space: nowrap;
+  background: color-mix(in srgb, var(--g) 14%, var(--surface)); color: var(--g);
+}
+.inscritos .grow { min-width: 0; }
+.rank-table tr.clickable { cursor: pointer; }
+.rank-table tr.clickable:hover td { background: var(--surface-2); }
+.detail-row ul { margin: 0; padding-left: 1.2rem; line-height: 1.6; }
+.btn.armed { background: var(--danger); border-color: var(--danger); color: #fff; font-size: 0.8rem; }

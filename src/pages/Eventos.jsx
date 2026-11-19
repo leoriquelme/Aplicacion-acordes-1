@@ -4,9 +4,10 @@ import { useStore } from '../lib/store.jsx';
 import { sortEvents, todayISO } from '../lib/dates.js';
 import EventCard from '../components/EventCard.jsx';
 import SongRanking from '../components/SongRanking.jsx';
+import HistorialParticipacion from '../components/HistorialParticipacion.jsx';
 
 export default function Eventos() {
-  const { events, songs, can } = useStore();
+  const { events, songs, can, participations, mode } = useStore();
   const [showPast, setShowPast] = useState(false);
   const today = todayISO();
   const upcoming = sortEvents(events.filter((e) => e.date >= today));
@@ -44,6 +45,7 @@ export default function Eventos() {
       )}
 
       <SongRanking songs={songs} events={events} />
+      {can.events && mode === 'cloud' && <HistorialParticipacion participations={participations} events={events} />}
     </div>
   );
 }

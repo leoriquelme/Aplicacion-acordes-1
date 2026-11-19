@@ -1,3 +1,4 @@
+import { songKey } from '../lib/importar.js';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useStore } from '../lib/store.jsx';
@@ -44,7 +45,7 @@ export default function Canciones() {
                   <strong>{s.title}</strong>
                   {s.author && <span className="muted"> · {s.author}</span>}
                 </span>
-                {s.key && <span className="key-pill">{displayKey(s.key, 0, settings.notation)}</span>}
+                {songKey(s) && <span className="key-pill">{displayKey(songKey(s), 0, settings.notation)}</span>}
               </Link>
             </li>
           ))}

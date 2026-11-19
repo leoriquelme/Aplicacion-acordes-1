@@ -1,6 +1,6 @@
 // Convierte una canción copiada de una página web (acordes en la línea de arriba
 // de la letra) al formato de la app: [CORO], [VERSO 2] y acordes como [G].
-import { MAX_SECTION_NUMBER } from './chordpro.js';
+import { MAX_SECTION_NUMBER, guessKey } from './chordpro.js';
 
 const NOTE = '(?:Do|Re|Mi|Fa|Sol|La|Si|[A-G])[#b♯♭]?';
 const CHORD_TOKEN_RE = new RegExp(
@@ -228,4 +228,34 @@ export function setSectionType(state, i, base) {
   const used = state.sections.filter((x, k) => k !== i && x.base === base).length;
   if (used >= MAX_SECTION_NUMBER) return state;
   return { ...state, sections: state.sections.map((x, k) => (k === i ? { ...x, base } : x)) };
+}
+
+/**
+ * Para mostrar y transponer: si alguien escribió los acordes en la línea de arriba
+ * (sin corchetes), los pasa al formato [G] para que también cambien de tono.
+ */
+export function convertPlainChords(content = '') {
+  const lines = content.replace(/\r/g, '').split('\n');
+  const plain = (l) => l.trim() && !l.includes('[') && !l.trim().startsWith('{') && !l.trim().startsWith('#');
+  const out = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].replace(/\t/g, '    ');
+    if (plain(line) && isChordLine(line)) {
+      const next = lines[i + 1];
+      if (next !== undefined && plain(next) && !isChordLine(next)) {
+        out.push(mergeChordLine(line, next.replace(/\t/g, '    ').trimEnd()));
+        i++;
+      } else {
+        out.push(chordsOnly(line));
+      }
+      continue;
+    }
+    out.push(lines[i]);
+  }
+  return out.join('\n');
+}
+
+/** Tono de una canción: el elegido o, si no hay, el del primer acorde. */
+export function songKey(song) {
+  return song?.key || guessKey(convertPlainChords(song?.content || ''));
 }

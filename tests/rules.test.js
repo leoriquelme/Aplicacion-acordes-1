@@ -108,3 +108,29 @@ describe('usuarios', () => {
     await assertFails(setDoc(person(as('u-otro'), 'luis'), { name: 'Luis', role: 'director' }));
   });
 });
+
+describe('participación en eventos', () => {
+  beforeEach(async () => {
+    await seedSessions();
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'churches', C, 'events', 'e1'), { name: 'Culto', date: '2026-11-22' });
+    });
+  });
+  const part = (db, id) => doc(db, 'churches', C, 'participations', id);
+  const data = (personKey, extra = {}) => ({ eventId: 'e1', personKey, name: 'X', role: 'Bajo', group: 'instrumentos', date: '2026-11-22', ...extra });
+  it('cada uno se inscribe a sí mismo, un registro por evento', async () => {
+    await assertSucceeds(setDoc(part(as('u-carlos'), 'e1__carlos'), data('carlos')));
+    await assertSucceeds(setDoc(part(as('u-carlos'), 'e1__carlos'), data('carlos', { role: 'Coro' })));
+    await assertFails(setDoc(part(as('u-carlos'), 'e1__dora'), data('dora')));
+    await assertFails(setDoc(part(as('u-carlos'), 'otro'), data('carlos')));
+    await assertFails(setDoc(part(as('u-carlos'), 'e9__carlos'), data('carlos', { eventId: 'e9' })));
+    await assertFails(setDoc(part(as('extraño'), 'e1__juan'), data('juan')));
+  });
+  it('quitarse: uno mismo o un director/admin', async () => {
+    await assertSucceeds(setDoc(part(as('u-carlos'), 'e1__carlos'), data('carlos')));
+    await assertSucceeds(setDoc(part(as('u-dora'), 'e1__dora'), data('dora')));
+    await assertFails(deleteDoc(part(as('u-carlos'), 'e1__dora')));
+    await assertSucceeds(deleteDoc(part(as('u-dora'), 'e1__carlos')));
+    await assertSucceeds(deleteDoc(part(as('u-dora'), 'e1__dora')));
+  });
+});

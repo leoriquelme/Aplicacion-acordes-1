@@ -1,4 +1,5 @@
-import { arrangeSections, chordOptions, parseSong, transposeChord } from '../lib/chordpro.js';
+import { arrangeSections, chordOptions, guessKey, parseSong, transposeChord } from '../lib/chordpro.js';
+import { convertPlainChords } from '../lib/importar.js';
 
 // Separa el texto en palabras para que las líneas largas se puedan cortar
 // sin separar un acorde de su sílaba.
@@ -30,8 +31,9 @@ function Line({ segments, showChords, opts, steps }) {
 }
 
 export default function SongView({ content, songKey, steps = 0, order, settings, fontSize, className = '' }) {
-  const blocks = arrangeSections(parseSong(content), order);
-  const opts = chordOptions(songKey, steps, settings.notation);
+  const text = convertPlainChords(content);
+  const blocks = arrangeSections(parseSong(text), order);
+  const opts = chordOptions(songKey || guessKey(text), steps, settings.notation);
   const showChords = settings.showChords;
 
   if (blocks.length === 0) {

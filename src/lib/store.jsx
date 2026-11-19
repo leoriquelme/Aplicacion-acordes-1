@@ -131,7 +131,7 @@ export function LocalStoreProvider({ children }) {
   const deleteAll = useCallback(() => setData({ songs: [], events: [] }), []);
 
   const value = useMemo(
-    () => ({ ...data, mode: 'local', can: LOCAL_CAN, saveSong, deleteSong, saveEvent, deleteEvent, importData, restoreExamples, deleteAll }),
+    () => ({ ...data, participations: [], mode: 'local', can: LOCAL_CAN, saveSong, deleteSong, saveEvent, deleteEvent, importData, restoreExamples, deleteAll }),
     [data, saveSong, deleteSong, saveEvent, deleteEvent, importData, restoreExamples, deleteAll]
   );
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

@@ -1,8 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import {
-  collection, deleteDoc, deleteField, doc, getDoc, onSnapshot, setDoc, updateDoc, writeBatch,
+  collection, deleteDoc, deleteField, doc, getDoc, onSnapshot, query, setDoc, updateDoc, where, writeBatch,
 } from 'firebase/firestore';
+import { grupoDe, participationId } from './participacion.js';
 import { auth, db } from './firebase.js';
 import { DataContext, ROLES } from './store.jsx';
 import { normalize } from './chordpro.js';
@@ -112,6 +113,12 @@ export async function leaveChurch(churchId) {
 
 // ---------- Datos de una iglesia ----------
 
+function desdeISO(meses) {
+  const d = new Date();
+  d.setMonth(d.getMonth() - meses);
+  return d.toISOString().slice(0, 10);
+}
+
 const sinId = ({ id, ...rest }) => rest; // eslint-disable-line no-unused-vars
 
 export function CloudStoreProvider({ churchId, churchName, children }) {
@@ -120,6 +127,7 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
   const [songs, setSongs] = useState([]);
   const [events, setEvents] = useState([]);
   const [people, setPeople] = useState([]);
+  const [participations, setParticipations] = useState([]);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -135,6 +143,11 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
       onSnapshot(collection(base, 'songs'), (s) => setSongs(s.docs.map((d) => ({ ...d.data(), id: d.id }))), fail),
       onSnapshot(collection(base, 'events'), (s) => setEvents(s.docs.map((d) => ({ items: [], ...d.data(), id: d.id }))), fail),
       onSnapshot(collection(base, 'people'), (s) => setPeople(s.docs.map((d) => ({ ...d.data(), key: d.id }))), fail),
+      onSnapshot(
+        query(collection(base, 'participations'), where('date', '>=', desdeISO(4))),
+        (s) => setParticipations(s.docs.map((d) => ({ ...d.data(), id: d.id }))),
+        fail,
+      ),
     ];
     return () => subs.forEach((u) => u());
   }, [churchId, mySession]);
@@ -163,6 +176,18 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
 
   const deleteEvent = useCallback((id) => {
     deleteDoc(doc(col('events'), id)).catch(report);
+    participations.filter((p) => p.eventId === id).forEach((p) => deleteDoc(doc(col('participations'), p.id)).catch(() => {}));
+  }, [col, report, participations]);
+
+  /** Inscribirse (o cambiar de rol) en un evento. Uno solo por persona y evento. */
+  const joinEvent = useCallback((event, role, person) => {
+    setDoc(doc(col('participations'), participationId(event.id, person.key)), {
+      eventId: event.id, personKey: person.key, name: person.name, role, group: grupoDe(role), date: event.date, at: Date.now(),
+    }).catch(report);
+  }, [col, report]);
+
+  const leaveEvent = useCallback((eventId, personKey) => {
+    deleteDoc(doc(col('participations'), participationId(eventId, personKey))).catch(report);
   }, [col, report]);
 
   /** El administrador cambia el perfil. Director necesita PIN. */
@@ -206,9 +231,9 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
   const church = { id: churchId, name: churchName };
 
   const value = useMemo(() => ({
-    mode: 'cloud', churchId, church, me, role, pendingRole, can, people, songs, events, error,
-    clearError: () => setError(''), saveSong, deleteSong, saveEvent, deleteEvent, setPersonRole, removePerson, uploadLocal,
-  }), [churchId, church.name, me?.name, me?.key, role, pendingRole, can, people, songs, events, error, saveSong, deleteSong, saveEvent, deleteEvent, setPersonRole, removePerson, uploadLocal]); // eslint-disable-line react-hooks/exhaustive-deps
+    mode: 'cloud', churchId, church, me, role, pendingRole, can, people, songs, events, participations, error,
+    clearError: () => setError(''), saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal,
+  }), [churchId, church.name, me?.name, me?.key, role, pendingRole, can, people, songs, events, participations, error, saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }

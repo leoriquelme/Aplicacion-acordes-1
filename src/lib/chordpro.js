@@ -23,7 +23,7 @@ function noteToIndex(note) {
 }
 
 export function parseChord(chord) {
-  const m = chord.trim().match(CHORD_RE);
+  const m = chord.trim().replace(/♯/g, '#').replace(/♭/g, 'b').match(CHORD_RE);
   if (!m) return null;
   const root = noteToIndex(m[1]);
   if (root === null) return null;
@@ -76,6 +76,21 @@ export function displayKey(key, steps, notation) {
   const k = transposeKey(key, steps);
   if (!k) return '';
   return notation === 'latino' ? transposeChord(k, 0, { notation, useFlats: k.includes('b') }) : k;
+}
+
+/** Si la canción no tiene tono elegido, se usa el primer acorde (ej. "Am" → "Am", "G7" → "G"). */
+export function guessKey(content = '') {
+  const re = /\[([^\]]+)\]/g;
+  let m;
+  while ((m = re.exec(content))) {
+    if (sectionHeader(m[0])) continue;
+    const p = parseChord(m[1]);
+    if (!p) continue;
+    const root = indexToNote(p.root, false);
+    const minor = /^m(?!aj)/.test(p.suffix);
+    return root + (minor ? 'm' : '');
+  }
+  return '';
 }
 
 /** Divide una línea en segmentos { chord, text }. */

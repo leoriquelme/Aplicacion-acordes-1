@@ -107,3 +107,17 @@ describe('ajustes manuales', () => {
     expect(buildSong(s.sections, s.order)).toEqual({ content: '[VERSO]\na\nb\n\n[VERSO 2]\nd\ne\nf', order: undefined });
   });
 });
+
+import { convertPlainChords, songKey } from './importar.js';
+import { transposeChord as tc } from './chordpro.js';
+describe('acordes sin corchetes', () => {
+  it('pasa los acordes de arriba a [G] para poder transponer', () => {
+    const r = convertPlainChords('[CORO]\nG       C\nCuán grande es Él\nAm D');
+    expect(r).toBe('[CORO]\n[G]Cuán gra[C]nde es Él\n[Am] [D]');
+  });
+  it('adivina el tono si no hay', () => {
+    expect(songKey({ content: '[VERSO]\nAm   F\nhola mundo' })).toBe('Am');
+    expect(songKey({ key: 'D', content: '[G]x' })).toBe('D');
+    expect(tc('F♯m', 1)).toBe('Gm');
+  });
+});

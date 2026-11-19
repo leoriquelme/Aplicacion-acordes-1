@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import ConfirmX from './ConfirmX.jsx';
 import {
   MARKER, MAX_CUSTOM, cleanCustomName, flattenGroups, groupOrder, isMarker, markerName, parseSong, sectionKind,
   validCustomName,
@@ -90,7 +91,7 @@ export default function ArrangementEditor({ content, order, onChange, fallbackOr
                 <span className="order-actions">
                   <button type="button" className="mini" aria-label={`Una vez menos ${label}`} title="Repetir una vez menos" disabled={g.times === 1} onClick={() => setTimes(i, g.times - 1)}>−</button>
                   <button type="button" className="mini" aria-label={`Repetir ${label}`} title="Repetir (×2, ×3…)" disabled={g.times >= 4} onClick={() => setTimes(i, g.times + 1)}>+</button>
-                  <button type="button" className="mini x" aria-label={`Quitar ${label}`} title="Quitar" disabled={groups.length === 1} onClick={() => commit(groups.filter((_, k) => k !== i))}>✕</button>
+                  <ConfirmX label={`Quitar ${label}`} disabled={groups.length === 1} onConfirm={() => commit(groups.filter((_, k) => k !== i))} />
                 </span>
               )}
             </li>
