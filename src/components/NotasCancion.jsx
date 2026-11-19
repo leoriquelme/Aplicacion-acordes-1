@@ -8,7 +8,7 @@ import Icon from './Icon.jsx';
  * Ventana para elegir una nota preestablecida para una sección.
  * El director puede dejarla "para todos"; cualquiera puede dejarla "solo para mí".
  */
-export function ElegirNota({ section, canDirector, director = [], mias = [], onDirector, onMia, onClose }) {
+export function ElegirNota({ section, canDirector, director = [], mias = [], onDirector, onMia, onClose, container }) {
   const [tipo, setTipo] = useState(canDirector ? 'director' : 'mia');
   const list = tipo === 'director' ? director : mias;
   const elegir = (id) => {
@@ -46,6 +46,6 @@ export function ElegirNota({ section, canDirector, director = [], mias = [], onD
         </div>
       </div>
     </div>,
-    document.body,
+    container || document.body,
   );
 }

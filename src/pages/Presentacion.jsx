@@ -4,14 +4,15 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { getCapo, setCapo as saveCapo, useStore } from '../lib/store.jsx';
 import { displayKey } from '../lib/chordpro.js';
 import SongView from '../components/SongView.jsx';
-import { notasPorSeccion } from '../lib/notas.js';
+import { alternarNota, notasPorSeccion } from '../lib/notas.js';
+import { ElegirNota } from '../components/NotasCancion.jsx';
 import Icon from '../components/Icon.jsx';
 
 export default function Presentacion() {
   const { tipo, id } = useParams();
   const [params] = useSearchParams();
   const navigate = useNavigate();
-  const { songs, events, settings, myNotes = {} } = useStore();
+  const { songs, events, settings, myNotes = {}, setMyNotes, saveSong, can } = useStore();
   const rootRef = useRef(null);
 
   // Arma la lista de canciones a presentar: un evento completo o una sola canción.
@@ -42,6 +43,8 @@ export default function Presentacion() {
   const [isFull, setIsFull] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [editNotes, setEditNotes] = useState(false);
+  const [noteFor, setNoteFor] = useState(null);
   const hideTimer = useRef(null);
   const touch = useRef(null);
 
@@ -100,6 +103,7 @@ export default function Presentacion() {
 
   useEffect(() => {
     const onKey = (e) => {
+      if (document.querySelector('.modal-notas')) return; // con la ventana de notas abierta, las teclas no mueven la presentación
       if (e.key === 'ArrowDown') { e.preventDefault(); goSection(1); }
       else if (e.key === 'ArrowUp') { e.preventDefault(); goSection(-1); }
       else if (['ArrowRight', 'PageDown'].includes(e.key)) { e.preventDefault(); go(1); }
@@ -160,6 +164,11 @@ export default function Presentacion() {
         settings={{ ...settings, showChords }}
         fontSize={size}
         notes={notasPorSeccion(current.song.notes, myNotes[current.song.id])}
+        onAddNote={editNotes ? setNoteFor : undefined}
+        onRemoveNote={editNotes ? (section, n) => (n.mine
+          ? setMyNotes(current.song.id, alternarNota(myNotes[current.song.id], section, n.id))
+          : saveSong({ ...current.song, notes: alternarNota(current.song.notes, section, n.id) })) : undefined}
+        canEditDirector={can?.edit}
         className="present-song"
       />
 
@@ -189,12 +198,32 @@ export default function Presentacion() {
                 {[1, 2, 3, 4, 5, 6, 7].map((n) => <option key={n} value={n}>Traste {n}</option>)}
               </select>
             </label>
+            {setMyNotes && (
+              <button className={`btn ${editNotes ? 'primary' : ''}`} onClick={() => { setEditNotes((v) => !v); setMenuOpen(false); }}>
+                <Icon name="note" /> {editNotes ? 'Terminar notas' : 'Agregar notas'}
+              </button>
+            )}
             <button className="btn" onClick={() => setShowChords((v) => !v)}>{showChords ? 'Ocultar acordes' : 'Mostrar acordes'}</button>
             <button className="btn" onClick={toggleFull}>{isFull ? 'Salir de pantalla completa' : <><Icon name="expand" /> Pantalla completa</>}</button>
             <button className="btn danger-solid" onClick={exit}>✕ Salir de la presentación</button>
           </div>
         )}
       </div>
+      {editNotes && (
+        <button className="btn primary present-notas-listo" onClick={() => setEditNotes(false)}>✓ Listo con las notas</button>
+      )}
+      {noteFor && current && (
+        <ElegirNota
+          section={noteFor}
+          canDirector={can?.edit}
+          director={current.song.notes || []}
+          mias={myNotes[current.song.id] || []}
+          onDirector={(list) => saveSong({ ...current.song, notes: list })}
+          onMia={(list) => setMyNotes(current.song.id, list)}
+          onClose={() => setNoteFor(null)}
+          container={rootRef.current}
+        />
+      )}
       {items.length > 1 && (
         <div className={`present-nav ${controlsVisible ? '' : 'dim'}`}>
           <button onClick={() => go(-1)} disabled={index === 0} aria-label="Canción anterior"><Icon name="chevronLeft" /></button>

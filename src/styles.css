@@ -809,3 +809,7 @@ button.nota-chip { cursor: pointer; }
 .sec-chip { white-space: nowrap; } .block-label { flex-wrap: wrap; }
 .codigo-iglesia { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; } .codigo-iglesia .codigo { font-size: 1.3rem; letter-spacing: 0.15em; }
 .carpeta-pasados { display: inline-flex; align-items: center; gap: 0.4rem; } .aviso { border-left: 4px solid #e9cf85; }
+.present-notas-listo { position: fixed; left: 50%; transform: translateX(-50%); bottom: 1.2rem; z-index: 30; box-shadow: 0 4px 14px rgba(0,0,0,.25); }
+.present .modal-fondo { position: fixed; z-index: 50; }
+.present .modal { font-size: 1rem; }
+.present .modal-fondo, .present .modal-fondo *, .present .nota-add, .present button { cursor: pointer; }
