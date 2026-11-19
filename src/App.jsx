@@ -7,6 +7,7 @@ import Eventos from './pages/Eventos.jsx';
 import Evento from './pages/Evento.jsx';
 import Ajustes from './pages/Ajustes.jsx';
 import Presentacion from './pages/Presentacion.jsx';
+import Biblioteca from './pages/Biblioteca.jsx';
 import Importar from './pages/Importar.jsx';
 import { useStore } from './lib/store.jsx';
 
@@ -46,6 +47,7 @@ export default function App() {
           <Route path="/canciones" element={<Canciones />} />
           <Route path="/canciones/nueva" element={<EditarCancion />} />
           <Route path="/canciones/importar" element={<Importar />} />
+          <Route path="/canciones/biblioteca" element={<Biblioteca />} />
           <Route path="/canciones/:id" element={<Cancion />} />
           <Route path="/canciones/:id/editar" element={<EditarCancion />} />
           <Route path="/eventos" element={<Eventos />} />

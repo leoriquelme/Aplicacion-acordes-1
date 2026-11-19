@@ -42,6 +42,21 @@ service cloud.firestore {
         );
     }
 
+    // Biblioteca compartida entre iglesias: cada iglesia comparte voluntariamente sus canciones
+    // (confirmando que tiene permiso). Todos los que entraron pueden buscar y copiar.
+    // library/{iglesia__cancion} { churchId, churchName, songId, title, author, key, content, order, sharedBy, confirmed }
+    function validShare(pid, d) {
+      return canEdit(d.churchId)
+        && pid == d.churchId + '__' + d.songId
+        && d.confirmed == true
+        && validName(d.title) && d.content is string && d.content.size() < 20000;
+    }
+    match /library/{pid} {
+      allow read: if signedIn();
+      allow create, update: if validShare(pid, request.resource.data);
+      allow delete: if canEdit(resource.data.churchId);
+    }
+
     match /churches/{c} {
       allow get: if isAdmin(c);
       allow list, write: if false;

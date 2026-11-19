@@ -134,3 +134,21 @@ describe('participación en eventos', () => {
     await assertSucceeds(deleteDoc(part(as('u-dora'), 'e1__dora')));
   });
 });
+
+describe('biblioteca compartida', () => {
+  beforeEach(seedSessions);
+  const lib = (db, id) => doc(db, 'library', id);
+  const data = (extra = {}) => ({ churchId: C, churchName: 'PSG', songId: 's1', title: 'Santo', author: '', key: 'G', content: '[G]Santo', confirmed: true, sharedBy: 'Dora', ...extra });
+  it('solo director o admin comparte, y debe confirmar el permiso', async () => {
+    await assertSucceeds(setDoc(lib(as('u-dora'), `${C}__s1`), data()));
+    await assertFails(setDoc(lib(as('u-carlos'), `${C}__s2`), data({ songId: 's2' })));
+    await assertFails(setDoc(lib(as('u-admin'), `${C}__s3`), data({ songId: 's3', confirmed: false })));
+    await assertFails(setDoc(lib(as('u-admin'), 'otra__s1'), data({ churchId: 'otra' })));
+  });
+  it('todos los que entraron pueden leer; solo la iglesia que compartió la quita', async () => {
+    await assertSucceeds(setDoc(lib(as('u-admin'), `${C}__s1`), data()));
+    await assertSucceeds(getDoc(lib(as('u-carlos'), `${C}__s1`)));
+    await assertFails(deleteDoc(lib(as('u-carlos'), `${C}__s1`)));
+    await assertSucceeds(deleteDoc(lib(as('u-dora'), `${C}__s1`)));
+  });
+});

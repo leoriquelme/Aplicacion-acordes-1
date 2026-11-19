@@ -5,6 +5,7 @@ import { getPersonalKey, setPersonalKey, useStore } from '../lib/store.jsx';
 import { sortEvents, todayISO, formatLong } from '../lib/dates.js';
 import SongView from '../components/SongView.jsx';
 import TransposeControls from '../components/TransposeControls.jsx';
+import CompartirCancion from '../components/CompartirCancion.jsx';
 import ArrangementEditor from '../components/ArrangementEditor.jsx';
 
 export default function Cancion() {
@@ -96,6 +97,8 @@ export default function Cancion() {
           />
         </aside>
       </div>
+
+      <CompartirCancion song={song} />
 
       {can.delete && (
         <div className="danger-zone">

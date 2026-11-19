@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import {
-  collection, deleteDoc, deleteField, doc, getDoc, onSnapshot, query, setDoc, updateDoc, where, writeBatch,
+  collection, deleteDoc, deleteField, doc, getDoc, getDocs, onSnapshot, query, setDoc, updateDoc, where, writeBatch,
 } from 'firebase/firestore';
 import { grupoDe, participationId } from './participacion.js';
 import { cancionesEjemplo } from '../data/ejemplos.js';
@@ -129,6 +129,7 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
   const [events, setEvents] = useState([]);
   const [people, setPeople] = useState([]);
   const [participations, setParticipations] = useState([]);
+  const [myShares, setMyShares] = useState([]);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -149,6 +150,11 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
         (s) => setParticipations(s.docs.map((d) => ({ ...d.data(), id: d.id }))),
         fail,
       ),
+      onSnapshot(
+        query(collection(db, 'library'), where('churchId', '==', churchId)),
+        (s) => setMyShares(s.docs.map((d) => ({ ...d.data(), id: d.id }))),
+        () => setMyShares([]),
+      ),
     ];
     return () => subs.forEach((u) => u());
   }, [churchId, mySession]);
@@ -164,10 +170,11 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
 
   const deleteSong = useCallback((id) => {
     deleteDoc(doc(col('songs'), id)).catch(report);
+    deleteDoc(doc(db, 'library', `${churchId}__${id}`)).catch(() => {});
     events.filter((e) => e.items.some((i) => i.songId === id)).forEach((e) => {
       setDoc(doc(col('events'), e.id), { ...sinId(e), items: e.items.filter((i) => i.songId !== id) }).catch(report);
     });
-  }, [col, events, report]);
+  }, [col, events, report, churchId]);
 
   const saveEvent = useCallback((event) => {
     const ref = event.id ? doc(col('events'), event.id) : doc(col('events'));
@@ -221,6 +228,27 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
     return added;
   }, [songs, col]);
 
+  // ---------- Biblioteca compartida ----------
+  const shareSong = useCallback(async (song) => {
+    await setDoc(doc(db, 'library', `${churchId}__${song.id}`), {
+      churchId, churchName, songId: song.id,
+      title: song.title, author: song.author || '', key: song.key || '', content: song.content || '',
+      ...(song.order?.length ? { order: song.order } : {}),
+      sharedBy: mySession?.name || '', confirmed: true, sharedAt: Date.now(),
+    });
+  }, [churchId, churchName, mySession?.name]);
+
+  const unshareSong = useCallback(
+    (songId) => deleteDoc(doc(db, 'library', `${churchId}__${songId}`)).catch(report),
+    [churchId, report],
+  );
+
+  /** Todas las canciones compartidas por otras iglesias. */
+  const loadLibrary = useCallback(async () => {
+    const snap = await getDocs(collection(db, 'library'));
+    return snap.docs.map((d) => ({ ...d.data(), id: d.id })).filter((x) => x.churchId !== churchId);
+  }, [churchId]);
+
   /** Agrega los himnos de ejemplo (dominio público) que la iglesia todavía no tenga. */
   const addExamples = useCallback(async () => {
     const titles = new Set(songs.map((s) => normalize(s.title)));
@@ -248,8 +276,8 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
 
   const value = useMemo(() => ({
     mode: 'cloud', churchId, church, me, role, pendingRole, can, people, songs, events, participations, error,
-    clearError: () => setError(''), saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples,
-  }), [churchId, church.name, me?.name, me?.key, role, pendingRole, can, people, songs, events, participations, error, saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples]); // eslint-disable-line react-hooks/exhaustive-deps
+    clearError: () => setError(''), saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples, myShares, shareSong, unshareSong, loadLibrary,
+  }), [churchId, church.name, me?.name, me?.key, role, pendingRole, can, people, songs, events, participations, error, saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples, myShares, shareSong, unshareSong, loadLibrary]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }

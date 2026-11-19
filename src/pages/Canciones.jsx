@@ -6,7 +6,7 @@ import AgregarEjemplos from '../components/AgregarEjemplos.jsx';
 import { displayKey, normalize } from '../lib/chordpro.js';
 
 export default function Canciones() {
-  const { songs, settings, can } = useStore();
+  const { songs, settings, can, mode } = useStore();
   const [q, setQ] = useState('');
   const query = normalize(q.trim());
   const list = songs
@@ -17,12 +17,15 @@ export default function Canciones() {
     <div className="page">
       <div className="page-head">
         <h1>Canciones</h1>
-        {can.edit && (
+        <div className="row gap wrap">
+          {mode === 'cloud' && <Link className="btn" to="/canciones/biblioteca">🌐 Otras iglesias</Link>}
+          {can.edit && (
           <div className="row gap wrap">
             <Link className="btn" to="/canciones/importar">⤓ Importar</Link>
             <Link className="btn primary" to="/canciones/nueva">+ Nueva canción</Link>
           </div>
-        )}
+          )}
+        </div>
       </div>
       <input
         className="search"

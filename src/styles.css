@@ -480,3 +480,11 @@ textarea.mono { font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
   .order-item .grip { font-size: 1.4rem; padding: 0.5rem 0.45rem; }
 }
 .toolbar select { max-width: 100%; min-width: 0; }
+
+/* Biblioteca compartida */
+.share-box { margin-top: 1.5rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
+.share-box.card { margin-bottom: 0; }
+.share-box label.check { font-weight: 400; }
+.lib-row { gap: 0.6rem; }
+.lib-title { flex: 1; min-width: 0; text-align: left; background: none; border: none; font: inherit; color: var(--text); cursor: pointer; padding: 0; }
+.lib-preview { margin: -0.3rem 0 0.8rem; }
