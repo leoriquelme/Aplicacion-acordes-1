@@ -5,7 +5,7 @@ import AgregarEjemplos from '../components/AgregarEjemplos.jsx';
 import { AjustesFinal, IglesiaBoton, PerfilCard } from '../components/Comunicacion.jsx';
 import InstalarCard from '../components/InstalarCard.jsx';
 import IglesiaPrueba from '../components/IglesiaPrueba.jsx';
-import { CodigoAcceso, Respaldo } from '../components/Administracion.jsx';
+import { Respaldo } from '../components/Administracion.jsx';
 import Icon from '../components/Icon.jsx';
 
 const MUESTRA = '[G]Cuán grande es [C]Él, [G]cuán grande es [D]Él';
@@ -84,7 +84,6 @@ export default function Ajustes() {
 
       {store.mode === 'cloud' ? (
         <>
-          <CodigoAcceso />
           <Respaldo />
           {store.can.edit && (
           <section className="card">

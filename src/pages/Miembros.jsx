@@ -1,19 +1,14 @@
-import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ROLES, useStore } from '../lib/store.jsx';
 import { UsersCard } from '../components/ChurchAdmin.jsx';
 import { Avatar } from '../components/Avatares.jsx';
 import Icon from '../components/Icon.jsx';
+import { CodigoAcceso } from '../components/Administracion.jsx';
 
 /** Nombre de la iglesia arriba y sus usuarios abajo. El administrador además cambia perfiles. */
 export default function Miembros() {
-  const { mode, church, people = [], me, can, getAccessCode } = useStore();
+  const { mode, church, people = [], me, can } = useStore();
   const desdeAjustes = useLocation().state?.from === 'ajustes';
-  // El código de acceso solo lo puede leer el Administrador (la ficha de la iglesia es privada).
-  const [codigo, setCodigo] = useState(null);
-  useEffect(() => {
-    if (can.users && getAccessCode) getAccessCode().then(setCodigo).catch(() => setCodigo(''));
-  }, [can.users, getAccessCode]);
   if (mode !== 'cloud') {
     return (
       <div className="page">
@@ -30,13 +25,8 @@ export default function Miembros() {
         : <Link to="/mi-iglesia" className="back">← Mi iglesia</Link>}
       <h1><Icon name="church" /> {church?.name}</h1>
       <p className="muted">{people.length} {people.length === 1 ? 'miembro' : 'miembros'}</p>
-      {can.users && (
-        <section className="card codigo-iglesia">
-          <span className="muted small">Código de acceso</span>
-          <strong className="codigo">{codigo === null ? '…' : codigo || 'Sin código'}</strong>
-          <Link to="/ajustes" className="small">{codigo ? 'Cambiar' : 'Crear uno'}</Link>
-        </section>
-      )}
+      {/* El código de acceso: solo el Administrador, y solo al entrar desde Ajustes. */}
+      {desdeAjustes && <CodigoAcceso />}
       {can.users ? (
         <UsersCard />
       ) : (
