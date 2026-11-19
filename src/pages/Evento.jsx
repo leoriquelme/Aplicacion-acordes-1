@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { MAX_FUTUROS, cabeOtroFuturo, esFuturo, sePuedeEditar } from '../lib/limitesEventos.js';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useStore } from '../lib/store.jsx';
 import { displayKey, normalize } from '../lib/chordpro.js';
@@ -26,6 +27,9 @@ export default function Evento() {
   const [editing, setEditing] = useState(false);
   const event = isNew ? draft : events.find((e) => e.id === id);
 
+  const editable = isNew || sePuedeEditar(event);
+  const lleno = isNew && !cabeOtroFuturo(events);
+
   if (isNew && !can.events) {
     return (
       <div className="page">
@@ -49,7 +53,16 @@ export default function Evento() {
   const when = `${formatLong(event.date)}${event.time ? ` · ${event.time}` : ''}`;
 
   // Vista de lectura (la de siempre durante el servicio). Quien puede editar ve el botón "Editar".
-  if (!can.events || (!isNew && !editing)) {
+  if (lleno) {
+    return (
+      <div className="page">
+        <p>Ya hay {MAX_FUTUROS} eventos próximos, que es el máximo. Cuando pase uno (o lo elimines) podrás crear otro.</p>
+        <Link to="/eventos">← Volver a eventos</Link>
+      </div>
+    );
+  }
+
+  if (!can.events || !editable || (!isNew && !editing)) {
     return (
       <div className="page">
         <Link to="/eventos" className="back">← Eventos</Link>
@@ -59,7 +72,7 @@ export default function Evento() {
             <p className="muted">{when}</p>
           </div>
           <div className="head-actions">
-            {can.events && <button className="btn" onClick={() => setEditing(true)}><Icon name="edit" /> Editar</button>}
+            {can.events && editable && <button className="btn" onClick={() => setEditing(true)}><Icon name="edit" /> Editar</button>}
             {hasSongs && <Link className="btn primary" to={`/presentar/evento/${event.id}`}><Icon name="play" /> Presentar</Link>}
           </div>
         </div>
@@ -97,7 +110,15 @@ export default function Evento() {
     );
   }
 
-  const update = (patch) => (isNew ? setDraft((d) => ({ ...d, ...patch })) : saveEvent({ ...event, ...patch }));
+  const update = (patch) => {
+    // Mover un evento pasado a una fecha próxima cuenta para el máximo de 10.
+    if (patch.date && !esFuturo(event) && esFuturo({ date: patch.date }) && !cabeOtroFuturo(events, event.id)) {
+      setError(`Ya hay ${MAX_FUTUROS} eventos próximos (el máximo).`);
+      return;
+    }
+    setError('');
+    return isNew ? setDraft((d) => ({ ...d, ...patch })) : saveEvent({ ...event, ...patch });
+  };
   const setItems = (items) => update({ items });
   const setItem = (i, patch) => setItems(event.items.map((x, k) => (k === i ? { ...x, ...patch } : x)));
 
@@ -159,6 +180,7 @@ export default function Evento() {
             <input type="time" value={event.time || ''} onChange={(e) => update({ time: e.target.value })} />
           </label>
         </div>
+        {!isNew && error && <p className="error">{error}</p>}
         <label>
           Notas
           <textarea rows={2} value={event.notes || ''} onChange={(e) => update({ notes: e.target.value })} placeholder="Ej. Cena del Señor, bautismo…" />

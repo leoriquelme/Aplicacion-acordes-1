@@ -57,6 +57,7 @@ export default function Cancion() {
   const saveMias = (list) => setMyNotes?.(song.id, list);
   const removeNote = (section, n) => (n.mine ? saveMias(alternarNota(misNotas, section, n.id)) : saveDirector(alternarNota(directorNotes, section, n.id)));
 
+  // Solo los próximos eventos (nunca los pasados).
   const upcoming = sortEvents(events.filter((e) => e.date >= todayISO()));
 
   const remove = () => {

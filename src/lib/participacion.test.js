@@ -71,3 +71,23 @@ describe('versículo del día', () => {
     for (let d = 0; d < 400; d++) expect(VERSICULOS).toContain(versiculoDelDia(new Date(2026, 0, 1 + d)));
   });
 });
+
+import { cabeOtroFuturo, pasadosVisibles, sePuedeEditar } from './limitesEventos.js';
+describe('límites de eventos', () => {
+  const ahora = new Date(2026, 10, 19, 12, 0);
+  it('máximo 10 próximos', () => {
+    const ev = Array.from({ length: 10 }, (_, i) => ({ id: `e${i}`, date: '2026-12-01' }));
+    expect(cabeOtroFuturo(ev, undefined, '2026-11-19')).toBe(false);
+    expect(cabeOtroFuturo(ev, 'e3', '2026-11-19')).toBe(true);
+    expect(cabeOtroFuturo([...ev.slice(1), { id: 'v', date: '2026-01-01' }], undefined, '2026-11-19')).toBe(true);
+  });
+  it('pasados: solo los últimos 3 meses', () => {
+    const v = pasadosVisibles([{ date: '2026-11-18' }, { date: '2026-08-20' }, { date: '2026-08-18' }, { date: '2026-11-19' }], ahora);
+    expect(v.map((e) => e.date)).toEqual(['2026-11-18', '2026-08-20']);
+  });
+  it('editar un pasado: hasta 72 horas después', () => {
+    expect(sePuedeEditar({ date: '2026-11-17', time: '11:00' }, ahora)).toBe(true);
+    expect(sePuedeEditar({ date: '2026-11-16', time: '11:00' }, ahora)).toBe(false);
+    expect(sePuedeEditar({ date: '2026-12-01' }, ahora)).toBe(true);
+  });
+});
