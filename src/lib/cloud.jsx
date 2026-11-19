@@ -123,19 +123,40 @@ async function entrarComoMiembro(churchId, { code = '', role = 'colaborador', na
   return { churchId, churchName: c.name };
 }
 
-const NO_UNE = 'No pudimos unirte. Revisa el nombre de la iglesia y el código de acceso (pídeselo al Administrador de tu iglesia).';
+/** Máximo de iglesias por persona (creadas + unidas). */
+export const MAX_IGLESIAS = 3;
+const LLENO = `Ya perteneces a ${MAX_IGLESIAS} iglesias, que es el máximo. Para unirte o crear otra, primero sal de una (en Ajustes, dentro de esa iglesia).`;
+const codeRef = (code) => doc(db, 'codes', code);
 
-/** Unirse con el nombre de la iglesia y su código de acceso. Siempre entra como Colaborador. */
-export async function unirseAIglesia({ church, code, name }) {
-  const churchId = keyOf(church);
-  if (!churchId) throw new Error('Escribe el nombre de la iglesia.');
-  if (!cleanCode(code)) throw new Error('Escribe el código de acceso.');
+/** Unirse solo con el código de acceso. Siempre entra como Colaborador. */
+export async function unirseAIglesia({ code, name, cuantas = 0 }) {
+  const clean = cleanCode(code);
+  if (clean.length < 4) throw new Error('Escribe el código de acceso (pídeselo al Administrador de tu iglesia).');
+  let churchId;
   try {
-    return await entrarComoMiembro(churchId, { code: cleanCode(code), name });
+    const snap = await getDoc(codeRef(clean));
+    churchId = snap.data()?.churchId;
   } catch (e) {
     if (e.code === 'unavailable') throw new Error('No hay conexión a internet.');
-    throw new Error(NO_UNE);
   }
+  if (!churchId) throw new Error('No encontramos una iglesia con ese código. Revísalo con el Administrador de tu iglesia.');
+  const ya = await getDoc(memberRef(churchId, auth.currentUser.uid)).catch(() => null);
+  if (!ya?.exists() && cuantas >= MAX_IGLESIAS) throw new Error(LLENO);
+  try {
+    return await entrarComoMiembro(churchId, { code: clean, name });
+  } catch {
+    throw new Error('Ese código ya no sirve o la iglesia está bloqueada. Pide el código nuevo al Administrador de tu iglesia.');
+  }
+}
+
+/** Un código al azar que ninguna otra iglesia esté usando. */
+async function codigoLibre() {
+  for (let i = 0; i < 5; i++) {
+    const c = randomCode();
+    const snap = await getDoc(codeRef(c)).catch(() => null);
+    if (!snap?.exists()) return c;
+  }
+  return randomCode(8);
 }
 
 /** Abrir una de mis iglesias. */
@@ -152,7 +173,8 @@ export async function abrirIglesia(churchId, name) {
  * No puede haber dos iglesias con el mismo nombre: el id es el nombre sin mayúsculas, tildes ni espacios
  * de más, y Firebase no deja crear un documento que ya existe (aunque dos lo intenten a la vez).
  */
-export async function crearIglesia({ church, city = '', name }) {
+export async function crearIglesia({ church, city = '', name, cuantas = 0 }) {
+  if (cuantas >= MAX_IGLESIAS) throw new Error(LLENO);
   const user = auth.currentUser;
   const churchId = keyOf(church);
   if (churchId.length < 3) throw new Error('El nombre de la iglesia debe tener al menos 3 letras.');
@@ -163,11 +185,13 @@ export async function crearIglesia({ church, city = '', name }) {
   if (mine.length >= 3) throw new Error('Con una cuenta se pueden crear hasta 3 iglesias.');
   const churchName = church.trim().replace(/\s+/g, ' ').toUpperCase();
   const now = Date.now();
+  const code = await codigoLibre();
   const b = writeBatch(db);
+  b.set(codeRef(code), { churchId });
   b.set(doc(db, 'churches', churchId), {
     name: churchName, ...(city.trim() ? { city: city.trim().slice(0, 60) } : {}),
     ownerName: name, ownerUid: user.uid, ownerEmail: user.email || '',
-    accessCode: randomCode(), status: 'activa', createdAt: serverTimestamp(),
+    accessCode: code, status: 'activa', createdAt: serverTimestamp(),
   });
   b.set(ownersRef, { churches: [...mine, churchId] });
   b.set(memberRef(churchId, user.uid), { key: user.uid, name, role: 'admin', joinedAt: now });
@@ -207,7 +231,7 @@ export async function todasLasIglesias() {
   const snap = await getDocs(collection(db, 'churches'));
   return snap.docs.map((d) => {
     const { adminPin, adminPassword, adminKey, accessCode, ...rest } = d.data(); // eslint-disable-line no-unused-vars
-    return { ...rest, id: d.id, createdAt: rest.createdAt?.toMillis?.() || null, conCodigo: Boolean(accessCode) };
+    return { ...rest, id: d.id, createdAt: rest.createdAt?.toMillis?.() || null, conCodigo: Boolean(accessCode), codigo: accessCode || '' };
   });
 }
 
@@ -244,6 +268,7 @@ export async function eliminarIglesia(iglesia) {
   const lib = await getDocs(query(collection(db, 'library'), where('churchId', '==', iglesia.id)));
   await commitAll(lib.docs.map((d) => (b) => b.delete(d.ref)));
   await deleteDoc(base);
+  if (iglesia.codigo) await deleteDoc(doc(db, 'codes', iglesia.codigo)).catch(() => {});
   if (iglesia.ownerUid) {
     await updateDoc(doc(db, 'owners', iglesia.ownerUid), { churches: arrayRemove(iglesia.id) }).catch(() => {});
   }
@@ -483,9 +508,34 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
 
   // ---------- Código de acceso (solo el administrador) ----------
   const getAccessCode = useCallback(async () => (await getDoc(doc(db, 'churches', churchId))).data()?.accessCode || '', [churchId]);
-  const setAccessCode = useCallback((code) => updateDoc(doc(db, 'churches', churchId), {
-    accessCode: code ? cleanCode(code) : deleteField(),
-  }), [churchId]);
+  /** Cambiar (o quitar) el código. El nuevo se anota en codes/ y el viejo se borra. */
+  const setAccessCode = useCallback(async (code) => {
+    const nuevo = code ? cleanCode(code) : '';
+    const viejo = (await getDoc(doc(db, 'churches', churchId))).data()?.accessCode || '';
+    if (nuevo && nuevo !== viejo) {
+      const usado = await getDoc(codeRef(nuevo)).catch(() => null);
+      if (usado?.exists() && usado.data().churchId !== churchId) throw new Error('Ese código ya lo usa otra iglesia. Elige otro o toca "Generar al azar".');
+    }
+    const b = writeBatch(db);
+    b.update(doc(db, 'churches', churchId), { accessCode: nuevo || deleteField() });
+    if (nuevo) b.set(codeRef(nuevo), { churchId });
+    if (viejo && viejo !== nuevo) b.delete(codeRef(viejo));
+    await b.commit();
+  }, [churchId]);
+
+  // Iglesias creadas antes de que existieran los códigos únicos: anotar su código (solo el Administrador).
+  useEffect(() => {
+    if (mySession?.role !== 'admin' || !churchDoc?.accessCode) return;
+    const code = churchDoc.accessCode;
+    getDoc(codeRef(code)).then(async (snap) => {
+      if (snap.exists() && snap.data().churchId === churchId) return;
+      if (snap.exists()) { // otra iglesia ya lo usa: darle uno nuevo
+        await setAccessCode(randomCode());
+        return;
+      }
+      await setDoc(codeRef(code), { churchId });
+    }).catch(() => {});
+  }, [mySession?.role, churchDoc?.accessCode, churchId, setAccessCode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Restaurar un respaldo: vuelve a guardar canciones y eventos con su mismo id. */
   const restoreBackup = useCallback(async (data) => {

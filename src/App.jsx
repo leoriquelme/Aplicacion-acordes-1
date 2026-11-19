@@ -31,8 +31,8 @@ export default function App() {
   const presenting = pathname.startsWith('/presentar');
   const { mode, church, me } = useStore();
   const personal = mode === 'personal';
-  // Sin iglesia: solo Inicio, Canciones y Ajustes.
-  const tabs = personal ? TABS.filter((t) => ['/', '/canciones', '/ajustes'].includes(t.to)) : TABS;
+  // Sin iglesia: Inicio, Canciones, Mi iglesia (para unirse o crear) y Ajustes.
+  const tabs = personal ? TABS.filter((t) => ['/', '/canciones', '/mi-iglesia', '/ajustes'].includes(t.to)) : TABS;
 
   return (
     <div className="app">

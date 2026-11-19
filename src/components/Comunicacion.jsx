@@ -121,7 +121,7 @@ export function AjustesFinal() {
         {can.users && suggestions.length > 0 && <span className="badge">{suggestions.length}</span>}
       </Link>
       <Link className="btn big-inline" to="/apoyo"><Icon name="heart" /> Apoyo: orar y donar</Link>
-      {mode === 'cloud' && <button className="btn" onClick={() => setSession?.(null)}><Icon name="home" /> Mis iglesias y mis canciones</button>}
+      {mode === 'cloud' && <button className="btn" onClick={() => setSession?.(null)}><Icon name="home" /> Cerrar esta iglesia (ver solo mis canciones)</button>}
       {mode === 'cloud' && !soyDueno && (
         <ConfirmX label={`Salir de ${church?.name}`} className="btn ghost" text={`Salir de ${church?.name}`} armedText="¿Seguro? Para volver necesitarás el código"
           onConfirm={async () => {

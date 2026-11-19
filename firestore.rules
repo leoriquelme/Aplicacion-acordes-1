@@ -50,7 +50,11 @@ service cloud.firestore {
     function canEdit(c) { return isMember(c) && me(c).role in ['admin', 'director']; }
     function validName(n) { return n is string && n.size() > 0 && n.size() <= 60; }
     function shortText(t, max) { return t is string && t.size() <= max; }
-    function validCode(x) { return x is string && x.size() >= 4 && x.size() <= 12; }
+    function validCode(x) { return x is string && x.matches('^[A-Z0-9]{4,12}$'); }
+    function codePath(x) { return /databases/$(database)/documents/codes/$(x); }
+    // El código queda anotado en codes/{código} → { churchId }: así no hay dos iglesias con el mismo código
+    // (Firebase no deja crear un documento que ya existe) y para unirse basta con escribir el código.
+    function codeFor(c, x) { return validCode(x) && existsAfter(codePath(x)) && getAfter(codePath(x)).data.churchId == c; }
 
     // ---------- Cuenta personal ----------
     match /users/{uid} {
@@ -101,7 +105,7 @@ service cloud.firestore {
       allow list, write: if false;
     }
 
-    // Cuántas iglesias creó cada cuenta (máximo 3, para que no se llene de iglesias vacías).
+    // Iglesias creadas por cada cuenta (máximo 3; la app además limita a 3 iglesias en total, creadas + unidas).
     match /owners/{uid} {
       allow get: if (signedIn() && request.auth.uid == uid) || isSuper();
       allow create: if account() && request.auth.uid == uid
@@ -131,10 +135,24 @@ service cloud.firestore {
         && d.ownerUid == request.auth.uid && d.ownerEmail == request.auth.token.get('email', '')
         && validName(d.ownerName)
         && d.status == 'activa' && d.createdAt == request.time
-        && validCode(d.accessCode)
+        && codeFor(c, d.accessCode)
         && shortText(d.get('city', ''), 60)
         && existsAfter(owners) && c in getAfter(owners).data.churches
         && !(exists(owners) && c in get(owners).data.churches);
+    }
+
+    // Códigos de acceso: cualquiera con cuenta busca un código (uno por uno, no se pueden listar).
+    // Solo quien creó la iglesia anota o borra sus códigos.
+    match /codes/{x} {
+      allow get: if account();
+      allow list, update: if false;
+      allow create: if account() && validCode(x)
+        && request.resource.data.keys().hasOnly(['churchId'])
+        && getAfter(churchPath(request.resource.data.churchId)).data.ownerUid == request.auth.uid
+        && getAfter(churchPath(request.resource.data.churchId)).data.accessCode == x;
+      allow delete: if isSuper()
+        || (account() && get(churchPath(resource.data.churchId)).data.ownerUid == request.auth.uid
+            && getAfter(churchPath(resource.data.churchId)).data.get('accessCode', '') != x);
     }
 
     // Super Admin: ve y borra todo lo de cualquier iglesia (para limpiar iglesias de prueba o vacías).
@@ -152,7 +170,7 @@ service cloud.firestore {
       // El Super Admin bloquea o desbloquea, y puede asignar el dueño de una iglesia antigua.
       allow update: if (isAdmin(c)
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['accessCode'])
-          && (!('accessCode' in request.resource.data) || validCode(request.resource.data.accessCode)))
+          && (!('accessCode' in request.resource.data) || codeFor(c, request.resource.data.accessCode)))
         || (isSuper()
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
           && request.resource.data.get('status', 'activa') in ['activa', 'bloqueada']);

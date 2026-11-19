@@ -31,6 +31,7 @@ function crear(db, uid, nombre, { id = keyOf(nombre), antes = [], code = 'ABCDEF
     accessCode: code, status: 'activa', createdAt: serverTimestamp(),
   });
   b.set(doc(db, 'owners', uid), { churches: [...antes, id] });
+  if (code) b.set(doc(db, 'codes', code), { churchId: id });
   b.set(doc(db, 'churches', id, 'members', uid), { key: uid, name: 'Ana', role: 'admin', joinedAt: 1 });
   b.set(doc(db, 'churches', id, 'people', uid), { name: 'Ana', uid, role: 'admin', firstSeen: 1, lastSeen: 1 });
   return b.commit();
@@ -54,29 +55,55 @@ describe('crear iglesias con nombre único', () => {
     if (keyOf('  Iglesia   Bautista  ÑUÑOA ') !== 'iglesia bautista nunoa') throw new Error('keyOf');
   });
   it('con cuenta de Google o de correo se crea', async () => {
-    await assertSucceeds(crear(cuenta('bea'), 'bea', 'Iglesia Bautista Ñuñoa'));
-    await assertSucceeds(crear(cuenta('cris', 'password'), 'cris', 'Otra Iglesia'));
+    await assertSucceeds(crear(cuenta('bea'), 'bea', 'Iglesia Bautista Ñuñoa', { code: 'BEA123' }));
+    await assertSucceeds(crear(cuenta('cris', 'password'), 'cris', 'Otra Iglesia', { code: 'CRIS12' }));
   });
   it('no se puede repetir el nombre aunque cambien tildes, mayúsculas o espacios', async () => {
-    await assertFails(crear(cuenta('bea'), 'bea', 'IGLESIA   gracia'));
-    await crear(cuenta('bea'), 'bea', 'Iglesia Bautista Ñuñoa');
-    await assertFails(crear(cuenta('cris'), 'cris', 'iglesia bautista nunoa'));
+    await assertFails(crear(cuenta('bea'), 'bea', 'IGLESIA   gracia', { code: 'BEA999' }));
+    await crear(cuenta('bea'), 'bea', 'Iglesia Bautista Ñuñoa', { code: 'BEA123' });
+    await assertFails(crear(cuenta('cris'), 'cris', 'iglesia bautista nunoa', { code: 'CRIS12' }));
   });
   it('el id tiene que ser el nombre normalizado', async () => {
-    await assertFails(crear(cuenta('bea'), 'bea', 'Gracia', { id: 'gracia 2' }));
+    await assertFails(crear(cuenta('bea'), 'bea', 'Gracia', { id: 'gracia 2', code: 'BEA777' }));
   });
   it('sin cuenta (anónimo) no se crea', async () => {
-    await assertFails(crear(anonimo('x'), 'x', 'Iglesia Anonima'));
+    await assertFails(crear(anonimo('x'), 'x', 'Iglesia Anonima', { code: 'ANON12' }));
   });
-  it('máximo 3 por cuenta', async () => {
+  it('máximo 3 iglesias creadas por cuenta', async () => {
     const db = cuenta('bea');
-    await assertSucceeds(crear(db, 'bea', 'Uno Iglesia'));
-    await assertSucceeds(crear(db, 'bea', 'Dos Iglesia', { antes: ['uno iglesia'] }));
-    await assertSucceeds(crear(db, 'bea', 'Tres Iglesia', { antes: ['uno iglesia', 'dos iglesia'] }));
-    await assertFails(crear(db, 'bea', 'Cuatro Iglesia', { antes: ['uno iglesia', 'dos iglesia', 'tres iglesia'] }));
+    await assertSucceeds(crear(db, 'bea', 'Uno Iglesia', { code: 'UNO111' }));
+    await assertSucceeds(crear(db, 'bea', 'Dos Iglesia', { antes: ['uno iglesia'], code: 'DOS222' }));
+    await assertSucceeds(crear(db, 'bea', 'Tres Iglesia', { antes: ['uno iglesia', 'dos iglesia'], code: 'TRES33' }));
+    await assertFails(crear(db, 'bea', 'Cuatro Iglesia', { antes: ['uno iglesia', 'dos iglesia', 'tres iglesia'], code: 'CUAT44' }));
   });
   it('necesita un código de acceso', async () => {
     await assertFails(crear(cuenta('bea'), 'bea', 'Sin Codigo', { code: '' }));
+  });
+  it('no puede haber dos iglesias con el mismo código', async () => {
+    await assertFails(crear(cuenta('bea'), 'bea', 'Otra Iglesia', { code: 'ABCDEF' }));
+    await assertSucceeds(crear(cuenta('bea'), 'bea', 'Otra Iglesia', { code: 'ZZZZZZ' }));
+  });
+  it('el código no se puede anotar para la iglesia de otro', async () => {
+    await assertFails(setDoc(doc(cuenta('bea'), 'codes', 'ROBADO'), { churchId: C }));
+  });
+  it('con cuenta se busca un código (pero no se listan)', async () => {
+    const r = await assertSucceeds(getDoc(doc(cuenta('juan'), 'codes', 'ABCDEF')));
+    if (r.data().churchId !== C) throw new Error('churchId');
+    await assertFails(getDocs(collection(cuenta('juan'), 'codes')));
+    await assertFails(getDoc(doc(anonimo('x'), 'codes', 'ABCDEF')));
+  });
+  it('el Administrador cambia el código: el nuevo se anota y el viejo se borra', async () => {
+    const db = cuenta('ana');
+    const b = writeBatch(db);
+    b.update(doc(db, 'churches', C), { accessCode: 'NUEVO1' });
+    b.set(doc(db, 'codes', 'NUEVO1'), { churchId: C });
+    b.delete(doc(db, 'codes', 'ABCDEF'));
+    await assertSucceeds(b.commit());
+    // un código que ya usa otra iglesia, no
+    await crear(cuenta('bea'), 'bea', 'Otra Iglesia', { code: 'OTRA12' });
+    const b2 = writeBatch(db);
+    b2.update(doc(db, 'churches', C), { accessCode: 'OTRA12' });
+    await assertFails(b2.commit());
   });
 });
 
@@ -140,7 +167,11 @@ describe('perfiles', () => {
     await assertFails(updateDoc(doc(cuenta('juan'), 'churches', C, 'people', 'ana'), { name: 'X' }));
   });
   it('el Administrador cambia el código y saca a alguien', async () => {
-    await assertSucceeds(updateDoc(doc(cuenta('ana'), 'churches', C), { accessCode: 'NUEVO1' }));
+    const ana = cuenta('ana');
+    const b = writeBatch(ana);
+    b.update(doc(ana, 'churches', C), { accessCode: 'NUEVO1' });
+    b.set(doc(ana, 'codes', 'NUEVO1'), { churchId: C });
+    await assertSucceeds(b.commit());
     await assertFails(updateDoc(doc(cuenta('juan'), 'churches', C), { accessCode: 'MIO123' }));
     await assertSucceeds(deleteDoc(doc(cuenta('ana'), 'churches', C, 'members', 'juan')));
     await assertFails(getDocs(collection(cuenta('juan'), 'churches', C, 'songs')));
