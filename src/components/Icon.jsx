@@ -25,6 +25,17 @@ const P = {
   chevronLeft: 'M15 5l-7 7 7 7',
   chevronRight: 'M9 5l7 7-7 7',
   expand: 'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5',
+  volumeLow: 'M4 9v6h4l5 4V5L8 9H4Zm12 .5a3.5 3.5 0 0 1 0 5',
+  volumeHigh: 'M4 9v6h4l5 4V5L8 9H4Zm12 .5a3.5 3.5 0 0 1 0 5M18.5 6.5a7.5 7.5 0 0 1 0 11',
+  slow: 'M12 21a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm0-12v4l2.5 2.5M10 2h4',
+  fast: 'M13 3 5 14h6l-1 7 8-11h-6l1-7Z',
+  pause: 'M8 5v14M16 5v14',
+  repeat: 'M17 2l3 3-3 3M4 11V9a4 4 0 0 1 4-4h12M7 22l-3-3 3-3M20 13v2a4 4 0 0 1-4 4H4',
+  arrowUp: 'M12 19V5m0 0-6 6m6-6 6 6',
+  mic: 'M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Zm-6-4a6 6 0 0 0 12 0M12 17v4M8 21h8',
+  users: 'M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm-6 9a6 6 0 0 1 12 0M16 4.5a3.5 3.5 0 0 1 0 6.5M18 14.5a6 6 0 0 1 3 5.5',
+  flag: 'M5 21V4m0 0h11l-2 4 2 4H5',
+  note: 'M5 4h10l4 4v12H5zM15 4v4h4M8 12h8M8 16h5',
   sparkle: 'M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z',
 };
 

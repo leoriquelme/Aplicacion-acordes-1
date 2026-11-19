@@ -5,6 +5,7 @@ import { cancionesEjemplo, eventosEjemplo } from '../data/ejemplos.js';
 export const STORAGE_KEY = 'cancionero-v1';
 const SETTINGS_KEY = 'cancionero-ajustes';
 const FAV_KEY = 'cancionero-favoritas';
+const NOTES_KEY = 'cancionero-notas';
 
 export const DEFAULT_SETTINGS = {
   fontSize: 22,
@@ -133,6 +134,10 @@ export function LocalStoreProvider({ children }) {
 
   // Favoritas en este equipo.
   const [favorites, setFavorites] = useState(() => readJSON(FAV_KEY) || []);
+  const [myNotes, setMyNotesState] = useState(() => readJSON(NOTES_KEY) || {});
+  const setMyNotes = useCallback((songId, list) => {
+    setMyNotesState((n) => { const next = { ...n, [songId]: list }; writeJSON(NOTES_KEY, next); return next; });
+  }, []);
   const toggleFavorite = useCallback((songId) => {
     setFavorites((f) => {
       const next = f.includes(songId) ? f.filter((x) => x !== songId) : [...f, songId];
@@ -142,8 +147,8 @@ export function LocalStoreProvider({ children }) {
   }, []);
 
   const value = useMemo(
-    () => ({ ...data, participations: [], suggestions: [], favorites, toggleFavorite, mode: 'local', can: LOCAL_CAN, saveSong, deleteSong, saveEvent, deleteEvent, importData, restoreExamples, deleteAll }),
-    [data, favorites, toggleFavorite, saveSong, deleteSong, saveEvent, deleteEvent, importData, restoreExamples, deleteAll]
+    () => ({ ...data, participations: [], suggestions: [], favorites, toggleFavorite, myNotes, setMyNotes, mode: 'local', can: LOCAL_CAN, saveSong, deleteSong, saveEvent, deleteEvent, importData, restoreExamples, deleteAll }),
+    [data, favorites, toggleFavorite, myNotes, setMyNotes, saveSong, deleteSong, saveEvent, deleteEvent, importData, restoreExamples, deleteAll]
   );
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }

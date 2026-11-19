@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { enterChurch, useAuth } from '../lib/cloud.jsx';
+import { cleanCode, enterChurch, useAuth } from '../lib/cloud.jsx';
 import { ROLES } from '../lib/store.jsx';
 import Icon from '../components/Icon.jsx';
 
@@ -20,6 +20,7 @@ export default function Bienvenida({ notice }) {
   const [church, setChurch] = useState(last.church || '');
   const [name, setName] = useState(last.name || '');
   const [pin, setPin] = useState('');
+  const [code, setCode] = useState(last.code || '');
   const [needsPin, setNeedsPin] = useState(null); // { role, result }
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -29,8 +30,8 @@ export default function Bienvenida({ notice }) {
     setBusy(true);
     setError('');
     try {
-      const r = await enterChurch({ church, name, pin });
-      localStorage.setItem(LAST, JSON.stringify({ church: church.trim(), name: name.trim() }));
+      const r = await enterChurch({ church, name, pin, code });
+      localStorage.setItem(LAST, JSON.stringify({ church: church.trim(), name: name.trim(), code: cleanCode(code) }));
       if (r.needsPin && !pin) {
         setNeedsPin({ role: r.needsPin, result: r });
       } else {
@@ -62,6 +63,19 @@ export default function Bienvenida({ notice }) {
             placeholder="Ej. Leonardo Riquelme"
             autoFocus={Boolean(church)}
             autoComplete="name"
+          />
+        </label>
+
+        <label>
+          Código de acceso <span className="muted small">(pídeselo al administrador de tu iglesia)</span>
+          <input
+            value={code}
+            onChange={(e) => setCode(cleanCode(e.target.value))}
+            placeholder="Ej. KXMPRT"
+            autoCapitalize="characters"
+            autoComplete="off"
+            spellCheck={false}
+            className="code-input"
           />
         </label>
 

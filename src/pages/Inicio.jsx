@@ -3,6 +3,7 @@ import { useStore } from '../lib/store.jsx';
 import { formatLong, relativeDay, sortEvents, todayISO } from '../lib/dates.js';
 import Avatares from '../components/Avatares.jsx';
 import Icon from '../components/Icon.jsx';
+import { versiculoDelDia } from '../data/versiculos.js';
 
 const MAX_EVENTOS = 4;
 
@@ -10,6 +11,7 @@ export default function Inicio() {
   const { events, songs, mode, church, people = [], participations = [], can } = useStore();
   const today = todayISO();
   const upcoming = sortEvents(events.filter((e) => e.date >= today)).slice(0, MAX_EVENTOS);
+  const verso = versiculoDelDia();
 
   return (
     <div className="page inicio">
@@ -24,6 +26,13 @@ export default function Inicio() {
               : `${songs.length} canciones en este equipo`}
           </p>
         </div>
+      </section>
+
+      {/* Versículo del día (Reina-Valera 1909, sin internet) */}
+      <section className="card versiculo">
+        <p className="muted small">Versículo del día</p>
+        <blockquote>{verso.texto}</blockquote>
+        <cite>{verso.cita}</cite> <span className="muted small">· RV 1909</span>
       </section>
 
       {/* Bloque 2: próximos eventos */}

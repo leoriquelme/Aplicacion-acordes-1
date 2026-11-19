@@ -4,13 +4,14 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { getCapo, setCapo as saveCapo, useStore } from '../lib/store.jsx';
 import { displayKey } from '../lib/chordpro.js';
 import SongView from '../components/SongView.jsx';
+import { notasPorSeccion } from '../lib/notas.js';
 import Icon from '../components/Icon.jsx';
 
 export default function Presentacion() {
   const { tipo, id } = useParams();
   const [params] = useSearchParams();
   const navigate = useNavigate();
-  const { songs, events, settings } = useStore();
+  const { songs, events, settings, myNotes = {} } = useStore();
   const rootRef = useRef(null);
 
   // Arma la lista de canciones a presentar: un evento completo o una sola canción.
@@ -158,6 +159,7 @@ export default function Presentacion() {
         order={current.order}
         settings={{ ...settings, showChords }}
         fontSize={size}
+        notes={notasPorSeccion(current.song.notes, myNotes[current.song.id])}
         className="present-song"
       />
 

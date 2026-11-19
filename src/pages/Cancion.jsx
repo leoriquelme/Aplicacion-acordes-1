@@ -10,12 +10,14 @@ import CompartirCancion from '../components/CompartirCancion.jsx';
 import ArrangementEditor from '../components/ArrangementEditor.jsx';
 import DiagramasGuitarra from '../components/DiagramasGuitarra.jsx';
 import Icon from '../components/Icon.jsx';
+import { ElegirNota } from '../components/NotasCancion.jsx';
+import { alternarNota, notasPorSeccion } from '../lib/notas.js';
 
 export default function Cancion() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const { songs, events, settings, deleteSong, saveEvent, saveSong, can, favorites = [], toggleFavorite } = useStore();
+  const { songs, events, settings, deleteSong, saveEvent, saveSong, can, favorites = [], toggleFavorite, myNotes = {}, setMyNotes } = useStore();
   // Si se abrió desde un evento, el tono lo fijó quien armó el culto.
   const fromEvent = params.get('ev') ? events.find((e) => e.id === params.get('ev')) : null;
   // Tono personal: cada músico guarda su propio tono en su equipo.
@@ -35,6 +37,8 @@ export default function Cancion() {
   };
   const [added, setAdded] = useState('');
   const [editOrder, setEditOrder] = useState(false);
+  const [editNotes, setEditNotes] = useState(false);
+  const [noteFor, setNoteFor] = useState(null);
   const song = songs.find((s) => s.id === id);
 
   if (!song) {
@@ -45,6 +49,12 @@ export default function Cancion() {
       </div>
     );
   }
+
+  const directorNotes = song.notes || [];
+  const misNotas = myNotes[song.id] || [];
+  const saveDirector = (list) => saveSong({ ...song, notes: list });
+  const saveMias = (list) => setMyNotes?.(song.id, list);
+  const removeNote = (section, n) => (n.mine ? saveMias(alternarNota(misNotas, section, n.id)) : saveDirector(alternarNota(directorNotes, section, n.id)));
 
   const upcoming = sortEvents(events.filter((e) => e.date >= todayISO()));
 
@@ -122,6 +132,11 @@ export default function Cancion() {
             ))}
           </select>
         )}
+        {setMyNotes && (
+          <button className={`btn small ${editNotes ? 'primary' : ''}`} onClick={() => setEditNotes(!editNotes)} aria-pressed={editNotes}>
+            {editNotes ? '✓ Listo' : <><Icon name="note" /> Notas</>}
+          </button>
+        )}
         {added && <span className="ok">✓ {added}</span>}
       </div>
 
@@ -132,7 +147,24 @@ export default function Cancion() {
             steps={steps - capo}
             opts={chordOptions(songKey(song) || guessKey(song.content), steps - capo, settings.notation)}
           />
-          <SongView content={song.content} songKey={songKey(song)} steps={steps - capo} order={fromEvent?.items.find((i) => i.songId === song.id && i.order?.length)?.order || song.order} settings={settings} />
+          {editNotes && <p className="muted small notas-ayuda">Toca “+ Nota” en una parte de la canción. Las notas <span className="nota-chip director">del director</span> las ven todos; las <span className="nota-chip mia">tuyas</span> solo tú.</p>}
+          <SongView content={song.content} songKey={songKey(song)} steps={steps - capo} order={fromEvent?.items.find((i) => i.songId === song.id && i.order?.length)?.order || song.order} settings={settings}
+            notes={notasPorSeccion(directorNotes, misNotas)}
+            onAddNote={editNotes ? setNoteFor : undefined}
+            onRemoveNote={editNotes ? removeNote : undefined}
+            canEditDirector={can.edit}
+          />
+          {noteFor && (
+            <ElegirNota
+              section={noteFor}
+              canDirector={can.edit}
+              director={directorNotes}
+              mias={misNotas}
+              onDirector={saveDirector}
+              onMia={saveMias}
+              onClose={() => setNoteFor(null)}
+            />
+          )}
         </div>
         <aside className="order-panel">
           <div className="row between">

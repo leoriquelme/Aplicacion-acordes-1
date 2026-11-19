@@ -53,17 +53,29 @@ export function useAuth() {
 const sessionRef = (churchId, uid) => doc(db, 'churches', churchId, 'sessions', uid);
 const personRef = (churchId, key) => doc(db, 'churches', churchId, 'people', key);
 
+/** Código de acceso: solo letras y números, en mayúsculas. */
+export const cleanCode = (c = '') => String(c).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12);
+/** Código al azar de 6 letras (sin I, O ni L para no confundirlas con números). */
+export function randomCode(n = 6) {
+  const abc = 'ABCDEFGHJKMNPQRSTUVWXYZ';
+  const arr = new Uint32Array(n);
+  crypto.getRandomValues(arr);
+  return [...arr].map((x) => abc[x % abc.length]).join('');
+}
+const NO_ENTRA = (church) => `No pudimos entrar a "${church.trim()}". Revisa el nombre de la iglesia y, si tiene, el código de acceso.`;
+
 /**
  * Entrar a una iglesia. Con PIN intenta Administrador y luego Director.
  * Devuelve { churchId, churchName, needsPin } (needsPin = perfil que pide PIN).
  */
-export async function enterChurch({ church, name, pin }) {
+export async function enterChurch({ church, name, pin, code = '' }) {
   const churchId = keyOf(church);
   const key = keyOf(name);
   if (!churchId) throw new Error('Escribe el nombre de la iglesia.');
   if (!key) throw new Error('Escribe tu nombre.');
   const user = auth.currentUser || (await signInAnonymously(auth)).user;
   const base = { key, name: name.trim(), churchName: church.trim().toUpperCase() };
+  const codigo = cleanCode(code);
   const now = Date.now();
 
   if (pin) {
@@ -87,18 +99,18 @@ export async function enterChurch({ church, name, pin }) {
     }
     // ¿La iglesia existe? Si se puede entrar como colaborador, el problema es el PIN.
     try {
-      await setDoc(sessionRef(churchId, user.uid), { ...base, role: 'colaborador' });
+      await setDoc(sessionRef(churchId, user.uid), { ...base, role: 'colaborador', code: codigo });
     } catch {
-      throw new Error(`No encontramos la iglesia "${church.trim()}". Revisa cómo está escrita.`);
+      throw new Error(NO_ENTRA(church));
     }
     await deleteDoc(sessionRef(churchId, user.uid)).catch(() => {});
     throw new Error('El PIN no es correcto para ese nombre.');
   }
 
   try {
-    await setDoc(sessionRef(churchId, user.uid), { ...base, role: 'colaborador' });
+    await setDoc(sessionRef(churchId, user.uid), { ...base, role: 'colaborador', code: codigo });
   } catch {
-    throw new Error(`No encontramos la iglesia "${church.trim()}". Revisa cómo está escrita.`);
+    throw new Error(NO_ENTRA(church));
   }
   const person = await getDoc(personRef(churchId, key));
   if (!person.exists()) {
@@ -135,6 +147,7 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
   const [participations, setParticipations] = useState([]);
   const [myShares, setMyShares] = useState([]);
   const [favorites, setFavorites] = useState([]);
+  const [myNotes, setMyNotesState] = useState({});
   const [suggestions, setSuggestions] = useState([]);
   const [error, setError] = useState('');
 
@@ -169,7 +182,7 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
   const myKey = mySession?.key;
   useEffect(() => {
     if (!myKey) return undefined;
-    return onSnapshot(doc(db, 'churches', churchId, 'favorites', myKey), (s) => setFavorites(s.data()?.songs || []), () => setFavorites([]));
+    return onSnapshot(doc(db, 'churches', churchId, 'favorites', myKey), (s) => { setFavorites(s.data()?.songs || []); setMyNotesState(s.data()?.notes || {}); }, () => setFavorites([]));
   }, [churchId, myKey]);
 
   // Sugerencias de mejoras: solo el Administrador las lee.
@@ -246,8 +259,15 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
     if (!myKey) return;
     const next = favorites.includes(songId) ? favorites.filter((x) => x !== songId) : [...favorites, songId];
     setFavorites(next);
-    setDoc(doc(col('favorites'), myKey), { songs: next.slice(-500) }).catch(report);
+    setDoc(doc(col('favorites'), myKey), { songs: next.slice(-500) }, { merge: true }).catch(report);
   }, [myKey, favorites, col, report]);
+
+  /** Mis notas de una canción (solo yo las veo). */
+  const setMyNotes = useCallback((songId, list) => {
+    if (!myKey) return;
+    setMyNotesState((n) => ({ ...n, [songId]: list }));
+    setDoc(doc(col('favorites'), myKey), { notes: { [songId]: list.slice(0, 40) } }, { merge: true }).catch(report);
+  }, [myKey, col, report]);
 
   /** Sugerir una corrección o comentario. Devuelve una promesa. */
   const sendSuggestion = useCallback(({ text, songId = '', songTitle = '' }) => addDoc(col('suggestions'), {
@@ -325,6 +345,27 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
     return added;
   }, [songs, col]);
 
+  // ---------- Código de acceso (solo el administrador) ----------
+  const getAccessCode = useCallback(async () => (await getDoc(doc(db, 'churches', churchId))).data()?.accessCode || '', [churchId]);
+  const setAccessCode = useCallback((code) => updateDoc(doc(db, 'churches', churchId), {
+    accessCode: code ? cleanCode(code) : deleteField(),
+  }), [churchId]);
+
+  /** Restaurar un respaldo: vuelve a guardar canciones y eventos con su mismo id. */
+  const restoreBackup = useCallback(async (data) => {
+    if (!data || !Array.isArray(data.songs)) throw new Error('El archivo no es un respaldo del Cancionero.');
+    const ops = [
+      ...data.songs.filter((s) => s.id && s.title).map((s) => (b) => b.set(doc(col('songs'), s.id), { ...sinId(s), updatedAt: Date.now() })),
+      ...(Array.isArray(data.events) ? data.events : []).filter((e) => e.id && e.name).map((e) => (b) => b.set(doc(col('events'), e.id), sinId(e))),
+    ];
+    for (let i = 0; i < ops.length; i += 400) {
+      const b = writeBatch(db);
+      ops.slice(i, i + 400).forEach((op) => op(b));
+      await b.commit();
+    }
+    return { songs: data.songs.length, events: (data.events || []).length };
+  }, [col]);
+
   // ---------- Iglesia de prueba: llenar con datos inventados y reiniciar ----------
   const isTest = churchId === PRUEBA_ID;
   const commitAll = async (ops) => {
@@ -367,8 +408,8 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
   const value = useMemo(() => ({
     mode: 'cloud', churchId, church, me, role, pendingRole, can, people, songs, events, participations, error,
     clearError: () => setError(''), saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples, myShares, shareSong, unshareSong, loadLibrary,
-    favorites, toggleFavorite, suggestions, sendSuggestion, resolveSuggestion, prayers, pray, updateMyName, setMyTeams, isTest, fillTestData, resetTestChurch,
-  }), [churchId, church.name, me?.name, me?.key, role, pendingRole, can, people, songs, events, participations, error, saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples, myShares, shareSong, unshareSong, loadLibrary, favorites, toggleFavorite, suggestions, sendSuggestion, resolveSuggestion, prayers, pray, updateMyName, setMyTeams, person?.teams?.join('|'), isTest, fillTestData, resetTestChurch]); // eslint-disable-line react-hooks/exhaustive-deps
+    favorites, toggleFavorite, suggestions, sendSuggestion, resolveSuggestion, prayers, pray, updateMyName, setMyTeams, isTest, fillTestData, resetTestChurch, getAccessCode, setAccessCode, restoreBackup, myNotes, setMyNotes,
+  }), [churchId, church.name, me?.name, me?.key, role, pendingRole, can, people, songs, events, participations, error, saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples, myShares, shareSong, unshareSong, loadLibrary, favorites, toggleFavorite, suggestions, sendSuggestion, resolveSuggestion, prayers, pray, updateMyName, setMyTeams, person?.teams?.join('|'), isTest, fillTestData, resetTestChurch, getAccessCode, setAccessCode, restoreBackup, myNotes, setMyNotes]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }

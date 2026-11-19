@@ -3,12 +3,12 @@ rules_version = '2';
 // Se entra con Iglesia + Nombre. Perfiles: admin (Administrador), director (Director musical),
 // colaborador (Colaborador). Administrador y Director necesitan PIN.
 //
-// churches/{iglesia}               { name, adminKey, adminPin }  ← lo crea el administrador a mano
+// churches/{iglesia}               { name, adminKey, adminPin, accessCode? }  ← lo crea el administrador a mano
 // churches/{iglesia}/people/{nombre} { name, role, firstSeen, lastSeen }  ← quienes han entrado
 // churches/{iglesia}/private/pins  { pins: { nombre: "1234" } }  ← PIN de directores (nadie lo lee)
 // churches/{iglesia}/sessions/{uid} { key, name, role, pin }  ← cada equipo que entró
 // churches/{iglesia}/participations/{evento__persona} { eventId, personKey, name, role, group, date }
-// churches/{iglesia}/favorites/{persona} { songs: [ids] }  ← solo la propia persona
+// churches/{iglesia}/favorites/{persona} { songs: [ids], notes: { cancion: [notas] } }  ← solo la propia persona
 // churches/{iglesia}/suggestions/{id} { text, songId, songTitle, personKey, name, at }  ← solo el admin lee
 // stats/oracion { count }  ← contador de oraciones por el proyecto
 service cloud.firestore {
@@ -38,7 +38,9 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == uid && exists(churchPath(c))
         && d.key is string && validName(d.key) && validName(d.name)
         && (
-          d.role == 'colaborador'
+          // Colaborador: si la iglesia tiene código de acceso, debe escribirlo bien.
+          (d.role == 'colaborador'
+            && (!('accessCode' in get(churchPath(c)).data) || d.code == get(churchPath(c)).data.accessCode))
           || (d.role == 'admin' && d.key == get(churchPath(c)).data.adminKey && d.pin == get(churchPath(c)).data.adminPin)
           || (d.role == 'director' && get(personPath(c, d.key)).data.role == 'director'
               && d.pin == get(pinsPath(c)).data.pins[d.key])
@@ -71,7 +73,12 @@ service cloud.firestore {
 
     match /churches/{c} {
       allow get: if isAdmin(c);
-      allow list, write: if false;
+      allow list, create, delete: if false;
+      // El administrador solo puede cambiar (o quitar) el código de acceso.
+      allow update: if isAdmin(c)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['accessCode'])
+        && (!('accessCode' in request.resource.data)
+            || (request.resource.data.accessCode is string && request.resource.data.accessCode.size() >= 4 && request.resource.data.accessCode.size() <= 12));
 
       match /sessions/{uid} {
         allow create, update: if validSession(c, uid);
@@ -127,8 +134,9 @@ service cloud.firestore {
       match /favorites/{key} {
         allow read, delete: if isMember(c) && key == sess(c).key;
         allow create, update: if isMember(c) && key == sess(c).key
-          && request.resource.data.keys().hasOnly(['songs'])
-          && request.resource.data.songs is list && request.resource.data.songs.size() <= 500;
+          && request.resource.data.keys().hasOnly(['songs', 'notes'])
+          && (!('songs' in request.resource.data) || (request.resource.data.songs is list && request.resource.data.songs.size() <= 500))
+          && (!('notes' in request.resource.data) || request.resource.data.notes is map);
       }
 
       // Sugerencias de mejoras: cualquiera que entró envía; solo el Administrador las lee y resuelve.

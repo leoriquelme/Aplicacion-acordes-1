@@ -5,6 +5,7 @@ import AgregarEjemplos from '../components/AgregarEjemplos.jsx';
 import { AjustesFinal, IglesiaBoton, PerfilCard } from '../components/Comunicacion.jsx';
 import InstalarCard from '../components/InstalarCard.jsx';
 import IglesiaPrueba from '../components/IglesiaPrueba.jsx';
+import { CodigoAcceso, Respaldo } from '../components/Administracion.jsx';
 import Icon from '../components/Icon.jsx';
 
 const MUESTRA = '[G]Cuán grande es [C]Él, [G]cuán grande es [D]Él';
@@ -83,14 +84,16 @@ export default function Ajustes() {
 
       {store.mode === 'cloud' ? (
         <>
+          <CodigoAcceso />
+          <Respaldo />
+          {store.can.edit && (
           <section className="card">
             <h2>Datos</h2>
             <p className="muted">
               La iglesia tiene {songs.length} canciones y {events.length} eventos, guardados en internet y compartidos con todos sus miembros.
             </p>
             <div className="row gap wrap">
-              <button className="btn" onClick={exportar}><Icon name="download" /> Descargar respaldo</button>
-              {store.can.edit && <UploadLocal onDone={setMsg} />}
+              <UploadLocal onDone={setMsg} />
             </div>
             {store.can.edit && (
               <div style={{ marginTop: '0.8rem' }}>
@@ -100,6 +103,7 @@ export default function Ajustes() {
             )}
             {msg && <p className="ok">{msg}</p>}
           </section>
+          )}
         </>
       ) : (
       <section className="card">

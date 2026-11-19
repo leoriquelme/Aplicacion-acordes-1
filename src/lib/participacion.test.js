@@ -46,3 +46,28 @@ describe('iniciales', () => {
     expect(colorDe('ana')).toBe(colorDe('ana'));
   });
 });
+
+import { alternarNota, notasPorSeccion } from './notas.js';
+describe('notas de canción', () => {
+  it('agrega, quita y agrupa por sección', () => {
+    let l = alternarNota([], 'CORO 1', 'suave');
+    l = alternarNota(l, 'VERSO 1', 'fuerte');
+    expect(l).toHaveLength(2);
+    l = alternarNota(l, 'CORO 1', 'suave');
+    expect(l).toEqual([{ section: 'VERSO 1', note: 'fuerte' }]);
+    expect(notasPorSeccion([{ section: 'CORO 1', note: 'pausa' }, { section: 'X', note: 'nada' }], l))
+      .toEqual({ 'CORO 1': [{ id: 'pausa', mine: false }], 'VERSO 1': [{ id: 'fuerte', mine: true }] });
+  });
+});
+
+import { VERSICULOS, versiculoDelDia } from '../data/versiculos.js';
+describe('versículo del día', () => {
+  it('cambia de un día a otro y siempre existe', () => {
+    const a = versiculoDelDia(new Date(2026, 10, 19, 8));
+    const b = versiculoDelDia(new Date(2026, 10, 19, 23));
+    const c = versiculoDelDia(new Date(2026, 10, 20, 1));
+    expect(a).toBe(b);
+    expect(a).not.toBe(c);
+    for (let d = 0; d < 400; d++) expect(VERSICULOS).toContain(versiculoDelDia(new Date(2026, 0, 1 + d)));
+  });
+});

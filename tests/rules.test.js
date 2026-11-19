@@ -207,3 +207,36 @@ describe('contador de oraciones', () => {
     await assertFails(setDoc(ref(env.unauthenticatedContext().firestore()), { count: 3 }));
   });
 });
+
+describe('código de acceso', () => {
+  beforeEach(seedSessions);
+  it('solo el admin pone el código, y no puede cambiar otra cosa', async () => {
+    await assertSucceeds(updateDoc(doc(as('u-admin'), 'churches', C), { accessCode: 'ABCDEF' }));
+    await assertFails(updateDoc(doc(as('u-admin'), 'churches', C), { adminPin: '0000' }));
+    await assertFails(updateDoc(doc(as('u-dora'), 'churches', C), { accessCode: 'XYZXYZ' }));
+    await assertFails(updateDoc(doc(as('u-carlos'), 'churches', C), { accessCode: 'XYZXYZ' }));
+  });
+  it('con código, el colaborador necesita el código correcto', async () => {
+    await updateDoc(doc(as('u-admin'), 'churches', C), { accessCode: 'ABCDEF' });
+    await assertFails(enter('u1', { key: 'juan', name: 'Juan', role: 'colaborador' }));
+    await assertFails(enter('u2', { key: 'juan', name: 'Juan', role: 'colaborador', code: 'MALO12' }));
+    await assertSucceeds(enter('u3', { key: 'juan', name: 'Juan', role: 'colaborador', code: 'ABCDEF' }));
+    // El admin entra con su PIN aunque no ponga código.
+    await assertSucceeds(enter('u4', { key: ADMIN, name: 'Leonardo Riquelme', role: 'admin', pin: '1234' }));
+  });
+});
+
+describe('notas propias', () => {
+  beforeEach(seedSessions);
+  it('cada uno guarda sus notas junto a sus favoritas', async () => {
+    const fav = (u, k) => doc(as(u), 'churches', C, 'favorites', k);
+    await assertSucceeds(setDoc(fav('u-carlos', 'carlos'), { notes: { s1: [{ section: 'CORO', note: 'suave' }] } }, { merge: true }));
+    await assertSucceeds(setDoc(fav('u-carlos', 'carlos'), { songs: ['s1'] }, { merge: true }));
+    await assertFails(setDoc(fav('u-carlos', 'carlos'), { otra: 1 }, { merge: true }));
+    await assertFails(setDoc(fav('u-carlos', 'dora'), { notes: {} }, { merge: true }));
+  });
+  it('las notas del director van en la canción', async () => {
+    await assertSucceeds(updateDoc(song(as('u-dora')), { notes: [{ section: 'CORO', note: 'fuerte' }] }));
+    await assertFails(updateDoc(song(as('u-carlos')), { notes: [] }));
+  });
+});
