@@ -161,7 +161,7 @@ export default function Evento() {
         </div>
         <label>
           Notas
-          <textarea rows={2} value={event.notes || ''} onChange={(e) => update({ notes: e.target.value })} placeholder="Ej. Santa Cena, bautismo…" />
+          <textarea rows={2} value={event.notes || ''} onChange={(e) => update({ notes: e.target.value })} placeholder="Ej. Cena del Señor, bautismo…" />
         </label>
       </div>
 

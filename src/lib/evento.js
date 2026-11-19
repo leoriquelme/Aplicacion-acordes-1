@@ -2,7 +2,7 @@
 
 /** Partes preestablecidas que se pueden agregar a un evento. */
 export const PARTES = [
-  'Bienvenida', 'Oración', 'Lectura bíblica', 'Anuncios', 'Ofrenda', 'Predicación', 'Santa Cena', 'Bendición',
+  'Bienvenida', 'Oración', 'Lectura bíblica', 'Anuncios', 'Ofrenda', 'Predicación', 'Cena del Señor', 'Bendición',
 ];
 
 /** Un ítem es canción si no dice lo contrario (los eventos antiguos solo tenían canciones). */

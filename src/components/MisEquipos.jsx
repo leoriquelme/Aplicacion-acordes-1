@@ -49,7 +49,7 @@ function EditorEquipos() {
         <div className="row gap" style={{ marginTop: '0.5rem' }}>
           <input
             className="grow" value={otro} maxLength={30}
-            placeholder="Ej. Bienvenida, Niños, Ujieres…"
+            placeholder="Ej. Bienvenida, Escuela dominical, Intercesión…"
             onChange={(e) => setOtro(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && add()}
             disabled={teams.length >= MAX}
