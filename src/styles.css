@@ -844,3 +844,9 @@ button.nota-chip { cursor: pointer; }
 .etiqueta.bien { background: #e3f6e8; color: #1e6b35; }
 .uid-box { font-family: ui-monospace, monospace; word-break: break-all; padding: 0.5rem; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border); }
 .super-iglesia .danger-zone { margin-top: 0.4rem; }
+.google-btn { width: 100%; margin-top: 1rem; }
+.separador { display: flex; align-items: center; gap: 0.6rem; color: var(--muted); font-size: 0.85rem; margin: 1rem 0 0.4rem; }
+.separador::before, .separador::after { content: ''; flex: 1; border-top: 1px solid var(--border); }
+.login-correo { display: grid; gap: 0.6rem; text-align: left; }
+.login-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.2rem 0.6rem; margin-top: 0.4rem; }
+.stack { display: grid; gap: 0.5rem; }
