@@ -7,6 +7,9 @@ import { formatLong, todayISO } from '../lib/dates.js';
 import { songKey } from '../lib/importar.js';
 import { PARTES, eventLines } from '../lib/evento.js';
 import { descargarRecordatorio } from '../lib/recordatorio.js';
+
+// Botón "Recordarme" (archivo de calendario). Escondido por ahora; poner true para volver a mostrarlo.
+const MOSTRAR_RECORDATORIO = false;
 import TransposeControls from '../components/TransposeControls.jsx';
 import ArrangementEditor from '../components/ArrangementEditor.jsx';
 import Participacion from '../components/Participacion.jsx';
@@ -78,7 +81,7 @@ export default function Evento() {
         </div>
         <div className="event-tools">
           <Link className="btn small" to={`/imprimir/evento/${event.id}`}><Icon name="print" /> PDF del culto</Link>
-          <button className="btn small" onClick={() => descargarRecordatorio(event)}><Icon name="bell" /> Recordarme</button>
+          {MOSTRAR_RECORDATORIO && <button className="btn small" onClick={() => descargarRecordatorio(event)}><Icon name="bell" /> Recordarme</button>}
         </div>
         {event.notes && <p className="card">{event.notes}</p>}
         <section className="card orden-culto">
