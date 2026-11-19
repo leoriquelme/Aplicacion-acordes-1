@@ -19,6 +19,7 @@ export default function Cancion() {
   };
   useEffect(() => setStepsState(getPersonalKey(id)), [id]);
   const [added, setAdded] = useState('');
+  const [editOrder, setEditOrder] = useState(false);
   const song = songs.find((s) => s.id === id);
 
   if (!song) {
@@ -76,14 +77,21 @@ export default function Cancion() {
       <div className="song-layout">
         <SongView content={song.content} songKey={songKey(song)} steps={steps} order={song.order} settings={settings} />
         <aside className="order-panel">
-          <h3>Orden</h3>
+          <div className="row between">
+            <h3>Orden</h3>
+            {can.edit && (
+              <button className={`btn small ${editOrder ? 'primary' : ''}`} onClick={() => setEditOrder(!editOrder)}>
+                {editOrder ? '✓ Listo' : '✏️ Editar'}
+              </button>
+            )}
+          </div>
           <p className="muted small">
-            {can.edit ? 'Arrastra para mover. Usa + para repetir (×2).' : 'Secuencia de la canción.'}
+            {editOrder ? 'Arrastra desde ⠿ para mover (también con el dedo). Usa + para repetir (×2).' : 'Secuencia de la canción.'}
           </p>
           <ArrangementEditor
             content={song.content}
             order={song.order}
-            readOnly={!can.edit}
+            readOnly={!editOrder}
             onChange={(order) => saveSong({ ...song, order })}
           />
         </aside>

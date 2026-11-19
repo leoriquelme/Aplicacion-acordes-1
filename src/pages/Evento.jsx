@@ -19,6 +19,7 @@ export default function Evento() {
   const isNew = id === 'nuevo';
   const [draft, setDraft] = useState(() => ({ name: 'Culto dominical', date: todayISO(), time: '11:00', notes: '', items: [] }));
   const [error, setError] = useState('');
+  const [editing, setEditing] = useState(false);
   const event = isNew ? draft : events.find((e) => e.id === id);
 
   if (isNew && !can.events) {
@@ -41,8 +42,8 @@ export default function Evento() {
 
   const byId = new Map(songs.map((s) => [s.id, s]));
 
-  // Músicos: solo ver la lista y presentar.
-  if (!can.events) {
+  // Vista de lectura (la de siempre durante el servicio). Quien puede editar ve el botón "Editar".
+  if (!can.events || (!isNew && !editing)) {
     return (
       <div className="page">
         <Link to="/eventos" className="back">← Eventos</Link>
@@ -51,12 +52,16 @@ export default function Evento() {
             <h1>{event.name}</h1>
             <p className="muted">{formatLong(event.date)}{event.time ? ` · ${event.time}` : ''}</p>
           </div>
-          {event.items.length > 0 && (
-            <Link className="btn primary" to={`/presentar/evento/${event.id}`}>▶ Presentar</Link>
-          )}
+          <div className="row gap wrap">
+            {can.events && <button className="btn" onClick={() => setEditing(true)}>✏️ Editar</button>}
+            {event.items.length > 0 && (
+              <Link className="btn primary" to={`/presentar/evento/${event.id}`}>▶ Presentar</Link>
+            )}
+          </div>
         </div>
         {event.notes && <p className="card">{event.notes}</p>}
         <h2>Lista de canciones</h2>
+        {event.items.length === 0 && <p className="muted">Todavía no hay canciones en este evento.</p>}
         <ol className="setlist">
           {event.items.map((item, i) => {
             const s = byId.get(item.songId);
@@ -108,8 +113,8 @@ export default function Evento() {
             {isNew ? 'Elige los datos y las canciones. El evento se guarda al pulsar "Crear evento".' : `${formatLong(event.date)}${event.time ? ` · ${event.time}` : ''}`}
           </p>
         </div>
-        {!isNew && event.items.length > 0 && (
-          <Link className="btn primary" to={`/presentar/evento/${event.id}`}>▶ Presentar</Link>
+        {!isNew && (
+          <button className="btn primary" onClick={() => { setEditing(false); setOpenOrder(null); }}>✓ Listo</button>
         )}
       </div>
 

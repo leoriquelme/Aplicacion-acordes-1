@@ -466,3 +466,17 @@ textarea.mono { font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
 .rank-table tr.clickable:hover td { background: var(--surface-2); }
 .detail-row ul { margin: 0; padding-left: 1.2rem; line-height: 1.6; }
 .btn.armed { background: var(--danger); border-color: var(--danger); color: #fff; font-size: 0.8rem; }
+
+/* Arrastrar con el dedo */
+.order-item .grip {
+  touch-action: none; cursor: grab; padding: 0.35rem 0.3rem; margin: -0.35rem -0.1rem -0.35rem -0.3rem;
+  font-size: 1.15rem; line-height: 1; opacity: 0.55;
+}
+.order-list.is-dragging, .order-list.is-dragging * { user-select: none; cursor: grabbing; }
+.order-item.dragging { opacity: 0.45; outline: 2px dashed var(--primary); }
+@media (pointer: coarse) {
+  .order-item { padding: 0.55rem 0.5rem; }
+  .mini { width: 1.9rem; height: 1.9rem; }
+  .order-item .grip { font-size: 1.4rem; padding: 0.5rem 0.45rem; }
+}
+.toolbar select { max-width: 100%; min-width: 0; }

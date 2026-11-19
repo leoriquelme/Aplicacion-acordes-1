@@ -1,6 +1,6 @@
 // Convierte una canción copiada de una página web (acordes en la línea de arriba
 // de la letra) al formato de la app: [CORO], [VERSO 2] y acordes como [G].
-import { MAX_SECTION_NUMBER, guessKey } from './chordpro.js';
+import { MAX_SECTION_NUMBER, guessKey, nextSectionName, sectionHeader } from './chordpro.js';
 
 const NOTE = '(?:Do|Re|Mi|Fa|Sol|La|Si|[A-G])[#b♯♭]?';
 const CHORD_TOKEN_RE = new RegExp(
@@ -258,4 +258,29 @@ export function convertPlainChords(content = '') {
 /** Tono de una canción: el elegido o, si no hay, el del primer acorde. */
 export function songKey(song) {
   return song?.key || guessKey(convertPlainChords(song?.content || ''));
+}
+
+/**
+ * Botón "Autodetectar acordes" del editor: pasa los acordes escritos arriba de la letra
+ * al formato [G] y los títulos como "Coro:" o "Estrofa 2" a [CORO], [VERSO 2].
+ * Devuelve { content, chords, headers } con cuántas líneas cambió.
+ */
+export function autodetect(content = '') {
+  const lines = content.replace(/\r/g, '').split('\n');
+  const names = lines.map((l) => sectionHeader(l)).filter(Boolean);
+  let headers = 0;
+  const withHeaders = lines.map((line) => {
+    if (!line.trim() || line.includes('[') || sectionHeader(line)) return line;
+    const h = parseHeader(line);
+    if (!h) return line;
+    const name = nextSectionName(h.base, names);
+    if (!name) return line;
+    names.push(name);
+    headers++;
+    return `[${name}]` + (h.rest ? `\n${chordsOnly(h.rest)}` : '');
+  });
+  const before = withHeaders.join('\n');
+  const after = convertPlainChords(before);
+  const chords = before.split('\n').filter((l) => l.trim() && !l.includes('[') && isChordLine(l)).length;
+  return { content: after, chords, headers };
 }

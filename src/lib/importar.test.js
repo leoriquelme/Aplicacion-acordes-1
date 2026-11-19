@@ -121,3 +121,12 @@ describe('acordes sin corchetes', () => {
     expect(tc('F♯m', 1)).toBe('Gm');
   });
 });
+
+import { autodetect } from './importar.js';
+describe('autodetectar', () => {
+  it('convierte acordes y títulos sin tocar lo que ya está bien', () => {
+    const r = autodetect('[VERSO]\n[G]ya bien\n\nCoro:\nG     D\nSanto santo\n\nEstrofa\nEm\nfin');
+    expect(r.content).toBe('[VERSO]\n[G]ya bien\n\n[CORO]\n[G]Santo [D]santo\n\n[VERSO 2]\n[Em]fin');
+    expect([r.chords, r.headers]).toEqual([2, 2]);
+  });
+});

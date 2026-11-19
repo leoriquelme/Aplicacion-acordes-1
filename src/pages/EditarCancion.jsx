@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useStore } from '../lib/store.jsx';
 import { KEYS, customBases, parseMeta, parseSong, syncOrder } from '../lib/chordpro.js';
 import SectionButtons from '../components/SectionButtons.jsx';
+import { autodetect } from '../lib/importar.js';
 import SongView from '../components/SongView.jsx';
 
 const BORRADOR = 'cancionero-borrador';
@@ -42,6 +43,7 @@ export default function EditarCancion() {
   );
   const [error, setError] = useState('');
   const [saved, setSaved] = useState('');
+  const [detectMsg, setDetectMsg] = useState('');
   const lastSaved = useRef(existing ? JSON.stringify(pick(existing)) : null);
 
   // Canción existente: los cambios se guardan solos, un momento después de dejar de escribir.
@@ -161,10 +163,30 @@ export default function EditarCancion() {
             <label htmlFor="letra" className="field-label">Letra y acordes</label>
             <div className="row gap wrap between">
               <SectionButtons existingNames={sectionNames} customBases={customBases(form.content)} onInsert={insertSection} />
+              <button
+                type="button"
+                className="btn small"
+                title="Convierte acordes escritos arriba de la letra (sin corchetes) al formato [G]"
+                onClick={() => {
+                  const r = autodetect(form.content);
+                  if (!r.chords && !r.headers) {
+                    setDetectMsg('No encontré acordes sin corchetes. La canción ya está lista.');
+                  } else {
+                    setForm((f) => ({ ...f, content: r.content }));
+                    const partes = [];
+                    if (r.chords) partes.push(`${r.chords} ${r.chords === 1 ? 'línea de acordes' : 'líneas de acordes'}`);
+                    if (r.headers) partes.push(`${r.headers} ${r.headers === 1 ? 'título de sección' : 'títulos de sección'}`);
+                    setDetectMsg(`✓ Listo: convertí ${partes.join(' y ')}. Revisa la vista previa.`);
+                  }
+                }}
+              >
+                🎸 Autodetectar acordes
+              </button>
               {!existing && (
                 <Link className="btn small primary" to="/canciones/importar">⤓ Importar desde la web</Link>
               )}
             </div>
+            {detectMsg && <p className={`small ${detectMsg.startsWith('✓') ? 'ok' : 'muted'}`} style={{ margin: 0 }}>{detectMsg}</p>}
             <textarea id="letra" ref={textRef} value={form.content} onChange={onContent} rows={18} spellCheck={false} />
           </div>
           <details className="help">

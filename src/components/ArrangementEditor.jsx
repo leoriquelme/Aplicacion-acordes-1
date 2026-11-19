@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import ConfirmX from './ConfirmX.jsx';
 import {
   MARKER, MAX_CUSTOM, cleanCustomName, flattenGroups, groupOrder, isMarker, markerName, parseSong, sectionKind,
@@ -26,6 +26,8 @@ export default function ArrangementEditor({ content, order, onChange, fallbackOr
   const [writing, setWriting] = useState(false);
   const [text, setText] = useState('');
   const [error, setError] = useState('');
+  const listRef = useRef(null);
+  const drag = useRef(null);
 
   if (sections.length === 0) return <p className="muted small">La canción no tiene secciones.</p>;
 
@@ -38,6 +40,37 @@ export default function ArrangementEditor({ content, order, onChange, fallbackOr
     list.splice(to > from ? to - 1 : to, 0, item);
     commit(list);
   };
+  // Arrastrar con mouse o con el dedo (eventos "pointer"). Con el dedo se arrastra desde ⠿
+  // para que el resto de la fila deje mover la página.
+  const overIndex = (y) => {
+    const items = [...(listRef.current?.querySelectorAll('.order-item') || [])];
+    const k = items.findIndex((el) => { const r = el.getBoundingClientRect(); return y < r.top + r.height / 2; });
+    return k === -1 ? items.length : k;
+  };
+  const endDrag = () => { drag.current = null; setDragFrom(null); setDragOver(null); };
+  const dragProps = (i) => (readOnly ? {} : {
+    onPointerDown: (e) => {
+      if (e.button > 0 || e.target.closest('button, input, select')) return;
+      if (e.pointerType !== 'mouse' && !e.target.closest('.grip')) return;
+      e.preventDefault();
+      e.currentTarget.setPointerCapture?.(e.pointerId);
+      drag.current = { from: i, over: i };
+      setDragFrom(i);
+      setDragOver(i);
+    },
+    onPointerMove: (e) => {
+      if (!drag.current) return;
+      const over = overIndex(e.clientY);
+      if (over !== drag.current.over) { drag.current.over = over; setDragOver(over); }
+    },
+    onPointerUp: () => {
+      if (!drag.current) return;
+      const { from, over } = drag.current;
+      endDrag();
+      move(from, over);
+    },
+    onPointerCancel: endDrag,
+  });
   const add = (name) => commit([...groups, { name, times: 1 }]);
 
   const customMarkers = [...new Set(base.filter(isMarker).map(markerName).filter((n) => sectionKind(n) === 'custom'))];
@@ -60,24 +93,15 @@ export default function ArrangementEditor({ content, order, onChange, fallbackOr
 
   return (
     <div className="arrangement">
-      <ol className="order-list" onDragLeave={() => setDragOver(null)}>
+      <ol className={`order-list ${dragFrom !== null ? 'is-dragging' : ''}`} ref={listRef}>
         {groups.map((g, i) => {
           const label = markerName(g.name);
           const kind = sectionKind(label);
           return (
             <li
               key={i}
-              className={`order-item k-${kind} ${dragFrom === i ? 'dragging' : ''} ${dragOver === i ? 'drop-before' : ''}`}
-              draggable={!readOnly}
-              onDragStart={(e) => { setDragFrom(i); e.dataTransfer.effectAllowed = 'move'; }}
-              onDragEnd={() => { setDragFrom(null); setDragOver(null); }}
-              onDragOver={(e) => {
-                if (readOnly) return;
-                e.preventDefault();
-                const r = e.currentTarget.getBoundingClientRect();
-                setDragOver(e.clientY > r.top + r.height / 2 ? i + 1 : i);
-              }}
-              onDrop={(e) => { e.preventDefault(); move(dragFrom, dragOver ?? i); setDragFrom(null); setDragOver(null); }}
+              className={`order-item k-${kind} ${dragFrom === i ? 'dragging' : ''} ${dragOver === i && dragFrom !== null && dragFrom !== i && dragFrom + 1 !== i ? 'drop-before' : ''}`}
+              {...dragProps(i)}
               title={readOnly ? label : 'Arrastra para mover'}
             >
               {!readOnly && <span className="grip" aria-hidden="true">⠿</span>}
@@ -98,11 +122,7 @@ export default function ArrangementEditor({ content, order, onChange, fallbackOr
           );
         })}
         {!readOnly && (
-          <li
-            className={`order-end ${dragOver === groups.length ? 'drop-before' : ''}`}
-            onDragOver={(e) => { e.preventDefault(); setDragOver(groups.length); }}
-            onDrop={(e) => { e.preventDefault(); move(dragFrom, groups.length); setDragFrom(null); setDragOver(null); }}
-          />
+          <li className={`order-end ${dragOver === groups.length && dragFrom !== null ? 'drop-before' : ''}`} />
         )}
       </ol>
       {!readOnly && (
