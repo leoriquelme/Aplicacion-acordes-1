@@ -813,3 +813,6 @@ button.nota-chip { cursor: pointer; }
 .present .modal-fondo { position: fixed; z-index: 50; }
 .present .modal { font-size: 1rem; }
 .present .modal-fondo, .present .modal-fondo *, .present .nota-add, .present button { cursor: pointer; }
+.login-grupo { border: 1px solid var(--border); border-radius: 12px; padding: 0.7rem 0.9rem 0.1rem; margin: 0 0 0.9rem; background: var(--surface-2); text-align: left; min-width: 0; }
+.login-grupo legend { font-size: 0.8rem; font-weight: 700; color: var(--muted); padding: 0 0.35rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.login-grupo label:last-child { margin-bottom: 0.7rem; }

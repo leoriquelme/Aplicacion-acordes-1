@@ -51,51 +51,55 @@ export default function Bienvenida({ notice }) {
         <h1>Cancionero</h1>
         <p className="muted">Letras y acordes para tu iglesia</p>
         {notice && <p className="error">{notice}</p>}
-        <label>
-          Iglesia
-          <input value={church} onChange={(e) => setChurch(e.target.value)} placeholder="Ej. PSG" autoFocus={!church} autoComplete="organization" />
-        </label>
-        <label>
-          Tu nombre
-          <input
-            value={name}
-            onChange={(e) => { setName(e.target.value); setNeedsPin(null); }}
-            placeholder="Ej. Leonardo Riquelme"
-            autoFocus={Boolean(church)}
-            autoComplete="name"
-          />
-        </label>
-
-        <label>
-          Código de acceso <span className="muted small">(pídeselo al administrador de tu iglesia)</span>
-          <input
-            value={code}
-            onChange={(e) => setCode(cleanCode(e.target.value))}
-            placeholder="Ej. KXMPRT"
-            autoCapitalize="characters"
-            autoComplete="off"
-            spellCheck={false}
-            className="code-input"
-          />
-        </label>
-
-        {needsPin && (
-          <p className="pin-notice">
-            Este nombre tiene el perfil <strong>{ROLES[needsPin.role]?.label}</strong>. Escribe tu PIN para entrar con ese perfil.
-          </p>
-        )}
-        <label>
-          PIN <span className="muted small">(solo si eres Director o Administrador)</span>
-          <input
-            value={pin}
-            onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
-            inputMode="numeric"
-            type="password"
-            placeholder="Déjalo vacío si eres Colaborador"
-            autoFocus={Boolean(needsPin)}
-            autoComplete="off"
-          />
-        </label>
+        <fieldset className="login-grupo">
+          <legend>Tu iglesia</legend>
+          <label>
+            Iglesia
+            <input value={church} onChange={(e) => setChurch(e.target.value)} placeholder="Ej. PSG" autoFocus={!church} autoComplete="organization" />
+          </label>
+          <label>
+            Código de acceso <span className="muted small">(pídeselo al administrador de tu iglesia)</span>
+            <input
+              value={code}
+              onChange={(e) => setCode(cleanCode(e.target.value))}
+              placeholder="Ej. KXMPRT"
+              autoCapitalize="characters"
+              autoComplete="off"
+              spellCheck={false}
+              className="code-input"
+            />
+          </label>
+        </fieldset>
+        <fieldset className="login-grupo">
+          <legend>Tus datos</legend>
+          <label>
+            Tu nombre
+            <input
+              value={name}
+              onChange={(e) => { setName(e.target.value); setNeedsPin(null); }}
+              placeholder="Ej. Leonardo Riquelme"
+              autoFocus={Boolean(church)}
+              autoComplete="name"
+            />
+          </label>
+          {needsPin && (
+            <p className="pin-notice">
+              Este nombre tiene el perfil <strong>{ROLES[needsPin.role]?.label}</strong>. Escribe tu PIN para entrar con ese perfil.
+            </p>
+          )}
+          <label>
+            PIN <span className="muted small">(solo si eres Director o Administrador)</span>
+            <input
+              value={pin}
+              onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+              inputMode="numeric"
+              type="password"
+              placeholder="Déjalo vacío si eres Colaborador"
+              autoFocus={Boolean(needsPin)}
+              autoComplete="off"
+            />
+          </label>
+        </fieldset>
 
         <button className="btn primary big" disabled={busy || !church.trim() || !name.trim() || (needsPin && !pin)}>
           {busy ? 'Entrando…' : 'Entrar'}
