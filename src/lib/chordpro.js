@@ -190,6 +190,15 @@ export function sectionKind(name = '') {
   return 'custom';
 }
 
+const ABBR = { intro: 'I', verse: 'V', prechorus: 'PC', chorus: 'C', bridge: 'P', interlude: 'IT', instrumental: 'IN', final: 'F', coda: 'CD' };
+
+/** Abreviatura de 1-2 letras: "PRE-CORO 1" → "PC", "SOLO DE GUITARRA" → "SO". */
+export function sectionAbbr(name = '') {
+  const kind = sectionKind(name);
+  if (ABBR[kind]) return ABBR[kind];
+  return normalize(sectionBase(name)).replace(/[^a-z]/g, '').slice(0, 2).toUpperCase() || '?';
+}
+
 /** Nombres base de las secciones personalizadas que hay en el texto (sin repetir). */
 export function customBases(content = '') {
   const out = [];

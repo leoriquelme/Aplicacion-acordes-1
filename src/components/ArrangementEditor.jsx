@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import ConfirmX from './ConfirmX.jsx';
 import {
-  MARKER, MAX_CUSTOM, sectionLabel, cleanCustomName, flattenGroups, groupOrder, isMarker, markerName, parseSong, sectionKind,
+  MARKER, MAX_CUSTOM, sectionAbbr, sectionBase, sectionLabel, cleanCustomName, flattenGroups, groupOrder, isMarker, markerName, parseSong, sectionKind,
   validCustomName,
 } from '../lib/chordpro.js';
 
@@ -15,7 +15,7 @@ const CUSTOM = '__personalizada__';
  * y una lista desplegable para agregar secciones o marcas sin letra.
  * `order` es una lista de nombres; vacío o undefined = orden original.
  */
-export default function ArrangementEditor({ content, order, onChange, fallbackOrder, resetLabel = 'Orden original', readOnly = false }) {
+export default function ArrangementEditor({ content, order, onChange, fallbackOrder, resetLabel = 'Orden original', readOnly = false, compact = false, onPick }) {
   const sections = parseSong(content);
   const names = new Set(sections.map((s) => s.name));
   const base = (order?.length ? order : fallbackOrder?.length ? fallbackOrder : sections.map((s) => s.name))
@@ -90,6 +90,29 @@ export default function ArrangementEditor({ content, order, onChange, fallbackOr
   };
 
   const isCustom = Boolean(order?.length);
+
+  // Vista compacta (solo lectura): columna angosta con número y abreviatura (1 V, 2 PC, 3 C…).
+  if (compact) {
+    const bases = sections.map((s) => sectionBase(s.name));
+    return (
+      <ol className="order-rail-list">
+        {groups.map((g, i) => {
+          const label = isMarker(g.name) ? markerName(g.name) : sectionLabel(g.name);
+          const many = bases.filter((b) => b === sectionBase(label)).length > 1;
+          const num = label.match(/(\d+)$/)?.[1];
+          return (
+            <li key={i} className={`rail-item k-${sectionKind(label)}`}>
+              <button type="button" onClick={() => onPick?.(i)} title={`${i + 1}. ${label}${g.times > 1 ? ` ×${g.times}` : ''}`} aria-label={`${i + 1}. ${label}`}>
+                <span className="rail-num">{i + 1}</span>
+                <span className="rail-abbr">{sectionAbbr(label)}{many && num ? <sub>{num}</sub> : null}</span>
+                {g.times > 1 && <span className="rail-times">×{g.times}</span>}
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+    );
+  }
 
   return (
     <div className="arrangement">

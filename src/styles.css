@@ -15,16 +15,16 @@
   --radius: 14px;
   --shadow: 0 1px 2px rgba(17, 24, 39, 0.05), 0 4px 14px rgba(17, 24, 39, 0.05);
   /* Colores de las secciones */
-  --sec-verse: #ffffff;
-  --sec-intro: #22a06b;
-  --sec-prechorus: #f59e0b;
-  --sec-chorus: #e5484d;
-  --sec-bridge: #3b82f6;
-  --sec-interlude: #8b5cf6;
-  --sec-instrumental: #d946ef;
-  --sec-final: #475569;
-  --sec-coda: #0d9488;
-  --sec-custom: #eab308;
+  --sec-verse: #a8d5f2;        /* celeste */
+  --sec-intro: #b5e3c4;        /* verde menta */
+  --sec-prechorus: #ffd6a5;    /* durazno */
+  --sec-chorus: #f7b2bd;       /* rosado */
+  --sec-bridge: #cbb8f0;       /* lavanda */
+  --sec-interlude: #b3e5df;    /* aguamarina */
+  --sec-instrumental: #efc3e6; /* lila */
+  --sec-final: #cfd6df;        /* gris perla */
+  --sec-coda: #d6e8a6;         /* pistacho */
+  --sec-custom: #fbe3a0;       /* amarillo crema */
   font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   color: var(--text);
   background: var(--bg);
@@ -45,7 +45,6 @@
   --danger: #ff6b6b;
   --ok: #4cc37a;
   --shadow: none;
-  --sec-final: #94a3b8;
 }
 
 * { box-sizing: border-box; }
@@ -304,7 +303,6 @@ textarea.mono { font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
 .adjuster p { margin-top: 0; }
 .adj-section { border: 1px solid var(--border); border-left: 4px solid var(--border); border-radius: 8px; padding: 0.5rem 0.7rem; margin-bottom: 0.6rem; background: var(--surface); }
 .adj-section { border-left-color: var(--sec, var(--border)); }
-.adj-section.k-verse { border-left-color: #c9ced8; }
 .adj-head { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
 .adj-head select { padding: 0.3rem 0.5rem; font-weight: 600; }
 .adj-head .grow { min-width: 0; }
@@ -372,16 +370,14 @@ textarea.mono { font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
   content: ''; position: absolute; top: 0.5em; bottom: 0.5em; right: 0.45em; width: 6px; border-radius: 3px;
   background: var(--sec, var(--border));
 }
-.song .block.k-verse::after { box-shadow: 0 0 0 1px #c9ced8; }
 .song .block.marker { padding-bottom: 0.3em; }
 .block-label { display: flex; align-items: center; gap: 0.4em; margin: 0.1em 0 0.45em; }
 .sec-chip {
   display: inline-block; font-size: 0.68em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
-  padding: 0.2em 0.65em; border-radius: 999px; color: var(--text);
-  background: color-mix(in srgb, var(--sec, var(--border)) 22%, var(--surface));
-  border: 1px solid color-mix(in srgb, var(--sec, var(--border)) 55%, var(--surface));
+  padding: 0.2em 0.65em; border-radius: 999px; color: #1f2937;
+  background: var(--sec, var(--border));
+  border: 1px solid color-mix(in srgb, var(--sec, var(--border)) 75%, #000);
 }
-.k-verse .sec-chip, .order-item.k-verse .order-num { background: var(--surface); border-color: #c9ced8; }
 .times {
   font-size: 0.68em; font-weight: 800; padding: 0.15em 0.5em; border-radius: 999px;
   background: var(--text); color: var(--surface);
@@ -404,7 +400,6 @@ textarea.mono { font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
   background: var(--surface-2); border: 1px solid var(--border); border-right: 6px solid var(--sec, var(--border));
 }
 .order-item[draggable='true'] { cursor: grab; }
-.order-item.k-verse { border-right-color: #ffffff; box-shadow: inset -1px 0 0 #c9ced8; }
 .order-item.dragging { opacity: 0.4; }
 .order-item.drop-before::before, .order-end.drop-before::before {
   content: ''; position: absolute; left: 0; right: 0; top: -0.25rem; height: 3px; border-radius: 2px; background: var(--primary);
@@ -413,8 +408,8 @@ textarea.mono { font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
 .order-num {
   width: 1.4rem; height: 1.4rem; flex-shrink: 0; border-radius: 50%; display: grid; place-items: center;
   font-size: 0.72rem; font-weight: 700;
-  background: color-mix(in srgb, var(--sec, var(--border)) 25%, var(--surface));
-  border: 1px solid color-mix(in srgb, var(--sec, var(--border)) 60%, var(--surface));
+  color: #1f2937; background: var(--sec, var(--border));
+  border: 1px solid color-mix(in srgb, var(--sec, var(--border)) 75%, #000);
 }
 .order-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .order-item .times { font-size: 0.72rem; }
@@ -785,3 +780,30 @@ button.nota-chip { cursor: pointer; }
 .versiculo blockquote { margin: 0.2rem 0 0.4rem; font-size: 1.08rem; line-height: 1.5; font-style: italic; }
 .versiculo cite { font-style: normal; font-weight: 600; font-size: 0.9rem; }
 .versiculo .muted.small { margin: 0.2rem 0 0; }
+
+/* ---------- Orden compacto (riel vertical al lado de la letra) ---------- */
+.song-layout.con-riel { grid-template-columns: minmax(0, 1fr) 4.2rem; gap: 0.8rem; }
+.order-rail {
+  position: sticky; top: 5rem; display: flex; flex-direction: column; align-items: center; gap: 0.35rem;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.5rem 0.3rem; box-shadow: var(--shadow);
+  max-height: calc(100vh - 6.5rem); overflow: auto;
+}
+.rail-title { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+.order-rail-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.3rem; width: 100%; }
+.rail-item button {
+  width: 100%; display: flex; flex-direction: column; align-items: center; gap: 0; padding: 0.2rem 0; cursor: pointer;
+  border-radius: 9px; font: inherit; color: #1f2937; background: var(--sec, var(--border));
+  border: 1px solid color-mix(in srgb, var(--sec, var(--border)) 75%, #000);
+}
+.rail-num { font-size: 0.6rem; font-weight: 600; opacity: 0.7; line-height: 1.1; }
+.rail-abbr { font-size: 0.9rem; font-weight: 800; line-height: 1.15; }
+.rail-abbr sub { font-size: 0.6em; font-weight: 700; }
+.rail-times { font-size: 0.6rem; font-weight: 800; line-height: 1.1; }
+.rail-edit { padding: 0.25rem 0.4rem; }
+@media (max-width: 800px) {
+  .song-layout.con-riel { grid-template-columns: minmax(0, 1fr) 3.1rem; gap: 0.5rem; }
+  .song-layout.con-riel .order-rail { position: sticky; top: 4.2rem; order: 0; padding: 0.4rem 0.2rem; }
+  .rail-abbr { font-size: 0.8rem; }
+}
+.song .block { scroll-margin-top: 5rem; }
+.sec-chip { white-space: nowrap; } .block-label { flex-wrap: wrap; }

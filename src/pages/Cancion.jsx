@@ -50,6 +50,7 @@ export default function Cancion() {
     );
   }
 
+  const shownOrder = fromEvent?.items.find((i) => i.songId === song.id && i.order?.length)?.order || song.order;
   const directorNotes = song.notes || [];
   const misNotas = myNotes[song.id] || [];
   const saveDirector = (list) => saveSong({ ...song, notes: list });
@@ -140,7 +141,7 @@ export default function Cancion() {
         {added && <span className="ok">✓ {added}</span>}
       </div>
 
-      <div className="song-layout">
+      <div className={`song-layout ${editOrder ? '' : 'con-riel'}`}>
         <div className="grow-col">
           <DiagramasGuitarra
             content={song.content}
@@ -148,7 +149,7 @@ export default function Cancion() {
             opts={chordOptions(songKey(song) || guessKey(song.content), steps - capo, settings.notation)}
           />
           {editNotes && <p className="muted small notas-ayuda">Toca “+ Nota” en una parte de la canción. Las notas <span className="nota-chip director">del director</span> las ven todos; las <span className="nota-chip mia">tuyas</span> solo tú.</p>}
-          <SongView content={song.content} songKey={songKey(song)} steps={steps - capo} order={fromEvent?.items.find((i) => i.songId === song.id && i.order?.length)?.order || song.order} settings={settings}
+          <SongView content={song.content} songKey={songKey(song)} steps={steps - capo} order={shownOrder} settings={settings}
             notes={notasPorSeccion(directorNotes, misNotas)}
             onAddNote={editNotes ? setNoteFor : undefined}
             onRemoveNote={editNotes ? removeNote : undefined}
@@ -166,25 +167,36 @@ export default function Cancion() {
             />
           )}
         </div>
-        <aside className="order-panel">
-          <div className="row between">
-            <h3>Orden</h3>
+        {editOrder ? (
+          <aside className="order-panel">
+            <div className="row between">
+              <h3>Orden</h3>
+              <button className="btn small primary" onClick={() => setEditOrder(false)}>✓ Listo</button>
+            </div>
+            <p className="muted small">Arrastra desde ⠿ para mover (también con el dedo). Usa + para repetir (×2).</p>
+            <ArrangementEditor
+              content={song.content}
+              order={song.order}
+              onChange={(order) => saveSong({ ...song, order })}
+            />
+          </aside>
+        ) : (
+          <aside className="order-rail" aria-label="Orden de la canción">
+            <span className="rail-title">Orden</span>
+            <ArrangementEditor
+              content={song.content}
+              order={shownOrder}
+              readOnly
+              compact
+              onPick={(i) => document.getElementById(`seccion-${i}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            />
             {can.edit && (
-              <button className={`btn small ${editOrder ? 'primary' : ''}`} onClick={() => setEditOrder(!editOrder)}>
-                {editOrder ? '✓ Listo' : <><Icon name="edit" /> Editar</>}
+              <button className="btn small ghost rail-edit" onClick={() => setEditOrder(true)} title="Editar el orden" aria-label="Editar el orden">
+                <Icon name="edit" />
               </button>
             )}
-          </div>
-          <p className="muted small">
-            {editOrder ? 'Arrastra desde ⠿ para mover (también con el dedo). Usa + para repetir (×2).' : 'Secuencia de la canción.'}
-          </p>
-          <ArrangementEditor
-            content={song.content}
-            order={song.order}
-            readOnly={!editOrder}
-            onChange={(order) => saveSong({ ...song, order })}
-          />
-        </aside>
+          </aside>
+        )}
       </div>
 
       <CompartirCancion song={song} />
