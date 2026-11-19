@@ -6,6 +6,7 @@ import ResumenEquipos from '../components/MisEquipos.jsx';
 import SongRanking from '../components/SongRanking.jsx';
 import HistorialParticipacion from '../components/HistorialParticipacion.jsx';
 import Icon from '../components/Icon.jsx';
+import MisIglesias from '../components/MisIglesias.jsx';
 
 /** Pestaña "Mi iglesia": datos de la iglesia, mis equipos, canciones más usadas e historial. */
 export default function MiIglesia() {
@@ -13,6 +14,14 @@ export default function MiIglesia() {
   const today = todayISO();
   const proximos = events.filter((e) => e.date >= today).length;
   const pasados = sortEvents(events.filter((e) => e.date < today)).length;
+  // Sin iglesia abierta: elegir una, unirse con código o crear una.
+  if (mode === 'personal') {
+    return (
+      <div className="page">
+        <MisIglesias />
+      </div>
+    );
+  }
   return (
     <div className="page">
       <section className="card bloque-iglesia">
@@ -37,6 +46,7 @@ export default function MiIglesia() {
       {mode === 'cloud' && <ResumenEquipos />}
       <SongRanking songs={songs} events={events} />
       {can.events && mode === 'cloud' && <HistorialParticipacion participations={participations} events={events} />}
+      {mode === 'cloud' && <MisIglesias actual={church?.id} />}
     </div>
   );
 }
