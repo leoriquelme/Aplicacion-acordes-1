@@ -4,6 +4,7 @@ import { AuthProvider, CloudStoreProvider, guardarPerfil, useAuth } from './lib/
 import { PersonalStoreProvider } from './lib/personal.jsx';
 import { DataContext } from './lib/store.jsx';
 import Bienvenida from './pages/Bienvenida.jsx';
+import { cerrarSesion } from './lib/acceso.js';
 import SuperAdmin from './pages/SuperAdmin.jsx';
 import App from './App.jsx';
 
@@ -29,23 +30,29 @@ function Gate() {
   );
 }
 
+/** Nombre que trae la cuenta (Google lo guarda en el perfil del proveedor). */
+const nombreDeCuenta = (u) => u.displayName || u.providerData?.find((p) => p.displayName)?.displayName || '';
+
 /** La primera vez: guardar el nombre (el de Google o el que escribió al crear la cuenta, o preguntarlo). */
 function PedirNombre() {
   const { user } = useAuth();
-  const [name, setName] = useState(user.displayName || '');
+  const sugerido = nombreDeCuenta(user);
+  const [name, setName] = useState(sugerido);
   const [error, setError] = useState('');
   useEffect(() => {
-    if (user.displayName) guardarPerfil(user.displayName).catch((e) => setError(e.message));
-  }, [user.displayName]);
-  if (user.displayName && !error) return <div className="loading">Preparando tu cuenta…</div>;
+    if (sugerido) guardarPerfil(sugerido).catch((e) => setError(e.message));
+  }, [sugerido]);
+  if (sugerido && !error) return <div className="loading">Preparando tu cuenta…</div>;
   return (
     <div className="welcome">
       <form className="welcome-card card" onSubmit={(e) => { e.preventDefault(); guardarPerfil(name).catch((er) => setError(er.message)); }}>
         <h1>¿Cómo te llamas?</h1>
+        {user.email && <p className="muted small">Entraste con <strong>{user.email}</strong></p>}
         <p className="muted">Así te verán los hermanos de tu iglesia.</p>
         <input value={name} onChange={(e) => setName(e.target.value)} maxLength={60} placeholder="Ej. Juan Pérez" autoFocus autoComplete="name" />
         <button className="btn primary big" disabled={!name.trim()} style={{ marginTop: '0.8rem' }}>Continuar</button>
-        {error && <p className="error">{error}</p>}
+        {error && <p className="error">{error.includes('permission') ? 'Firebase no dejó guardar tu nombre: revisa que pegaste las reglas nuevas.' : error}</p>}
+        <button type="button" className="btn ghost small" onClick={() => cerrarSesion()}>No soy yo: usar otra cuenta</button>
       </form>
     </div>
   );

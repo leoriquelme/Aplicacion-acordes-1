@@ -42,8 +42,9 @@ export function AuthProvider({ children }) {
   const [session, setSessionState] = useState(readSession);
 
   useEffect(() => onAuthStateChanged(auth, (u) => {
-    // Las sesiones anónimas antiguas (ingreso con iglesia + nombre) ya no sirven.
-    if (u?.isAnonymous) { signOut(auth); return; }
+    // Las sesiones antiguas (ingreso con iglesia + nombre, sin cuenta) ya no sirven: hay que entrar con Google o correo.
+    const conCuenta = u?.providerData?.some((p) => p.providerId === 'google.com' || p.providerId === 'password');
+    if (u && (u.isAnonymous || !conCuenta)) { signOut(auth); return; }
     setUser(u || null);
   }), []);
 
