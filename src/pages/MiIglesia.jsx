@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { useStore } from '../lib/store.jsx';
 import { sortEvents, todayISO } from '../lib/dates.js';
 import Avatares from '../components/Avatares.jsx';
-import MisEquipos from '../components/MisEquipos.jsx';
+import ResumenEquipos from '../components/MisEquipos.jsx';
 import SongRanking from '../components/SongRanking.jsx';
 import HistorialParticipacion from '../components/HistorialParticipacion.jsx';
 import Icon from '../components/Icon.jsx';
@@ -34,7 +34,7 @@ export default function MiIglesia() {
         <div className="card dato"><strong>{pasados}</strong><span>eventos realizados</span></div>
       </div>
 
-      {mode === 'cloud' && <MisEquipos />}
+      {mode === 'cloud' && <ResumenEquipos />}
       <SongRanking songs={songs} events={events} />
       {can.events && mode === 'cloud' && <HistorialParticipacion participations={participations} events={events} />}
     </div>

@@ -18,7 +18,7 @@ export const GRUPOS = [
     nombre: 'Multimedia y audio',
     roles: ['Sonido', 'Proyección', 'Transmisión', 'Fotografía y video', 'Luces'],
   },
-  // Equipos que cada persona define en "Mi iglesia" (ej. Danza, Bienvenida, Niños).
+  // Equipos que cada persona define en su perfil (ej. Bienvenida, Niños).
   { id: 'otros', nombre: 'Otros equipos', roles: [] },
 ];
 

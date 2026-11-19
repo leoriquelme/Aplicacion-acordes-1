@@ -4,6 +4,7 @@ import { ROLES, useStore } from '../lib/store.jsx';
 import { enterChurch, leaveChurch, useAuth } from '../lib/cloud.jsx';
 import { APP_VERSION } from '../lib/version.js';
 import { Avatar } from './Avatares.jsx';
+import { EquiposPerfil } from './MisEquipos.jsx';
 import Icon from './Icon.jsx';
 
 function useOnline() {
@@ -85,6 +86,8 @@ export function PerfilCard() {
           </div>
         </form>
       )}
+
+      {cloud && <EquiposPerfil />}
 
       <ul className="estado-list">
         <li><span className={`dot-status ${online ? 'ok' : 'off'}`} /> {online ? 'Con internet' : 'Sin internet: puedes seguir viendo tus canciones'}</li>

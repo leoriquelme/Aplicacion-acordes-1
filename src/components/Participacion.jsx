@@ -71,7 +71,7 @@ export default function Participacion({ event }) {
           </div>
           <p className="small muted">
             Elige cómo vas a servir. Con un clic quedas asignado.
-            {' '}<Link to="/mi-iglesia">Configura tus equipos</Link> para verlos primero.
+            {' '}<Link to="/ajustes">Elige tus equipos en Ajustes</Link> para verlos primero.
           </p>
           {teams.length > 0 && (
             <div className="role-group g-otros">
