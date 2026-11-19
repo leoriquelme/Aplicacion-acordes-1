@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../lib/store.jsx';
+import ConfirmX from './ConfirmX.jsx';
 
 function shortDate(ms) {
   if (!ms) return '—';
@@ -7,11 +8,8 @@ function shortDate(ms) {
 }
 
 function PersonRow({ p, isMe, onSave, onRemove }) {
-  const [role, setRole] = useState(p.role);
-  const [pin, setPin] = useState('');
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
-  const changed = role !== p.role || (role === 'director' && pin);
 
   if (p.role === 'admin') {
     return (
@@ -28,52 +26,32 @@ function PersonRow({ p, isMe, onSave, onRemove }) {
     <tr>
       <td><strong>{p.name}</strong>{isMe && <span className="muted"> (tú)</span>}</td>
       <td>
-        <div className="row gap wrap">
-          <select value={role} onChange={(e) => { setRole(e.target.value); setMsg(''); }} aria-label={`Perfil de ${p.name}`}>
-            <option value="colaborador">Colaborador</option>
-            <option value="director">Director musical</option>
-          </select>
-          {role === 'director' && (
-            <input
-              className="pin-input"
-              value={pin}
-              onChange={(e) => setPin(e.target.value)}
-              autoCapitalize="off"
-              autoComplete="new-password"
-              spellCheck={false}
-              placeholder={p.role === 'director' ? 'Nueva contraseña' : 'Contraseña (8 o más)'}
-              aria-label={`Contraseña de ${p.name}`}
-            />
-          )}
-          {changed && (
-            <button
-              className="btn primary small"
-              disabled={saving || (role === 'director' && pin.length < 8 && (p.role !== 'director' || pin.length > 0))}
-              onClick={async () => {
-                setSaving(true);
-                try {
-                  await onSave(p.key, role, role === 'director' ? pin || null : null);
-                  setPin('');
-                  setMsg('✓ Guardado');
-                } catch (e) {
-                  setMsg(e.message);
-                } finally {
-                  setSaving(false);
-                }
-              }}
-            >
-              Guardar
-            </button>
-          )}
-        </div>
+        <select
+          value={p.role || 'colaborador'}
+          disabled={saving}
+          aria-label={`Perfil de ${p.name}`}
+          onChange={async (e) => {
+            setSaving(true);
+            setMsg('');
+            try {
+              await onSave(p.key, e.target.value);
+              setMsg('✓ Guardado');
+            } catch (er) {
+              setMsg(`No se pudo: ${er.message}`);
+            } finally {
+              setSaving(false);
+            }
+          }}
+        >
+          <option value="colaborador">Colaborador</option>
+          <option value="director">Director musical</option>
+        </select>
         {msg && <div className="small">{msg}</div>}
       </td>
       <td className="muted small">{shortDate(p.lastSeen)}</td>
       <td className="num">
         {!isMe && (
-          <button className="btn small ghost danger" onClick={() => window.confirm(`¿Quitar a ${p.name} de la lista?`) && onRemove(p.key)}>
-            Quitar
-          </button>
+          <ConfirmX label={`Sacar a ${p.name} de la iglesia`} className="btn small ghost danger" text="Quitar" armedText="¿Quitar?" onConfirm={() => onRemove(p.key)} />
         )}
       </td>
     </tr>
@@ -84,23 +62,13 @@ export function UsersCard() {
   const { people, me, setPersonRole, removePerson } = useStore();
   const sorted = [...people].sort((a, b) => (b.role === 'admin') - (a.role === 'admin') || (a.name || '').localeCompare(b.name || '', 'es'));
 
-  const save = async (key, role, pin) => {
-    // Si ya es director y no se escribe contraseña nueva, se mantiene la anterior.
-    if (role === 'director' && !pin) {
-      const p = people.find((x) => x.key === key);
-      if (p?.role === 'director') return;
-      throw new Error('Escribe una contraseña de al menos 8 caracteres (letras, números o símbolos).');
-    }
-    if (role === 'director' && String(pin).length < 8) throw new Error('La contraseña debe tener al menos 8 caracteres.');
-    await setPersonRole(key, role, pin);
-  };
-
   return (
     <section className="card">
       <h2>Usuarios</h2>
       <p className="muted small">
-        Aquí aparecen todos los que alguna vez entraron a la iglesia. <strong>Director musical:</strong> edita canciones
-        y crea eventos, y entra con la contraseña que le asignes (díctasela en persona). <strong>Colaborador:</strong> ve canciones y cambia su tono personal.
+        Aquí aparecen todos los que se unieron a la iglesia con el código. <strong>Director musical:</strong> edita canciones
+        y crea eventos. <strong>Colaborador:</strong> ve canciones, se inscribe para servir y cambia su tono personal.
+        Si quitas a alguien, para volver necesitará el código (cámbialo si no quieres que vuelva).
       </p>
       <div className="table-scroll">
         <table className="rank-table users-table">
@@ -109,7 +77,7 @@ export function UsersCard() {
           </thead>
           <tbody>
             {sorted.map((p) => (
-              <PersonRow key={p.key} p={p} isMe={p.key === me?.key} onSave={save} onRemove={removePerson} />
+              <PersonRow key={p.key} p={p} isMe={p.key === me?.key} onSave={setPersonRole} onRemove={removePerson} />
             ))}
           </tbody>
         </table>
@@ -117,4 +85,3 @@ export function UsersCard() {
     </section>
   );
 }
-

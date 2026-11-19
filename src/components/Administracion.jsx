@@ -21,7 +21,7 @@ export function CodigoAcceso() {
       await setAccessCode(code);
       setActual(code);
       setNuevo(code);
-      setMsg(code ? '✓ Código guardado. Compártelo con los hermanos de tu iglesia.' : '✓ Código quitado: cualquiera que sepa el nombre de la iglesia puede entrar.');
+      setMsg(code ? '✓ Código guardado. Compártelo con los hermanos de tu iglesia. Quienes ya se unieron siguen dentro.' : '✓ Código quitado: nadie nuevo puede unirse hasta que pongas uno.');
     } catch (e) {
       setMsg(`No se pudo guardar: ${e.message.includes('permission') ? 'falta pegar las reglas nuevas en Firebase.' : e.message}`);
     }
@@ -31,14 +31,15 @@ export function CodigoAcceso() {
     <section className="card">
       <h2>Código de acceso</h2>
       <p className="muted small">
-        Los Colaboradores deben escribir este código para entrar por primera vez. Directores y Administrador entran con su contraseña.
+        Para unirse a la iglesia, cada hermano entra con su cuenta y escribe el nombre de la iglesia y este código.
+        Si lo cambias, quienes ya se unieron siguen dentro.
       </p>
       <p>Código actual: <strong className="codigo">{actual === null ? '…' : actual || 'sin código'}</strong></p>
       <div className="row gap wrap">
         <input className="code-input" value={nuevo} onChange={(e) => { setNuevo(cleanCode(e.target.value)); setMsg(''); }} placeholder="Ej. KXMPRT" maxLength={12} style={{ width: '10rem' }} aria-label="Nuevo código" />
         <button className="btn" onClick={() => { setNuevo(randomCode()); setMsg(''); }}>Generar al azar</button>
         <button className="btn primary" disabled={nuevo.length < 4 || nuevo === actual} onClick={() => guardar(nuevo)}>Guardar</button>
-        {actual && <button className="btn ghost" onClick={() => guardar('')}>Quitar código</button>}
+        {actual && <button className="btn ghost" onClick={() => guardar('')}>Quitar código (cerrar la iglesia)</button>}
       </div>
       {nuevo && nuevo.length < 4 && <p className="muted small">Mínimo 4 letras o números.</p>}
       {msg && <p className="small">{msg}</p>}

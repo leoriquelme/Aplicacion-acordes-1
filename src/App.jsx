@@ -14,6 +14,7 @@ import Miembros from './pages/Miembros.jsx';
 import Sugerencias from './pages/Sugerencias.jsx';
 import Imprimir from './pages/Imprimir.jsx';
 import Importar from './pages/Importar.jsx';
+import InicioPersonal from './pages/InicioPersonal.jsx';
 import { useStore } from './lib/store.jsx';
 import Icon from './components/Icon.jsx';
 
@@ -29,6 +30,9 @@ export default function App() {
   const { pathname } = useLocation();
   const presenting = pathname.startsWith('/presentar');
   const { mode, church, me } = useStore();
+  const personal = mode === 'personal';
+  // Sin iglesia: solo Inicio, Canciones y Ajustes.
+  const tabs = personal ? TABS.filter((t) => ['/', '/canciones', '/ajustes'].includes(t.to)) : TABS;
 
   return (
     <div className="app">
@@ -36,13 +40,14 @@ export default function App() {
         <header className="topbar">
           <div className="brand">Cancionero</div>
           <nav className="tabs">
-            {TABS.map((t) => (
+            {tabs.map((t) => (
               <NavLink key={t.to} to={t.to} end={t.end} className="tab">
                 <span className="tab-icon"><Icon name={t.icon} size="1.25em" /></span>
                 <span>{t.label}</span>
               </NavLink>
             ))}
           </nav>
+          {personal && <div className="church-chip" title={me?.name}><Icon name="user" /> {me?.name}</div>}
           {mode === 'cloud' && church && (
             <div className="church-chip" title={`${me?.name} en ${church.name}`}><Icon name="church" /> {church.name}</div>
           )}
@@ -50,7 +55,7 @@ export default function App() {
       )}
       <main className={presenting ? '' : 'content'}>
         <Routes>
-          <Route path="/" element={<Inicio />} />
+          <Route path="/" element={personal ? <InicioPersonal /> : <Inicio />} />
           <Route path="/canciones" element={<Canciones />} />
           <Route path="/canciones/nueva" element={<EditarCancion />} />
           <Route path="/canciones/importar" element={<Importar />} />

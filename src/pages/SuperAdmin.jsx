@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import {
   actividadGeneral, actividadIglesia, cambiarEstadoIglesia, eliminarIglesia, soySuperAdmin, todasLasIglesias, useAuth,
 } from '../lib/cloud.jsx';
-import { entrarConGoogle, googleEmail, mensajeGoogle } from '../lib/google.js';
 import ConfirmX from '../components/ConfirmX.jsx';
 import Icon from '../components/Icon.jsx';
 
@@ -31,40 +30,19 @@ function estadoDe(ig, a) {
 }
 
 export default function SuperAdmin() {
-  const { user, authVersion, refreshUser } = useAuth();
-  const email = googleEmail(user);
+  const { user } = useAuth();
+  const email = user.email || '';
   const [esSuper, setEsSuper] = useState(undefined);
-  const [error, setError] = useState('');
 
-  useEffect(() => {
-    if (!email) { setEsSuper(false); return; }
-    setEsSuper(undefined);
-    soySuperAdmin().then(setEsSuper);
-  }, [email, authVersion]);
+  useEffect(() => { soySuperAdmin().then(setEsSuper); }, [user.uid]);
 
-  if (!email) {
-    return (
-      <div className="welcome">
-        <div className="welcome-card card">
-          <h1>Super Admin</h1>
-          <p className="muted">Entra con tu cuenta de Google.</p>
-          <button className="btn primary big" onClick={async () => {
-            setError('');
-            try { await entrarConGoogle(); refreshUser(); } catch (e) { setError(mensajeGoogle(e)); }
-          }}>Entrar con Google</button>
-          {error && <p className="error">{error}</p>}
-          <p><Link to="/">Volver</Link></p>
-        </div>
-      </div>
-    );
-  }
   if (esSuper === undefined) return <div className="loading">Revisando permisos…</div>;
   if (!esSuper) {
     return (
       <div className="welcome">
         <div className="welcome-card card wide">
           <h1>Super Admin</h1>
-          <p>La cuenta <strong>{email}</strong> todavía no es Super Admin.</p>
+          <p>La cuenta <strong>{email}</strong> no es Super Admin.</p>
           <p className="muted small">Si eres el encargado del Cancionero, copia este código y créalo en Firebase (Firestore → colección <code>superadmins</code> → documento con este código como ID):</p>
           <div className="uid-box">{user.uid}</div>
           <div className="row gap wrap" style={{ marginTop: '0.6rem' }}>

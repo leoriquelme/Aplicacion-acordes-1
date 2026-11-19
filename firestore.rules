@@ -1,121 +1,99 @@
 rules_version = '2';
 // Reglas de permisos del Cancionero.
-// Se entra con Iglesia + Nombre. Perfiles: admin (Administrador), director (Director musical),
-// colaborador (Colaborador). Administrador y Director necesitan contraseña.
 //
-// churches/{iglesia}               { name, adminKey, adminPassword? (antes adminPin), accessCode?, ownerUid?, ownerEmail?, ownerName?, city?, status?, createdAt? }
-//   ← el id es el nombre "normalizado" (sin mayúsculas, tildes ni espacios de más), así no hay dos iglesias con el mismo nombre.
-//     Las antiguas las creó el administrador a mano; las nuevas las crea cualquiera con cuenta de Google (queda como Administrador).
-//     status: 'activa' (o sin campo) | 'bloqueada' (la bloquea el Super Admin: nadie puede entrar)
-// owners/{uid} { churches: [ids] }  ← iglesias creadas por cada cuenta de Google (máximo 3)
-// superadmins/{uid}  ← lo crea Leonardo a mano en la consola: quien está aquí ve y administra todas las iglesias
-// churches/{iglesia}/people/{nombre} { name, role, firstSeen, lastSeen }  ← quienes han entrado
-// churches/{iglesia}/private/pins  { pins: { nombre: "1234" } }  ← contraseñas de directores (nadie lo lee)
-// churches/{iglesia}/sessions/{uid} { key, name, role, pin }  ← cada equipo que entró
-// churches/{iglesia}/participations/{evento__persona} { eventId, personKey, name, role, group, date }
-// churches/{iglesia}/favorites/{persona} { songs: [ids], notes: { cancion: [notas] } }  ← solo la propia persona
-// churches/{iglesia}/suggestions/{id} { text, songId, songTitle, personKey, name, at }  ← solo el admin lee
-// stats/oracion { count }  ← contador de oraciones por el proyecto
+// Cada persona entra con su cuenta (Google o correo y contraseña). Sin iglesia, ve los himnos,
+// la biblioteca compartida y sus canciones personales. Puede crear una iglesia (queda como
+// Administrador) o unirse a una con el código de acceso (entra como Colaborador; el Administrador
+// la puede subir a Director musical). El perfil queda ligado a la cuenta: no hay PIN.
+//
+// users/{uid}                        { name, email, churches: { iglesia: { name } }, favorites, notes }
+// users/{uid}/songs/{id}             ← canciones personales (solo la persona)
+// churches/{iglesia}                 { name, ownerUid, ownerEmail, ownerName, accessCode, city, status, createdAt }
+//   ← el id es el nombre "normalizado" (sin mayúsculas, tildes ni espacios de más): no puede haber dos iglesias con el mismo nombre.
+//     status: 'activa' (o sin campo) | 'bloqueada' (la bloquea el Super Admin: nadie entra)
+// churches/{iglesia}/members/{uid}   { key (= uid), name, role, code, joinedAt }  ← quién pertenece y con qué perfil (lo que vale)
+// churches/{iglesia}/people/{uid}    { name, uid, role, teams, firstSeen, lastSeen }  ← ficha visible de cada persona
+// churches/{iglesia}/participations/{evento__persona}, favorites/{persona}, suggestions/{id}, songs, events
+// owners/{uid} { churches: [ids] }   ← iglesias creadas por cada cuenta (máximo 3)
+// superadmins/{uid}                  ← lo crea Leonardo a mano en la consola
+// library/{iglesia__cancion}         ← biblioteca compartida entre iglesias
+// stats/oracion { count }
 service cloud.firestore {
   match /databases/{database}/documents {
 
     function signedIn() { return request.auth != null; }
+    // Una cuenta de verdad (Google o correo), no una sesión anónima.
+    function account() {
+      return signedIn() && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
     function churchPath(c) { return /databases/$(database)/documents/churches/$(c); }
-    function sessionPath(c) { return /databases/$(database)/documents/churches/$(c)/sessions/$(request.auth.uid); }
+    function memberPath(c, uid) { return /databases/$(database)/documents/churches/$(c)/members/$(uid); }
     function personPath(c, key) { return /databases/$(database)/documents/churches/$(c)/people/$(key); }
-    function pinsPath(c) { return /databases/$(database)/documents/churches/$(c)/private/pins; }
 
     function church(c) { return get(churchPath(c)).data; }
-    // Super Admin: su cuenta de Google está en superadmins/{uid} (se crea a mano en la consola).
     function isSuper() { return signedIn() && exists(/databases/$(database)/documents/superadmins/$(request.auth.uid)); }
-    // Entró con una cuenta de Google (correo verificado).
-    function googleUser() {
-      return signedIn() && request.auth.token.email_verified == true
-        && 'google.com' in request.auth.token.firebase.identities;
-    }
     // Igual que keyOf() en la app: "Iglesia  Bautista Ñuñoa" → "iglesia bautista nunoa".
+    // (lower() no cambia letras con tilde, por eso se reemplazan también las mayúsculas)
     function norm(n) {
-      // (lower() no cambia letras con tilde, por eso se reemplazan también las mayúsculas)
       return n
         .replace('[áàâäãåÁÀÂÄÃÅ]', 'a').replace('[éèêëÉÈÊË]', 'e').replace('[íìîïÍÌÎÏ]', 'i')
         .replace('[óòôöõÓÒÔÖÕ]', 'o').replace('[úùûüÚÙÛÜ]', 'u').replace('[ñÑ]', 'n').replace('[çÇ]', 'c')
         .lower().replace('[^a-z0-9]+', ' ').trim();
     }
-    // Contraseña del Administrador: campo adminPassword (antes se llamaba adminPin; se aceptan los dos
-    // mientras se cambia el nombre en la consola; si existen ambos, vale adminPassword).
-    function adminPass(c) { return church(c).get('adminPassword', church(c).get('adminPin', null)); }
     function activa(c) { return church(c).get('status', 'activa') != 'bloqueada'; }
-    function isOwner(c) { return signedIn() && church(c).get('ownerUid', '') == request.auth.uid; }
-    // Contraseña (antes PIN) de al menos 8 caracteres: letras, números o símbolos.
-    function longPin(p) { return string(p).size() >= 8; }
-    // Un nombre "común": no es el del administrador ni el de un director.
-    function plainName(c, key) {
-      return key != church(c).adminKey
-        && (!exists(personPath(c, key)) || get(personPath(c, key)).data.role == 'colaborador');
-    }
-    // ¿La sesión sigue siendo válida? Se revisa en cada lectura y escritura, así que si cambia
-    // la contraseña, el perfil o el código de acceso, las sesiones viejas dejan de servir al instante.
-    function sessionOk(c, s) {
-      return activa(c) && sessionRoleOk(c, s);
-    }
-    // Administrador: con su contraseña, o con la cuenta de Google dueña de la iglesia.
-    // Director: con su contraseña, o con la cuenta de Google que vinculó.
-    function sessionRoleOk(c, s) {
-      return (s.role == 'colaborador'
-          && (!('accessCode' in church(c)) || s.get('code', '') == church(c).accessCode)
-          && plainName(c, s.key))
-        || (s.role == 'admin' && s.key == church(c).adminKey
-          && ((s.get('pin', '') == adminPass(c) && longPin(adminPass(c)))
-              || isOwner(c)))
-        || (s.role == 'director' && exists(personPath(c, s.key))
-          && get(personPath(c, s.key)).data.role == 'director'
-          && (get(personPath(c, s.key)).data.get('uid', '') == request.auth.uid
-              || (s.get('pin', '') == get(pinsPath(c)).data.get('pins', {}).get(s.key, null) && longPin(s.get('pin', '')))));
-    }
 
-    function isMember(c) { return signedIn() && exists(sessionPath(c)) && sessionOk(c, sess(c)); }
-    function sess(c) { return get(sessionPath(c)).data; }
-    function isAdmin(c) { return isMember(c) && sess(c).role == 'admin'; }
-    function isDirector(c) { return isMember(c) && sess(c).role == 'director'; }
-    function canEdit(c) { return isAdmin(c) || isDirector(c); }
+    // Pertenezco a la iglesia (y no está bloqueada).
+    function isMember(c) { return signedIn() && exists(memberPath(c, request.auth.uid)) && activa(c); }
+    function me(c) { return get(memberPath(c, request.auth.uid)).data; }
+    function isAdmin(c) { return isMember(c) && me(c).role == 'admin'; }
+    function isDirector(c) { return isMember(c) && me(c).role == 'director'; }
+    function canEdit(c) { return isMember(c) && me(c).role in ['admin', 'director']; }
     function validName(n) { return n is string && n.size() > 0 && n.size() <= 60; }
     function shortText(t, max) { return t is string && t.size() <= max; }
+    function validCode(x) { return x is string && x.size() >= 4 && x.size() <= 12; }
 
-    // Entrar: colaborador con un nombre común (y el código, si la iglesia tiene);
-    // director o administrador solo con su contraseña. Un nombre de director o administrador
-    // no puede entrar como colaborador (así nadie ve las notas de otro).
-    function validSession(c, uid) {
-      let d = request.resource.data;
-      return signedIn() && request.auth.uid == uid && exists(churchPath(c))
-        && d.key is string && validName(d.key) && validName(d.name)
-        && sessionOk(c, d);
+    // ---------- Cuenta personal ----------
+    match /users/{uid} {
+      allow read, delete: if signedIn() && request.auth.uid == uid;
+      allow create, update: if account() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['name', 'email', 'churches', 'favorites', 'notes', 'createdAt'])
+        && (!('name' in request.resource.data) || validName(request.resource.data.name))
+        && (!('churches' in request.resource.data) || (request.resource.data.churches is map && request.resource.data.churches.size() <= 20))
+        && (!('favorites' in request.resource.data) || (request.resource.data.favorites is list && request.resource.data.favorites.size() <= 500))
+        && (!('notes' in request.resource.data) || (request.resource.data.notes is map && request.resource.data.notes.size() <= 500));
+
+      match /songs/{song} {
+        allow read, delete: if signedIn() && request.auth.uid == uid;
+        allow create, update: if account() && request.auth.uid == uid
+          && (!('content' in request.resource.data) || shortText(request.resource.data.content, 50000));
+      }
     }
 
-    // Biblioteca compartida entre iglesias: cada iglesia comparte voluntariamente sus canciones
-    // (confirmando que tiene permiso). Todos los que entraron pueden buscar y copiar.
-    // library/{iglesia__cancion} { churchId, churchName, songId, title, author, key, content, order, sharedBy, confirmed }
+    // ---------- Biblioteca compartida entre iglesias ----------
+    // Cada iglesia comparte voluntariamente sus canciones (confirmando que tiene permiso).
+    // Cualquiera con cuenta puede buscar y copiar.
     function validShare(pid, d) {
       return canEdit(d.churchId)
         && pid == d.churchId + '__' + d.songId
         && d.confirmed == true
         && d.keys().hasOnly(['churchId', 'churchName', 'songId', 'title', 'author', 'key', 'content', 'order', 'sharedBy', 'confirmed', 'sharedAt'])
         && validName(d.title) && d.content is string && d.content.size() < 20000
-        && shortText(d.get('churchName', ''), 60) && shortText(d.get('sharedBy', ''), 60)
+        && d.get('churchName', '') == church(d.churchId).name && shortText(d.get('sharedBy', ''), 60)
         && shortText(d.get('author', ''), 120) && (!('order' in d) || (d.order is list && d.order.size() <= 60));
     }
     match /library/{pid} {
-      allow read: if signedIn();
+      allow read: if account();
       allow create, update: if validShare(pid, request.resource.data);
       allow delete: if canEdit(resource.data.churchId) || isSuper();
     }
 
-    // Iglesias donde un Director vinculó su cuenta de Google (solo un índice para mostrárselas;
-    // entrar igual lo revisan las reglas de la sesión).
-    match /links/{uid} {
-      allow get, delete: if signedIn() && request.auth.uid == uid;
-      allow create, update: if googleUser() && request.auth.uid == uid
-        && request.resource.data.keys().hasOnly(['churches'])
-        && request.resource.data.churches is map && request.resource.data.churches.size() <= 20;
+    // Contador de oraciones por el proyecto: cualquiera con cuenta suma de a uno.
+    match /stats/oracion {
+      allow read: if account();
+      allow create: if account() && request.resource.data.keys().hasOnly(['count']) && request.resource.data.count == 1;
+      allow update: if account() && request.resource.data.keys().hasOnly(['count'])
+        && request.resource.data.count == resource.data.count + 1;
+      allow delete: if false;
     }
 
     match /superadmins/{uid} {
@@ -123,37 +101,38 @@ service cloud.firestore {
       allow list, write: if false;
     }
 
-    // Cuántas iglesias creó cada cuenta de Google (máximo 3, para que no se llene de iglesias vacías).
+    // Cuántas iglesias creó cada cuenta (máximo 3, para que no se llene de iglesias vacías).
     match /owners/{uid} {
       allow get: if (signedIn() && request.auth.uid == uid) || isSuper();
-      allow create: if googleUser() && request.auth.uid == uid
+      allow create: if account() && request.auth.uid == uid
         && request.resource.data.keys().hasOnly(['churches'])
         && request.resource.data.churches is list && request.resource.data.churches.size() == 1;
-      allow update: if googleUser() && request.auth.uid == uid
-        && request.resource.data.keys().hasOnly(['churches'])
-        && request.resource.data.churches is list
-        && request.resource.data.churches.size() == resource.data.churches.size() + 1
-        && request.resource.data.churches.size() <= 3
-        && request.resource.data.churches.hasAll(resource.data.churches)
+      allow update: if (account() && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['churches'])
+          && request.resource.data.churches is list
+          && request.resource.data.churches.size() == resource.data.churches.size() + 1
+          && request.resource.data.churches.size() <= 3
+          && request.resource.data.churches.hasAll(resource.data.churches))
         // El Super Admin, al borrar una iglesia, la saca de la lista (así esa cuenta puede crear otra).
         || (isSuper() && request.resource.data.keys().hasOnly(['churches'])
           && request.resource.data.churches is list && resource.data.churches.hasAll(request.resource.data.churches));
       allow delete: if false;
     }
 
-    // Crear una iglesia nueva (con cuenta de Google). Como el id es el nombre normalizado, si ya existe
-    // una con el mismo nombre la creación falla, aunque dos personas lo intenten al mismo tiempo.
+    // Crear una iglesia nueva. Como el id es el nombre normalizado, si ya existe una con el mismo
+    // nombre la creación falla, aunque dos personas lo intenten al mismo tiempo.
+    // Se crea junto con: owners/{uid} y el miembro Administrador (members/{uid} y people/{uid}).
     function validNewChurch(c) {
       let d = request.resource.data;
       let owners = /databases/$(database)/documents/owners/$(request.auth.uid);
-      return googleUser()
-        && d.keys().hasOnly(['name', 'city', 'adminKey', 'ownerUid', 'ownerEmail', 'ownerName', 'status', 'createdAt'])
+      return account()
+        && d.keys().hasOnly(['name', 'city', 'ownerUid', 'ownerEmail', 'ownerName', 'status', 'createdAt', 'accessCode'])
         && validName(d.name) && c.size() >= 3 && c.size() <= 60 && c == norm(d.name)
-        && d.ownerUid == request.auth.uid && d.ownerEmail == request.auth.token.email
-        && validName(d.ownerName) && d.adminKey == norm(d.ownerName) && d.adminKey.size() > 0
+        && d.ownerUid == request.auth.uid && d.ownerEmail == request.auth.token.get('email', '')
+        && validName(d.ownerName)
         && d.status == 'activa' && d.createdAt == request.time
+        && validCode(d.accessCode)
         && shortText(d.get('city', ''), 60)
-        // Debe anotarse en owners/{uid} en el mismo envío (así se cuentan las iglesias de cada cuenta).
         && existsAfter(owners) && c in getAfter(owners).data.churches
         && !(exists(owners) && c in get(owners).data.churches);
     }
@@ -163,53 +142,65 @@ service cloud.firestore {
       allow read, delete: if isSuper();
     }
 
-    // Contador de oraciones por el proyecto: cualquiera que entró suma de a uno.
-    match /stats/oracion {
-      allow read: if signedIn();
-      allow create: if signedIn() && request.resource.data.keys().hasOnly(['count']) && request.resource.data.count == 1;
-      allow update: if signedIn() && request.resource.data.keys().hasOnly(['count'])
-        && request.resource.data.count == resource.data.count + 1;
-      allow delete: if false;
-    }
-
     match /churches/{c} {
-      allow get: if isAdmin(c) || isSuper() || (signedIn() && resource.data.get('ownerUid', '') == request.auth.uid);
-      // Cada cuenta de Google puede buscar las iglesias que creó; el Super Admin, todas.
-      allow list: if isSuper() || (signedIn() && resource.data.get('ownerUid', '') == request.auth.uid);
+      // Los miembros leen la ficha de su iglesia (nombre y código: el código ya lo conocen, con él entraron).
+      allow get: if isMember(c) || isSuper();
+      allow list: if isSuper();
       allow create: if validNewChurch(c);
       allow delete: if false; // el Super Admin borra (ver arriba)
-      // El administrador cambia (o quita) el código de acceso, o vincula su cuenta de Google.
-      // El Super Admin solo bloquea o desbloquea.
+      // El Administrador cambia (o quita) el código de acceso.
+      // El Super Admin bloquea o desbloquea, y puede asignar el dueño de una iglesia antigua.
       allow update: if (isAdmin(c)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['accessCode', 'ownerUid', 'ownerEmail'])
-        && (!('accessCode' in request.resource.data)
-            || (request.resource.data.accessCode is string && request.resource.data.accessCode.size() >= 4 && request.resource.data.accessCode.size() <= 12))
-        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['ownerUid', 'ownerEmail'])
-            || (googleUser() && request.resource.data.ownerUid == request.auth.uid
-                && request.resource.data.ownerEmail == request.auth.token.email)))
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['accessCode'])
+          && (!('accessCode' in request.resource.data) || validCode(request.resource.data.accessCode)))
         || (isSuper()
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
-          && request.resource.data.status in ['activa', 'bloqueada']);
+          && request.resource.data.get('status', 'activa') in ['activa', 'bloqueada']);
 
-      match /sessions/{uid} {
-        allow create, update: if validSession(c, uid);
-        allow read, delete: if signedIn() && request.auth.uid == uid;
+      // ---------- Miembros ----------
+      // Unirse: con el código de acceso, siempre como Colaborador. Quien creó la iglesia (ownerUid)
+      // entra como Administrador. La ficha de cada persona es people/{uid} y se crea en el mismo envío.
+      function validJoin(c, uid) {
+        let d = request.resource.data;
+        let ch = getAfter(churchPath(c)).data;
+        let person = personPath(c, uid);
+        return account() && request.auth.uid == uid
+          && d.keys().hasOnly(['key', 'name', 'role', 'code', 'joinedAt'])
+          && validName(d.name) && d.key == uid
+          && ch.get('status', 'activa') != 'bloqueada'
+          && ((d.role == 'colaborador' && 'accessCode' in ch && d.get('code', '') == ch.accessCode)
+            || (d.role == 'admin' && ch.get('ownerUid', '') == uid))
+          && existsAfter(person) && getAfter(person).data.uid == uid;
+      }
+      match /members/{uid} {
+        allow read: if isMember(c) || (signedIn() && request.auth.uid == uid);
+        allow create: if validJoin(c, uid);
+        // El Administrador cambia el perfil de otros (Director o Colaborador).
+        allow update: if isAdmin(c) && uid != request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role'])
+          && request.resource.data.role in ['director', 'colaborador'];
+        // Uno sale de la iglesia (menos quien la creó), o el Administrador saca a alguien.
+        allow delete: if (signedIn() && request.auth.uid == uid && church(c).get('ownerUid', '') != uid)
+          || (isAdmin(c) && uid != request.auth.uid);
       }
 
+      // Ficha visible de cada persona (people/{uid}): nombre, perfil, equipos, última vez.
       match /people/{key} {
         allow read: if isMember(c);
-        // Al entrar por primera vez uno queda registrado como colaborador (con su propio nombre).
-        allow create: if isMember(c) && key == sess(c).key && request.resource.data.role == 'colaborador'
+        // Al unirse (o volver a unirse): mi ficha, con el mismo perfil que mi miembro.
+        allow create, update: if account() && key == request.auth.uid
+          && !exists(memberPath(c, key)) && existsAfter(memberPath(c, key))
+          && request.resource.data.uid == key
+          && request.resource.data.role == getAfter(memberPath(c, key)).data.role
+          && request.resource.data.keys().hasOnly(['name', 'uid', 'role', 'teams', 'firstSeen', 'lastSeen'])
           && validName(request.resource.data.name)
-          || isAdmin(c);
-        // Cada uno actualiza su "última vez"; el administrador cambia perfiles.
+          // El Administrador puede agregar fichas sin cuenta (p. ej. datos de prueba).
+          || (isAdmin(c) && request.resource.data.get('uid', '') == '' && validName(request.resource.data.name));
         allow update: if isAdmin(c)
-          || (isMember(c) && key == sess(c).key
-              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastSeen', 'name', 'teams', 'uid'])
+          // Cada uno actualiza su "última vez", su nombre y sus equipos.
+          || (isMember(c) && key == request.auth.uid
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastSeen', 'name', 'teams'])
               && validName(request.resource.data.name)
-              // Un Director vincula su cuenta de Google (desde una sesión abierta con su contraseña).
-              && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['uid'])
-                  || (googleUser() && sess(c).role == 'director' && request.resource.data.uid == request.auth.uid))
               && (!('teams' in request.resource.data) || (request.resource.data.teams is list && request.resource.data.teams.size() <= 12)));
         allow delete: if isAdmin(c);
       }
@@ -243,26 +234,26 @@ service cloud.firestore {
           && request.resource.data.role is string && request.resource.data.role.size() <= 40
           && request.resource.data.keys().hasOnly(['eventId', 'personKey', 'name', 'role', 'group', 'date', 'at', 'prueba'])
           && shortText(request.resource.data.get('group', ''), 40) && shortText(request.resource.data.get('date', ''), 10)
-          && (canEdit(c) || request.resource.data.personKey == sess(c).key);
-        allow delete: if canEdit(c) || (isMember(c) && resource.data.personKey == sess(c).key);
+          && (canEdit(c) || request.resource.data.personKey == request.auth.uid);
+        allow delete: if canEdit(c) || (isMember(c) && resource.data.personKey == request.auth.uid);
       }
 
-      // Favoritas de cada persona: solo ella las ve y las cambia.
+      // Favoritas y notas propias de cada persona: solo ella las ve y las cambia.
       match /favorites/{key} {
-        allow read, delete: if isMember(c) && key == sess(c).key;
-        allow create, update: if isMember(c) && key == sess(c).key
+        allow read, delete: if isMember(c) && key == request.auth.uid;
+        allow create, update: if isMember(c) && key == request.auth.uid
           && request.resource.data.keys().hasOnly(['songs', 'notes'])
           && (!('songs' in request.resource.data) || (request.resource.data.songs is list && request.resource.data.songs.size() <= 500))
           && (!('notes' in request.resource.data) || (request.resource.data.notes is map && request.resource.data.notes.size() <= 500));
       }
 
-      // Sugerencias de mejoras: cualquiera que entró envía; solo el Administrador las lee y resuelve.
+      // Sugerencias de mejoras: cualquiera que pertenece envía; solo el Administrador las lee y resuelve.
       match /suggestions/{sid} {
         allow read, delete: if isAdmin(c);
         allow create: if isMember(c)
           && request.resource.data.keys().hasOnly(['text', 'songId', 'songTitle', 'personKey', 'name', 'at'])
-          && request.resource.data.personKey == sess(c).key
-          && request.resource.data.name == sess(c).name
+          && request.resource.data.personKey == request.auth.uid
+          && request.resource.data.name == me(c).name
           && shortText(request.resource.data.songId, 100)
           && request.resource.data.text is string
           && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 1000

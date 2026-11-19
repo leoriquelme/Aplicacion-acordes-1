@@ -45,13 +45,17 @@ Para agregar otra iglesia más adelante se repite este paso con otro documento
 - Si cambias un PIN, un perfil o el código de acceso, las personas afectadas tienen que volver a entrar.
 - Cada vez que cambie `firestore.rules`, hay que volver a pegarlo en **Firestore → Reglas → Publicar**.
 
-## Inicio con Google, iglesias nuevas y Super Admin (19-nov-2026)
+## Ingreso con cuenta (desde el 19-nov-2026)
 
-1. Firebase Console → **Authentication** → **Sign-in method** → **Agregar proveedor nuevo** → **Google** → Habilitar → elegir correo de asistencia → Guardar.
-2. Authentication → **Configuración** → **Dominios autorizados** → Agregar dominio → `leoriquelme.github.io`.
+Cada persona entra con su cuenta de Google o con correo y contraseña. Sin iglesia ve sus canciones
+personales, los himnos de ejemplo y la biblioteca compartida. Puede crear una iglesia (queda como
+Administrador, máx. 3 por cuenta) o unirse a una con su nombre y código de acceso (entra como Colaborador).
+El Administrador sube a Director desde Miembros. No hay PIN.
+
+1. Authentication → Sign-in method → habilitar **Google** y **Correo electrónico/contraseña**.
+2. Authentication → Configuración → Dominios autorizados → agregar `leoriquelme.github.io`.
 3. Pegar `firestore.rules` en Firestore → Reglas → Publicar.
-4. Abrir la app en `#/super`, entrar con Google y copiar el código que aparece.
-5. Firestore → Datos → Iniciar colección `superadmins` → ID del documento = ese código → un campo `nombre` (texto) → Guardar.
+4. Entrar a la app, abrir `#/super`, copiar el código y crear `superadmins/{ese código}` con un campo `nombre`.
 
-- Las iglesias nuevas las crea cualquiera con cuenta de Google (máx. 3 por cuenta) y quedan activas al tiro. El id es el nombre normalizado (`keyOf`), así no hay dos con el mismo nombre.
-- El campo `adminPin` puede renombrarse a `adminPassword` (las reglas aceptan los dos; si están ambos, vale `adminPassword`).
+- Los nombres de iglesia son únicos: el id es el nombre normalizado (`keyOf`) y las reglas lo recalculan (`norm`).
+- Las iglesias antiguas (PSG, prueba) quedan solo visibles para el Super Admin, que puede eliminarlas.

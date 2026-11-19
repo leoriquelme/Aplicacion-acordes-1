@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ROLES, useStore } from '../lib/store.jsx';
-import { leaveChurch, useAuth } from '../lib/cloud.jsx';
+import { salirDeIglesia, useAuth } from '../lib/cloud.jsx';
+import { cerrarSesion } from '../lib/acceso.js';
+import ConfirmX from './ConfirmX.jsx';
 import { APP_VERSION } from '../lib/version.js';
 import { Avatar } from './Avatares.jsx';
 import { EquiposPerfil } from './MisEquipos.jsx';
@@ -31,6 +33,8 @@ export function PerfilCard() {
     navigator.serviceWorker?.getRegistration?.().then((r) => setOfflineReady(Boolean(r?.active))).catch(() => {});
   }, []);
   const cloud = mode === 'cloud';
+  const personal = mode === 'personal';
+  const { user } = useAuth() || {};
 
   const guardar = async () => {
     if (!name.trim()) return;
@@ -55,12 +59,12 @@ export function PerfilCard() {
               <button className="btn ghost small" onClick={() => setEditing(false)}>Cancelar</button>
             </div>
           ) : (
-            <h1 className="perfil-nombre">{cloud ? me?.name : 'Mi equipo'}</h1>
+            <h1 className="perfil-nombre">{cloud || personal ? me?.name : 'Mi equipo'}</h1>
           )}
           {cloud && <span className={`role-pill role-${role}`}>{ROLES[role]?.label || 'Colaborador'}</span>}
           {msg && <p className="error small">{msg}</p>}
         </div>
-        {cloud && !editing && (
+        {(cloud || personal) && !editing && (
           <button className="btn small" onClick={() => { setName(me?.name || ''); setEditing(true); }}><Icon name="edit" /> Editar</button>
         )}
       </div>
@@ -74,6 +78,8 @@ export function PerfilCard() {
             <li><Icon name="church" /> Iglesia: <strong>{church?.name}</strong></li>
             <li><Icon name="user" /> {me?.name} · {ROLES[role]?.label || 'Colaborador'}</li>
           </>
+        ) : personal ? (
+          <li><Icon name="user" /> Cuenta: <strong>{user?.email}</strong> · todavía sin iglesia abierta</li>
         ) : (
           <li><Icon name="laptop" /> Usando la app solo en este equipo</li>
         )}
@@ -100,14 +106,14 @@ export function IglesiaBoton() {
   );
 }
 
-/** Abajo de Ajustes: sugerir mejoras, apoyo, salir y versión. */
+/** Abajo de Ajustes: sugerir mejoras, apoyo, cambiar de iglesia, cerrar sesión y versión. */
 export function AjustesFinal() {
-  const { mode, churchId, can, suggestions = [] } = useStore();
-  const { setSession } = useAuth() || {};
-  const salir = async () => {
-    await leaveChurch(churchId);
-    setSession?.(null);
-  };
+  const { mode, churchId, church, can, suggestions = [] } = useStore();
+  const { setSession: setS, user } = useAuth() || {};
+  const navigate = useNavigate();
+  const setSession = (x) => { navigate('/'); setS?.(x); };
+  const [msg, setMsg] = useState('');
+  const soyDueno = church?.ownerUid && church.ownerUid === user?.uid;
   return (
     <section className="ajustes-final">
       <Link className="btn big-inline" to="/sugerencias">
@@ -115,7 +121,17 @@ export function AjustesFinal() {
         {can.users && suggestions.length > 0 && <span className="badge">{suggestions.length}</span>}
       </Link>
       <Link className="btn big-inline" to="/apoyo"><Icon name="heart" /> Apoyo: orar y donar</Link>
-      {mode === 'cloud' && <button className="btn ghost" onClick={salir}>Salir / cambiar de iglesia</button>}
+      {mode === 'cloud' && <button className="btn" onClick={() => setSession?.(null)}><Icon name="home" /> Mis iglesias y mis canciones</button>}
+      {mode === 'cloud' && !soyDueno && (
+        <ConfirmX label={`Salir de ${church?.name}`} className="btn ghost" text={`Salir de ${church?.name}`} armedText="¿Seguro? Para volver necesitarás el código"
+          onConfirm={async () => {
+            try { await salirDeIglesia(churchId); setSession?.(null); } catch (e) { setMsg(`No se pudo: ${e.message}`); }
+          }} />
+      )}
+      {(mode === 'cloud' || mode === 'personal') && (
+        <button className="btn ghost" onClick={async () => { setSession?.(null); await cerrarSesion(); }}>Cerrar sesión</button>
+      )}
+      {msg && <p className="error">{msg}</p>}
       <p className="muted small">Versión {APP_VERSION}</p>
     </section>
   );
