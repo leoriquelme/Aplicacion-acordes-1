@@ -646,7 +646,8 @@ textarea.mono { font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
 /* Canciones en cuadros */
 .canciones-head { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 0.8rem; }
 .canciones-head h1 { margin: 0; }
-.canciones-head .add-menu-panel { left: 0; right: auto; }
+.canciones-head .add-menu-panel { left: auto; right: 0; }
+.canciones-head .btn.square { width: 2.3rem; height: 2.3rem; font-size: 1.3rem; }
 .song-count { color: var(--primary); }
 .song-grid {
   list-style: none; padding: 0; margin: 0.6rem 0 0;
@@ -850,3 +851,5 @@ button.nota-chip { cursor: pointer; }
 .login-correo { display: grid; gap: 0.6rem; text-align: left; }
 .login-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.2rem 0.6rem; margin-top: 0.4rem; }
 .stack { display: grid; gap: 0.5rem; }
+.alerta-limite { margin-top: 0.8rem; padding: 0.8rem; border-radius: 10px; background: #fff3cd; color: #7a5a00; border: 1px solid #f0d68a; display: grid; gap: 0.4rem; }
+.alerta-limite .btn { justify-self: start; }
