@@ -374,7 +374,7 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
 
   const saveSong = useCallback((song) => {
     const ref = song.id ? doc(col('songs'), song.id) : doc(col('songs'));
-    setDoc(ref, { ...sinId(song), updatedAt: Date.now() }).catch(report);
+    setDoc(ref, { ...sinId(song), updatedAt: Date.now(), ...(song.id || song.createdAt ? {} : { createdAt: Date.now() }) }).catch(report);
     return ref.id;
   }, [col, report]);
 
@@ -475,7 +475,7 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
   const uploadLocal = useCallback(async ({ songs: localSongs }) => {
     const existing = new Set(songs.map((s) => normalize(s.title)));
     const nuevas = localSongs.filter((s) => !existing.has(normalize(s.title)));
-    await commitAll(nuevas.map((s) => (b) => b.set(doc(col('songs')), { ...sinId(s), updatedAt: Date.now() })));
+    await commitAll(nuevas.map((s) => (b) => b.set(doc(col('songs')), { ...sinId(s), updatedAt: Date.now(), createdAt: s.createdAt || Date.now() })));
     return nuevas.length;
   }, [songs, col]);
 
@@ -508,7 +508,7 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
     let added = 0;
     for (const s of cancionesEjemplo) {
       if (titles.has(normalize(s.title)) || ids.has(s.id)) continue;
-      b.set(doc(col('songs'), s.id), { ...sinId(s), updatedAt: Date.now() });
+      b.set(doc(col('songs'), s.id), { ...sinId(s), updatedAt: Date.now(), createdAt: s.createdAt || Date.now() });
       added++;
     }
     if (added) await b.commit();
@@ -564,7 +564,7 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
     const d = datosPrueba();
     const ops = [
       ...d.people.filter((p) => p.key !== mySession?.key).map(({ key, ...p }) => (b) => b.set(personRef(churchId, key), p)),
-      ...d.songs.map((s) => (b) => b.set(doc(col('songs'), s.id), { ...sinId(s), updatedAt: Date.now() })),
+      ...d.songs.map((s) => (b) => b.set(doc(col('songs'), s.id), { ...sinId(s), updatedAt: Date.now(), createdAt: s.createdAt || Date.now() })),
       ...d.events.map((e) => (b) => b.set(doc(col('events'), e.id), sinId(e))),
     ];
     await commitAll(ops);

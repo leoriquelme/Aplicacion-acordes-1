@@ -28,6 +28,8 @@ export default function Canciones() {
     autor: (a, b) => (a.author || '~').localeCompare(b.author || '~', 'es') || titulo(a).localeCompare(titulo(b), 'es'),
     tono: (a, b) => (songKey(a) || '~').localeCompare(songKey(b) || '~') || titulo(a).localeCompare(titulo(b), 'es'),
     recientes: (a, b) => (b.updatedAt || 0) - (a.updatedAt || 0),
+    // Las canciones antiguas no tienen fecha de creación: van al final, por título.
+    nuevas: (a, b) => (b.createdAt || 0) - (a.createdAt || 0) || titulo(a).localeCompare(titulo(b), 'es'),
   };
   const list = songs
     .filter((s) => !onlyFav || favorites.includes(s.id))
@@ -68,6 +70,7 @@ export default function Canciones() {
               <option value="za">Título (Z–A)</option>
               <option value="autor">Autor</option>
               <option value="tono">Tono</option>
+              <option value="nuevas">Agregadas recientemente</option>
               <option value="recientes">Editadas recientemente</option>
             </select>
           </label>

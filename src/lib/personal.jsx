@@ -27,7 +27,7 @@ export function PersonalStoreProvider({ children }) {
 
   const saveSong = useCallback((song) => {
     const ref = song.id ? doc(col, song.id) : doc(col);
-    setDoc(ref, { ...sinId(song), updatedAt: Date.now() }).catch(report);
+    setDoc(ref, { ...sinId(song), updatedAt: Date.now(), ...(song.id || song.createdAt ? {} : { createdAt: Date.now() }) }).catch(report);
     return ref.id;
   }, [col, report]);
   const deleteSong = useCallback((id) => deleteDoc(doc(col, id)), [col]);
@@ -38,7 +38,7 @@ export function PersonalStoreProvider({ children }) {
     let added = 0;
     for (const s of cancionesEjemplo) {
       if (titles.has(normalize(s.title))) continue;
-      b.set(doc(col, s.id), { ...sinId(s), updatedAt: Date.now() });
+      b.set(doc(col, s.id), { ...sinId(s), updatedAt: Date.now(), createdAt: s.createdAt || Date.now() });
       added++;
     }
     if (added) await b.commit();

@@ -91,7 +91,8 @@ export function LocalStoreProvider({ children }) {
     const id = song.id || newId();
     setData((d) => {
       const exists = d.songs.some((s) => s.id === id);
-      const s = { ...song, id, updatedAt: Date.now() };
+      const ahora = Date.now();
+      const s = { ...song, id, updatedAt: ahora, ...(exists || song.createdAt ? {} : { createdAt: ahora }) };
       return { ...d, songs: exists ? d.songs.map((x) => (x.id === id ? s : x)) : [...d.songs, s] };
     });
     return id;
