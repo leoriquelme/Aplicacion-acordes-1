@@ -144,9 +144,15 @@ export default function EditarCancion() {
 
   return (
     <div className="page wide">
-      <Link to={existing ? `/canciones/${existing.id}` : '/canciones'} className="back">← Volver</Link>
-      <h1>{existing ? 'Editar canción' : 'Nueva canción'}</h1>
-      <form onSubmit={submit} className="editor">
+      <div className="editor-barra">
+        <Link to={existing ? `/canciones/${existing.id}` : '/canciones'} className="barra-btn atras" aria-label="Volver">‹</Link>
+        <div className="editor-barra-titulo">
+          <span className="muted small">{existing ? 'Editar canción' : 'Nueva canción'}</span>
+          <strong>{form.title.trim() || 'Sin título'}</strong>
+        </div>
+        <button type="submit" form="editor-cancion" className="btn primary">{existing ? 'Listo' : 'Crear'}</button>
+      </div>
+      <form id="editor-cancion" onSubmit={submit} className="editor">
         <div className="editor-fields">
           <label>
             Título
@@ -260,7 +266,7 @@ export default function EditarCancion() {
           </details>
           {error && <p className="error">{error}</p>}
           <div className="row gap">
-            <button type="submit" className="btn primary">{existing ? 'Listo' : 'Guardar'}</button>
+            <button type="submit" className="btn primary">{existing ? 'Listo' : 'Crear'}</button>
             {!existing && <Link className="btn" to="/canciones" onClick={borrarBorrador}>Cancelar</Link>}
             {saved && <span className={`small ${saved.startsWith('✓') ? 'ok' : 'muted'}`}>{saved}</span>}
           </div>
