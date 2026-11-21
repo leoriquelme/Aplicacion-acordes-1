@@ -42,7 +42,7 @@ export default function Importar() {
       onPaste(song.text);
       setLinkMsg({ ok: true, text: 'Listo. Revisa la vista previa y corrige lo que haga falta.' });
     } catch (e) {
-      setLinkMsg({ ok: false, text: e.message });
+      setLinkMsg({ ok: false, text: e.message, detalles: e.detalles });
     } finally {
       setLoading(false);
     }
@@ -106,6 +106,7 @@ export default function Importar() {
           </button>
         </div>
         {linkMsg && <p className={`small ${linkMsg.ok ? 'ok' : 'error'}`}>{linkMsg.text}</p>}
+        {linkMsg?.detalles && <p className="muted small">Detalle: {linkMsg.detalles}</p>}
       </div>
 
       <details className="card import-steps">

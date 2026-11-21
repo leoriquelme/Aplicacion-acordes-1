@@ -3,10 +3,23 @@
 // se pide a través de servicios "proxy" públicos y gratuitos. Si uno falla,
 // se prueba el siguiente.
 
+// Si algún día armamos un servicio propio (gratis, en Cloudflare), su dirección va aquí,
+// por ejemplo 'https://cancionero.leo.workers.dev/?url='. Se prueba antes que los públicos.
+export const PROXY_PROPIO = '';
+
+// Cada proxy: cómo armar la dirección y, si hace falta, cómo sacar el HTML de la respuesta.
 const PROXIES = [
-  (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-  (u) => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
-  (u) => `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`,
+  { name: 'propio', url: (u) => PROXY_PROPIO && PROXY_PROPIO + encodeURIComponent(u) },
+  { name: 'allorigins', url: (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}` },
+  {
+    name: 'allorigins-json',
+    url: (u) => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
+    json: (d) => d.contents,
+  },
+  { name: 'codetabs', url: (u) => `https://api.codetabs.com/v1/proxy?quest=${u}` },
+  { name: 'jina', url: (u) => `https://r.jina.ai/${u}`, headers: { 'X-Return-Format': 'html' } },
+  { name: 'corsproxy', url: (u) => `https://corsproxy.io/?url=${encodeURIComponent(u)}` },
+  { name: 'cors.lol', url: (u) => `https://api.cors.lol/?url=${encodeURIComponent(u)}` },
 ];
 
 const ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
@@ -123,31 +136,39 @@ export function bytesToText(buf) {
   }
 }
 
-async function fetchWithTimeout(url, ms) {
+async function tryProxy(proxy, url, ms) {
+  const target = proxy.url(url);
+  if (!target) throw new Error('sin configurar');
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), ms);
   try {
-    const res = await fetch(url, { signal: ctrl.signal });
+    const res = await fetch(target, { signal: ctrl.signal, headers: proxy.headers });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return bytesToText(await res.arrayBuffer());
+    let html = bytesToText(await res.arrayBuffer());
+    if (proxy.json) html = proxy.json(JSON.parse(html)) || '';
+    if (!/<pre/i.test(html) && !/\.shtml/i.test(html)) throw new Error('respuesta sin la canción');
+    return html;
+  } catch (e) {
+    throw new Error(`${proxy.name}: ${e.name === 'AbortError' ? 'tardó demasiado' : e.message}`);
   } finally {
     clearTimeout(timer);
   }
 }
 
-/** Descarga la página a través de los proxys, probando uno tras otro. */
+/**
+ * Descarga la página. Pregunta a todos los proxys a la vez y usa el primero que
+ * responda bien (así un proxy caído o lento no frena a los demás).
+ */
 export async function fetchPage(url) {
-  let lastError;
-  for (const proxy of PROXIES) {
-    try {
-      const html = await fetchWithTimeout(proxy(url), 15000);
-      if (html && /<html|<pre|<body/i.test(html)) return html;
-      lastError = new Error('Respuesta vacía');
-    } catch (e) {
-      lastError = e;
-    }
+  const activos = PROXIES.filter((p) => p.url(url));
+  try {
+    return await Promise.any(activos.map((p) => tryProxy(p, url, 20000)));
+  } catch (e) {
+    const detalles = (e.errors || [e]).map((x) => x.message).join(' · ');
+    const err = new Error('No se pudo abrir la página');
+    err.detalles = detalles;
+    throw err;
   }
-  throw lastError || new Error('No se pudo abrir la página');
 }
 
 /** Todo junto: link → { title, author, text }. */
@@ -157,8 +178,10 @@ export async function importFromLink(input) {
   let html;
   try {
     html = await fetchPage(url);
-  } catch {
-    throw new Error('No se pudo abrir la página. Revisa tu internet e inténtalo de nuevo en un momento.');
+  } catch (e) {
+    const err = new Error('No se pudo leer la página de LaCuerda. Inténtalo de nuevo en un momento; si sigue igual, avísame con el detalle de abajo.');
+    err.detalles = e.detalles;
+    throw err;
   }
   let song = extractSong(html);
   if (!song.text) {
