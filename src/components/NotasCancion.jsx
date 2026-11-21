@@ -29,7 +29,7 @@ export function ElegirNota({ section, canDirector, director = [], mias = [], onD
           </div>
         )}
         <p className="muted small">
-          {tipo === 'director' ? 'Todos los músicos verán esta nota.' : 'Solo tú verás esta nota.'} Toca otra vez para quitarla.
+          {tipo === 'director' ? 'La ven todos.' : 'Solo tú la ves.'}
         </p>
         <div className="notas-opciones">
           {NOTAS.map((n) => {

@@ -57,7 +57,6 @@ export default function Apoyo() {
 
       {MOSTRAR_RECORDATORIO && <section className="card">
         <h2>Recordatorio diario para orar</h2>
-        <p className="muted small">Se agrega a tu calendario y te avisa todos los días a esa hora.</p>
         <div className="row gap wrap">
           <input type="time" value={hora} onChange={(e) => setHora(e.target.value)} style={{ width: 'auto' }} />
           <button className="btn" disabled={!hora} onClick={() => descargarOracion(hora)}><Icon name="bell" /> Recordarme cada día</button>
@@ -66,9 +65,8 @@ export default function Apoyo() {
 
       <section className="card donar">
         <h2>Donar</h2>
-        <p className="muted small">Tu apoyo ayudará a mantener el Cancionero gratis para todas las iglesias.</p>
         <button className="btn big-inline" disabled aria-disabled="true"><Icon name="heart" /> Donar</button>
-        <p className="muted small">Todavía no disponible. Muy pronto.</p>
+        <p className="muted small">Muy pronto.</p>
       </section>
     </div>
   );

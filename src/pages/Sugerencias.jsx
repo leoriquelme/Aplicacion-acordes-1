@@ -32,11 +32,7 @@ export default function Sugerencias() {
         <p className="card muted">Para enviar sugerencias, entra con tu iglesia.</p>
       ) : (
         <section className="card">
-          <p className="muted small">
-            ¿Una idea para mejorar la app, algo que no funciona o algo que te gustaría tener? Escríbelo aquí.
-            Solo lo lee el Administrador.
-          </p>
-          <textarea rows={5} maxLength={1000} value={text} onChange={(e) => { setText(e.target.value); setMsg(''); }} placeholder="Ej. Me gustaría poder ver la letra más grande en el celular…" aria-label="Tu sugerencia" />
+          <textarea rows={5} maxLength={1000} value={text} onChange={(e) => { setText(e.target.value); setMsg(''); }} placeholder="Tu idea o problema…" aria-label="Tu sugerencia" />
           <div className="row gap wrap" style={{ marginTop: '0.6rem' }}>
             <button className="btn primary" disabled={!text.trim() || sending} onClick={send}>{sending ? 'Enviando…' : 'Enviar sugerencia'}</button>
             {msg && <span className="muted small">{msg}</span>}
@@ -47,7 +43,6 @@ export default function Sugerencias() {
       {can.users && mode === 'cloud' && (
         <section className="card sugerencias">
           <h2>Sugerencias recibidas {suggestions.length > 0 && <span className="badge">{suggestions.length}</span>}</h2>
-          <p className="muted small">Solo tú (Administrador) ves esta lista.</p>
           {suggestions.length === 0 ? (
             <p className="muted small">No hay sugerencias pendientes.</p>
           ) : (

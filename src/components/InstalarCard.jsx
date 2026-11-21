@@ -8,7 +8,7 @@ const esIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.
 const instalada = () => window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone === true;
 
 /** Cómo instalar la app en el celular o PC (para abrirla sin internet y como un ícono). */
-export default function InstalarCard() {
+export default function InstalarCard({ bare = false }) {
   const [puede, setPuede] = useState(Boolean(guardado));
   const [hecho, setHecho] = useState(instalada());
   useEffect(() => {
@@ -18,14 +18,15 @@ export default function InstalarCard() {
     window.addEventListener('appinstalled', done);
     return () => { window.removeEventListener('beforeinstallprompt', on); window.removeEventListener('appinstalled', done); };
   }, []);
+  const Caja = bare ? 'div' : 'section';
   return (
-    <section className="card">
-      <h2><Icon name="phone" /> Instalar la app</h2>
+    <Caja className={bare ? '' : 'card'}>
+      {!bare && <h2><Icon name="phone" /> Instalar la app</h2>}
       {hecho ? (
-        <p>✓ Ya la tienes instalada. Ábrela desde su ícono; funciona aunque no haya internet.</p>
+        <p>✓ Ya está instalada.</p>
       ) : (
         <>
-          <p className="muted small">Instalada, la app queda como un ícono en tu teléfono, abre sin internet y puede mostrar avisos del calendario.</p>
+          {!bare && <p className="muted small">Queda como un ícono en tu teléfono y abre sin internet.</p>}
           {puede && (
             <button className="btn primary" onClick={async () => { guardado.prompt(); const r = await guardado.userChoice; if (r.outcome === 'accepted') setHecho(true); guardado = null; setPuede(false); }}>
               <Icon name="download" /> Instalar ahora
@@ -33,21 +34,20 @@ export default function InstalarCard() {
           )}
           {esIOS() ? (
             <ol className="pasos">
-              <li>Abre esta página en <strong>Safari</strong> (si la abriste desde WhatsApp, toca la brújula o “Abrir en Safari”).</li>
-              <li>Toca el botón <strong>Compartir</strong> (cuadrado con flecha ↑).</li>
-              <li>Elige <strong>“Agregar a pantalla de inicio”</strong> y luego <strong>Agregar</strong>.</li>
-              <li>Abre el ícono nuevo y entra con la misma cuenta: tu iglesia ya estará ahí.</li>
+              <li>Ábrela en <strong>Safari</strong>.</li>
+              <li>Toca <strong>Compartir</strong> (↑).</li>
+              <li>Toca <strong>Agregar a inicio</strong>.</li>
             </ol>
           ) : (
             !puede && (
               <ol className="pasos">
-                <li>En Android: abre el menú <strong>⋮</strong> de Chrome y toca <strong>“Instalar app”</strong> o “Agregar a pantalla principal”.</li>
-                <li>En PC: en la barra de direcciones de Chrome o Edge, toca el ícono de <strong>instalar</strong> (pantalla con flecha).</li>
+                <li>Android: menú <strong>⋮</strong> → <strong>Instalar app</strong>.</li>
+                <li>PC: ícono de <strong>instalar</strong> en la barra de direcciones.</li>
               </ol>
             )
           )}
         </>
       )}
-    </section>
+    </Caja>
   );
 }

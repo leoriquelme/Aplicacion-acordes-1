@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { readLocalData, useStore } from '../lib/store.jsx';
 import SongView from '../components/SongView.jsx';
 import AgregarEjemplos from '../components/AgregarEjemplos.jsx';
-import { AjustesFinal, IglesiaBoton, PerfilCard } from '../components/Comunicacion.jsx';
+import { AjustesFinal, FilaAbre, Grupo, PerfilCard } from '../components/Comunicacion.jsx';
 import InstalarCard from '../components/InstalarCard.jsx';
 import IglesiaPrueba from '../components/IglesiaPrueba.jsx';
 import { Respaldo } from '../components/Administracion.jsx';
@@ -38,101 +38,97 @@ export default function Ajustes() {
   };
 
   return (
-    <div className="page">
+    <div className="page ajustes">
       <PerfilCard />
-      <IglesiaBoton />
-      <IglesiaPrueba />
 
-      <section className="card">
-        <h2>Lectura</h2>
-        <label>
-          Tamaño de letra: {settings.fontSize}px
+      <Grupo titulo="Preferencias">
+        <div className="fila">
+          <span className="fila-label">Letra</span>
           <input
-            type="range" min="14" max="40" value={settings.fontSize}
+            className="grow" type="range" min="14" max="40" value={settings.fontSize} aria-label="Tamaño de letra"
             onChange={(e) => updateSettings({ fontSize: Number(e.target.value) })}
           />
-        </label>
-        <label className="check">
-          <input type="checkbox" checked={settings.showChords} onChange={(e) => updateSettings({ showChords: e.target.checked })} />
-          Mostrar acordes (desmárcalo para ver solo la letra)
-        </label>
-        <div className="row gap wrap">
-          <label>
-            Notación de acordes
-            <select value={settings.notation} onChange={(e) => updateSettings({ notation: e.target.value })}>
-              <option value="americano">Americana (C, D, E…)</option>
-              <option value="latino">Latina (Do, Re, Mi…)</option>
-            </select>
-          </label>
-          <label>
-            Tema
-            <select value={settings.theme} onChange={(e) => updateSettings({ theme: e.target.value })}>
-              <option value="claro">Claro</option>
-              <option value="oscuro">Oscuro</option>
-            </select>
-          </label>
+          <span className="fila-valor fija">{settings.fontSize}</span>
         </div>
-        <div className="preview-box">
-          <div className="muted small">Vista previa</div>
+        <label className="fila">
+          <span className="fila-label">Acordes</span>
+          <input
+            type="checkbox" className="interruptor" checked={settings.showChords}
+            onChange={(e) => updateSettings({ showChords: e.target.checked })}
+          />
+        </label>
+        <label className="fila">
+          <span className="fila-label">Notación</span>
+          <select className="fila-select" value={settings.notation} onChange={(e) => updateSettings({ notation: e.target.value })}>
+            <option value="americano">C, D, E</option>
+            <option value="latino">Do, Re, Mi</option>
+          </select>
+        </label>
+        <label className="fila">
+          <span className="fila-label">Tema</span>
+          <select className="fila-select" value={settings.theme} onChange={(e) => updateSettings({ theme: e.target.value })}>
+            <option value="claro">Claro</option>
+            <option value="oscuro">Oscuro</option>
+          </select>
+        </label>
+        <div className="fila fila-muestra">
           <SongView content={MUESTRA} songKey="G" settings={settings} />
         </div>
-      </section>
+      </Grupo>
 
-      {store.mode === 'personal' ? null : store.mode === 'cloud' ? (
-        <>
-          <Respaldo />
-          {store.can.edit && (
-          <section className="card">
-            <h2>Datos</h2>
-            <p className="muted">
-              La iglesia tiene {songs.length} canciones y {events.length} eventos, guardados en internet y compartidos con todos sus miembros.
-            </p>
-            <div className="row gap wrap">
-              <UploadLocal onDone={setMsg} />
-            </div>
-            {store.can.edit && (
-              <div style={{ marginTop: '0.8rem' }}>
-                <p className="muted small" style={{ margin: '0 0 0.4rem' }}>Himnos clásicos de dominio público (sin derechos de autor), como ejemplo para la iglesia:</p>
-                <AgregarEjemplos />
-              </div>
-            )}
-            {msg && <p className="ok">{msg}</p>}
-          </section>
+      {store.mode === 'cloud' && (store.can.users || store.can.edit) && (
+        <Grupo titulo="Iglesia">
+          {store.can.users && (
+            <FilaAbre label="Respaldo">
+              <Respaldo />
+            </FilaAbre>
           )}
-        </>
-      ) : (
-      <section className="card">
-          <h2>Datos</h2>
-          <p className="muted">
-            Tienes {songs.length} canciones y {events.length} eventos guardados en este equipo.
-            Descarga un respaldo de vez en cuando para no perderlos.
-          </p>
-          <div className="row gap wrap">
-            <button className="btn" onClick={exportar}><Icon name="download" /> Descargar respaldo</button>
-            <button className="btn" onClick={() => fileRef.current?.click()}><Icon name="upload" /> Cargar respaldo</button>
-            <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={importar} />
-            <button className="btn" onClick={() => { store.restoreExamples(); setMsg('Canciones de ejemplo restauradas.'); }}>
-              Restaurar canciones de ejemplo
-            </button>
-          </div>
-          {msg && <p className="ok">{msg}</p>}
-          <div className="danger-zone">
-            <button
-              className="btn danger ghost"
-              onClick={() => {
-                if (window.confirm('¿Borrar TODAS las canciones y eventos de este equipo? No se puede deshacer.')) {
-                  store.deleteAll();
-                  setMsg('Se borraron todos los datos.');
-                }
-              }}
-            >
-              Borrar todos los datos
-            </button>
-          </div>
-        </section>
+          {store.can.edit && (
+            <FilaAbre label="Himnos de ejemplo">
+              <div className="row gap wrap">
+                <AgregarEjemplos />
+                <UploadLocal onDone={setMsg} />
+              </div>
+              {msg && <p className="ok">{msg}</p>}
+            </FilaAbre>
+          )}
+          <IglesiaPrueba />
+        </Grupo>
       )}
 
-      <InstalarCard />
+      {store.mode === 'local' && (
+        <Grupo titulo="Datos">
+          <FilaAbre label="Respaldo">
+            <div className="row gap wrap">
+              <button className="btn" onClick={exportar}><Icon name="download" /> Descargar</button>
+              <button className="btn" onClick={() => fileRef.current?.click()}><Icon name="upload" /> Cargar</button>
+              <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={importar} />
+              <button className="btn" onClick={() => { store.restoreExamples(); setMsg('Canciones de ejemplo restauradas.'); }}>
+                Himnos de ejemplo
+              </button>
+              <button
+                className="btn danger ghost"
+                onClick={() => {
+                  if (window.confirm('¿Borrar TODAS las canciones y eventos de este equipo? No se puede deshacer.')) {
+                    store.deleteAll();
+                    setMsg('Se borraron todos los datos.');
+                  }
+                }}
+              >
+                Borrar todo
+              </button>
+            </div>
+            {msg && <p className="ok">{msg}</p>}
+          </FilaAbre>
+        </Grupo>
+      )}
+
+      <Grupo titulo="App">
+        <FilaAbre label={<><Icon name="phone" /> Instalar la app</>}>
+          <InstalarCard bare />
+        </FilaAbre>
+      </Grupo>
+
       <AjustesFinal />
     </div>
   );
@@ -160,7 +156,7 @@ function UploadLocal({ onDone }) {
         }
       }}
     >
-      <Icon name="upload" /> Subir canciones de este equipo ({local.songs.length})
+      <Icon name="upload" /> Subir las de este equipo ({local.songs.length})
     </button>
   );
 }

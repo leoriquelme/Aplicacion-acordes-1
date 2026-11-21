@@ -23,7 +23,7 @@ export default function Eventos() {
         )}
       </div>
       {can.events && lleno && (
-        <p className="card aviso">Ya hay {MAX_FUTUROS} eventos próximos, que es el máximo. Cuando pase uno (o lo elimines) podrás crear otro.</p>
+        <p className="card aviso">Máximo {MAX_FUTUROS} eventos próximos.</p>
       )}
 
       <h2>Próximos</h2>
@@ -40,7 +40,6 @@ export default function Eventos() {
           <button className="btn ghost carpeta-pasados" onClick={() => setShowPast(!showPast)} aria-expanded={showPast}>
             <Icon name="folder" /> {showPast ? '▾' : '▸'} Eventos pasados ({past.length})
           </button>
-          {showPast && <p className="muted small">Se muestran los de los últimos {MESES_PASADOS} meses. Un evento pasado se puede corregir hasta 3 días después.</p>}
           {showPast && (
             <div className="grid">
               {past.map((e) => <EventCard key={e.id} event={e} songs={songs} showSongs={false} />)}

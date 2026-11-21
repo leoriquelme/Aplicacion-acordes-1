@@ -35,14 +35,9 @@ export default function InvitarCard() {
     <section className="card invitar">
       <h2><Icon name="users" /> Invitar hermanos</h2>
       {code === null && <p className="muted">Cargando…</p>}
-      {code === '' && <p className="muted small">La iglesia no tiene código de acceso, así que nadie nuevo puede unirse. Pon uno en Ajustes → tu iglesia.</p>}
+      {code === '' && <p className="muted small">Sin código de acceso: nadie nuevo puede unirse.</p>}
       {code && (
         <>
-          <p className="muted small">
-            Envía este link. Al abrirlo, la persona entra con su cuenta (Google o correo), queda unida como Colaborador
-            y ve cómo dejar la app como un ícono en su teléfono.
-          </p>
-          <p className="link-invitacion"><a href={link} target="_blank" rel="noreferrer">{link}</a></p>
           <div className="row gap wrap">
             <a className="btn primary" href={`https://wa.me/?text=${encodeURIComponent(texto)}`} target="_blank" rel="noreferrer">
               <Icon name="phone" /> Enviar por WhatsApp
@@ -53,7 +48,6 @@ export default function InvitarCard() {
             <button className="btn" onClick={copiar}>Copiar link</button>
           </div>
           {msg && <p className="small">{msg}</p>}
-          <p className="muted small">Si cambias el código de acceso, este link deja de servir y tendrás que enviar el nuevo.</p>
         </>
       )}
     </section>

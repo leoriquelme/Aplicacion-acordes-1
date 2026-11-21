@@ -87,11 +87,7 @@ export default function Importar() {
       <Link to="/canciones/nueva" className="back">← Volver</Link>
       <h1>Importar alabanza</h1>
       <div className="card import-link">
-        <strong>Desde un link de LaCuerda</strong>
-        <p className="muted small">
-          Abre la alabanza en LaCuerda, copia el link (botón Compartir → Copiar, o desde la barra de direcciones) y pégalo aquí.
-          La app trae solo la letra con los acordes.
-        </p>
+        <strong>Link de LaCuerda</strong>
         <div className="row gap wrap">
           <input
             className="grow"
@@ -113,12 +109,8 @@ export default function Importar() {
       </div>
 
       <details className="card import-steps">
-        <summary><strong>O copia y pega el texto</strong></summary>
-        <ol>
-          <li>Abre la canción en la página web (por ejemplo LaCuerda o Cifra Club).</li>
-          <li>Selecciona la letra con los acordes, cópiala (Ctrl+C) y pégala abajo (Ctrl+V).</li>
-          <li>La app pone los acordes entre corchetes y detecta intro, versos, coros y puentes. Revisa la vista previa y pulsa <strong>Usar esta canción</strong>.</li>
-        </ol>
+        <summary><strong>O pega el texto abajo</strong></summary>
+        <p className="muted small">Copia la letra con acordes de cualquier página y pégala.</p>
       </details>
 
       <div className="editor">
@@ -134,7 +126,7 @@ export default function Importar() {
             </label>
           </div>
           <label>
-            Pega aquí la canción
+            Canción
             <textarea
               className="mono"
               rows={20}
@@ -156,9 +148,6 @@ export default function Importar() {
             </button>
             {raw && <button className="btn ghost" onClick={() => onPaste('')}>Borrar</button>}
           </div>
-          <p className="muted small">
-            Después podrás corregir cualquier detalle en el editor antes de guardar.
-          </p>
         </div>
 
         <div className="editor-preview">
@@ -173,7 +162,7 @@ export default function Importar() {
               <SongView content={result.content} songKey={result.key} order={result.order} settings={settings} fontSize={18} />
             </>
           ) : (
-            <p className="muted">Aquí verás cómo queda la canción.</p>
+            <p className="muted">—</p>
           )}
         </div>
       </div>
