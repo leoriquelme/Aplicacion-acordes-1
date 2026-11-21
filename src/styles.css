@@ -1500,3 +1500,21 @@ label.barra-btn { margin: 0; display: inline-grid; font-weight: 700; }
 .editor-barra-titulo { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.2; }
 .editor-barra-titulo strong { font-size: 1.1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (min-width: 801px) { .editor-barra { top: 4.4rem; } }
+
+/* Presentar: aviso En vivo arriba (junto a las partes); avance automático abajo a la derecha */
+.present-arriba {
+  position: sticky; top: -2.5vh; z-index: 6; margin: -0.2rem -4vw 1rem; padding: 0.4rem 4vw 0.2rem; background: #000;
+  display: flex; flex-direction: column; gap: 0.4rem;
+}
+.present-arriba .secuencia { position: static; margin: 0 -4vw; padding: 0.2rem 4vw 0.4rem; }
+.present-arriba .en-vivo-pill,
+.present .en-vivo-pill {
+  position: static; transform: none; max-width: 100%; align-self: flex-start; overflow: hidden; font-size: 0.85rem;
+}
+.en-vivo-pill > :not(.btn):not(.en-vivo-dot) { overflow: hidden; text-overflow: ellipsis; }
+.present .auto-avance { left: auto; right: 0.75rem; flex-direction: row-reverse; bottom: calc(max(0.75rem, env(safe-area-inset-bottom)) + 0.5rem); }
+.present .present-nav { right: auto; left: 0.75rem; bottom: calc(max(0.75rem, env(safe-area-inset-bottom)) + 0.5rem); }
+.present { padding-bottom: calc(7rem + env(safe-area-inset-bottom)); }
+@media (max-width: 640px) {
+  .present .en-vivo-pill { font-size: 0.8rem; }
+}
