@@ -8,6 +8,7 @@ export default function InvitarCard() {
   const { can, church, getAccessCode } = useStore();
   const [code, setCode] = useState(null);
   const [msg, setMsg] = useState('');
+  const [abierto, setAbierto] = useState(false);
   useEffect(() => {
     if (!getAccessCode || !can.users) return;
     getAccessCode().then(setCode).catch(() => setCode(''));
@@ -33,22 +34,28 @@ export default function InvitarCard() {
 
   return (
     <section className="card invitar">
-      <h2><Icon name="users" /> Invitar hermanos</h2>
-      {code === null && <p className="muted">Cargando…</p>}
-      {code === '' && <p className="muted small">Sin código de acceso: nadie nuevo puede unirse.</p>}
-      {code && (
-        <>
-          <div className="row gap wrap">
-            <a className="btn primary" href={`https://wa.me/?text=${encodeURIComponent(texto)}`} target="_blank" rel="noreferrer">
-              <Icon name="phone" /> Enviar por WhatsApp
-            </a>
-            {typeof navigator !== 'undefined' && navigator.share && (
-              <button className="btn" onClick={compartir}>Compartir…</button>
-            )}
-            <button className="btn" onClick={copiar}>Copiar link</button>
-          </div>
-          {msg && <p className="small">{msg}</p>}
-        </>
+      <button className={`btn ${abierto ? '' : 'primary'} invitar-boton`} onClick={() => { setAbierto((a) => !a); setMsg(''); }} aria-expanded={abierto}>
+        <Icon name="users" /> Invitar hermanos <span className="muted">{abierto ? '▴' : '▾'}</span>
+      </button>
+      {abierto && (
+        <div className="invitar-opciones">
+          {code === null && <p className="muted">Cargando…</p>}
+          {code === '' && <p className="muted small">Sin código de acceso: nadie nuevo puede unirse.</p>}
+          {code && (
+            <>
+              <div className="row gap wrap">
+                <a className="btn primary" href={`https://wa.me/?text=${encodeURIComponent(texto)}`} target="_blank" rel="noreferrer">
+                  <Icon name="phone" /> Enviar por WhatsApp
+                </a>
+                {typeof navigator !== 'undefined' && navigator.share && (
+                  <button className="btn" onClick={compartir}>Compartir…</button>
+                )}
+                <button className="btn" onClick={copiar}>Copiar link</button>
+              </div>
+              {msg && <p className="small">{msg}</p>}
+            </>
+          )}
+        </div>
       )}
     </section>
   );

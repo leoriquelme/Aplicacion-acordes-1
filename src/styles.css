@@ -1432,3 +1432,11 @@ label.barra-btn { margin: 0; display: inline-grid; font-weight: 700; }
 .auto-vel button { width: 2.2rem; height: 2.2rem; border-radius: 50%; border: 0; background: #262626; color: #fff; font-size: 1.1rem; cursor: pointer; }
 .auto-vel span { min-width: 1.4rem; text-align: center; font-weight: 700; }
 .present-head { align-items: center; } .present-head h1 { flex: 1; } .present-count { white-space: nowrap; }
+
+/* Guía para instalar la app */
+.guia-instalar { margin-top: 0.7rem; padding: 0.8rem; border-radius: 10px; background: var(--bg); display: grid; gap: 0.5rem; }
+.guia-instalar p { margin: 0; }
+.guia-instalar .btn { justify-self: start; }
+.tecla { display: inline-block; min-width: 1.4em; padding: 0 0.3em; border: 1px solid #c9d1de; border-radius: 6px; text-align: center; font-weight: 700; }
+.invitar-boton { width: 100%; justify-content: center; }
+.invitar-opciones { margin-top: 0.8rem; }
