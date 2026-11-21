@@ -4,6 +4,7 @@ import { UsersCard } from '../components/ChurchAdmin.jsx';
 import { Avatar } from '../components/Avatares.jsx';
 import Icon from '../components/Icon.jsx';
 import { CodigoAcceso } from '../components/Administracion.jsx';
+import InvitarCard from '../components/InvitarCard.jsx';
 
 /** Nombre de la iglesia arriba y sus usuarios abajo. El administrador además cambia perfiles. */
 export default function Miembros() {
@@ -27,6 +28,7 @@ export default function Miembros() {
       <p className="muted">{people.length} {people.length === 1 ? 'miembro' : 'miembros'}</p>
       {/* El código de acceso: solo el Administrador, y solo al entrar desde Ajustes. */}
       {desdeAjustes && <CodigoAcceso />}
+      <InvitarCard />
       {can.users ? (
         <UsersCard />
       ) : (

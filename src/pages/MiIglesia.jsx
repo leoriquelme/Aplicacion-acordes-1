@@ -7,6 +7,7 @@ import SongRanking from '../components/SongRanking.jsx';
 import HistorialParticipacion from '../components/HistorialParticipacion.jsx';
 import Icon from '../components/Icon.jsx';
 import MisIglesias from '../components/MisIglesias.jsx';
+import InvitarCard from '../components/InvitarCard.jsx';
 
 /** Pestaña "Mi iglesia": datos de la iglesia, mis equipos, canciones más usadas e historial. */
 export default function MiIglesia() {
@@ -43,6 +44,7 @@ export default function MiIglesia() {
         <div className="card dato"><strong>{pasados}</strong><span>eventos realizados</span></div>
       </div>
 
+      {mode === 'cloud' && <InvitarCard />}
       {mode === 'cloud' && <ResumenEquipos />}
       <SongRanking songs={songs} events={events} />
       {can.events && mode === 'cloud' && <HistorialParticipacion participations={participations} events={events} />}

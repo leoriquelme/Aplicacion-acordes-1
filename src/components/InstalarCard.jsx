@@ -33,9 +33,10 @@ export default function InstalarCard() {
           )}
           {esIOS() ? (
             <ol className="pasos">
-              <li>Abre esta página en <strong>Safari</strong>.</li>
+              <li>Abre esta página en <strong>Safari</strong> (si la abriste desde WhatsApp, toca la brújula o “Abrir en Safari”).</li>
               <li>Toca el botón <strong>Compartir</strong> (cuadrado con flecha ↑).</li>
               <li>Elige <strong>“Agregar a pantalla de inicio”</strong> y luego <strong>Agregar</strong>.</li>
+              <li>Abre el ícono nuevo y entra con la misma cuenta: tu iglesia ya estará ahí.</li>
             </ol>
           ) : (
             !puede && (

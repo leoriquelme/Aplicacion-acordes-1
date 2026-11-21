@@ -859,3 +859,10 @@ button.nota-chip { cursor: pointer; }
 .import-link input { min-width: 0; flex: 1 1 220px; }
 .import-steps summary { cursor: pointer; }
 .import-steps[open] summary { margin-bottom: 0.5rem; }
+
+/* Invitación con link */
+.aviso-invitacion { background: #e8f1fb; color: #1f3a5f; border: 1px solid #c4dbf3; border-radius: 10px; padding: 0.7rem 0.8rem; text-align: left; font-size: 0.95rem; }
+.invitacion { text-align: center; }
+.invitacion .card { text-align: left; margin: 1rem 0; }
+.link-invitacion { background: var(--bg, #f6f7fb); border-radius: 8px; padding: 0.5rem 0.7rem; overflow-wrap: anywhere; font-size: 0.9rem; margin: 0.4rem 0 0.7rem; }
+:root[data-theme='oscuro'] .aviso-invitacion { background: #1b2a3d; color: #cfe1f5; border-color: #2c4565; }

@@ -7,6 +7,10 @@ import App from './App.jsx';
 import './styles.css';
 
 import CloudRoot from './CloudRoot.jsx';
+import { guardarInvitacionDelLink } from './lib/invitacion.js';
+
+// Si se abrió con un link de invitación (?unirse=CÓDIGO), guardarlo antes de mostrar nada.
+guardarInvitacionDelLink();
 
 // Con Firebase configurado: iglesias compartidas. Sin configurar: todo en este equipo.
 
