@@ -1344,7 +1344,7 @@ img.logo-chip { background: #fff; }
   background: var(--surface); font-size: 0.78em; font-weight: 700;
 }
 .present .sec-abrev, .song:not(.song-tarjetas) .sec-abrev { display: none; }
-.content .song-tarjetas .chord { color: var(--text); font-weight: 800; }
+.content .song-tarjetas .chord { color: var(--chord); font-weight: 800; }
 .content .song-tarjetas .lyric { color: color-mix(in srgb, var(--text) 85%, var(--muted)); }
 .content .song-tarjetas .line + .line { margin-top: 0.35em; }
 .content .song-tarjetas .block-label .times { background: var(--surface); border-radius: 999px; padding: 0.1em 0.5em; font-size: 0.7em; }
@@ -1396,11 +1396,10 @@ img.logo-chip { background: #fff; }
 .orden-fila .order-rail-list { width: auto; }
 .orden-fila { gap: 0.35rem; } .orden-fila .order-rail-list { gap: 0.45rem; } .orden-fila .rail-item button { min-width: 2.75rem; height: 2.75rem; }
 
-/* ===== 21-nov: acordes azules, Presentar destacado, secuencia y avance automático ===== */
+/* ===== 21-nov: Presentar destacado, secuencia y avance automático ===== */
 label.barra-btn { margin: 0; display: inline-grid; font-weight: 700; }
 .barra-presentar { background: var(--primary); color: #fff; padding: 0 1rem 0 0.8rem; display: inline-flex; gap: 0.4rem; align-items: center; }
 .barra-presentar:hover { background: color-mix(in srgb, var(--primary) 85%, #000); color: #fff; }
-.content .song-tarjetas .chord { color: var(--chord); }
 .present-envivo { margin-left: auto; align-self: center; }
 
 .secuencia {

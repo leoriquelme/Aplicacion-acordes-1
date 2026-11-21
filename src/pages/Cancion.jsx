@@ -1,4 +1,5 @@
 import { songKey } from '../lib/importar.js';
+import { sePuedeEditar } from '../lib/limitesEventos.js';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -57,6 +58,13 @@ export default function Cancion() {
   }
 
   const shownOrder = fromEvent?.items.find((i) => i.songId === song.id && i.order?.length)?.order || song.order;
+  // Abierta desde un evento: el orden que se edita es el de ese evento (no el general de la canción).
+  const ordenDelEvento = Boolean(fromEvent && can.events && sePuedeEditar(fromEvent));
+  const guardarOrden = (order) => {
+    if (ordenDelEvento) saveEvent({ ...fromEvent, items: fromEvent.items.map((i) => (i.songId === song.id ? { ...i, order } : i)) });
+    else saveSong({ ...song, order });
+  };
+  const puedeEditarOrden = fromEvent ? ordenDelEvento : can.edit;
   const directorNotes = song.notes || [];
   const misNotas = myNotes[song.id] || [];
   const saveDirector = (list) => saveSong({ ...song, notes: list });
@@ -153,8 +161,8 @@ export default function Cancion() {
             <h3>Orden</h3>
             <button className="btn small primary" onClick={() => setEditOrder(false)}>✓ Listo</button>
           </div>
-          <p className="muted small">Arrastra ⠿ para mover · + repite</p>
-          <ArrangementEditor content={song.content} order={song.order} onChange={(order) => saveSong({ ...song, order })} />
+          <p className="muted small">{ordenDelEvento ? `Orden solo para “${fromEvent.name}” · ` : ''}Arrastra ⠿ para mover · + repite</p>
+          <ArrangementEditor content={song.content} order={ordenDelEvento ? shownOrder : song.order} onChange={guardarOrden} />
         </section>
       ) : (
         <nav className="orden-fila" aria-label="Orden de la canción">
@@ -165,7 +173,7 @@ export default function Cancion() {
             compact
             onPick={(i) => document.getElementById(`seccion-${i}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
           />
-          {can.edit && (
+          {puedeEditarOrden && (
             <button className="orden-editar" onClick={() => setEditOrder(true)} title="Editar el orden" aria-label="Editar el orden">
               <Icon name="edit" />
             </button>

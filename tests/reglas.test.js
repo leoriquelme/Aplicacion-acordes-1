@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
 import { assertFails, assertSucceeds, initializeTestEnvironment } from '@firebase/rules-unit-testing';
 import {
-  collection, deleteDoc, deleteField, doc, getDoc, getDocs, serverTimestamp, setDoc, updateDoc, writeBatch,
+  collection, deleteDoc, deleteField, doc, getDoc, getDocs, query, serverTimestamp, setDoc, updateDoc, where, writeBatch,
 } from 'firebase/firestore';
 import { keyOf } from '../src/lib/claves.js';
 
@@ -141,6 +141,29 @@ describe('unirse con código', () => {
     await assertSucceeds(deleteDoc(doc(db, 'churches', C, 'members', 'juan')));
     await assertFails(getDocs(collection(db, 'churches', C, 'songs')));
     await assertSucceeds(unirse(db, 'juan', 'ABCDEF'));
+  });
+  it('salir con foto y volver a unirse (la ficha se reemplaza y luego vuelve la foto)', async () => {
+    const db = cuenta('juan');
+    await unirse(db, 'juan', 'ABCDEF');
+    await assertSucceeds(updateDoc(doc(db, 'churches', C, 'people', 'juan'), { photo: 'data:image/jpeg;base64,AAAA', teams: ['Bajo'] }));
+    await assertSucceeds(deleteDoc(doc(db, 'churches', C, 'members', 'juan')));
+    await assertSucceeds(unirse(db, 'juan', 'ABCDEF'));
+    await assertSucceeds(updateDoc(doc(db, 'churches', C, 'people', 'juan'), { lastSeen: 2, photo: 'data:image/jpeg;base64,AAAA' }));
+  });
+  it('antes de salir, uno borra sus inscripciones', async () => {
+    const db = cuenta('juan');
+    await unirse(db, 'juan', 'ABCDEF');
+    await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), 'churches', C, 'events', 'e1'), { name: 'Servicio', date: '2099-01-01', items: [] }));
+    await assertSucceeds(setDoc(doc(db, 'churches', C, 'participations', 'e1__juan'), { eventId: 'e1', personKey: 'juan', name: 'Juan', role: 'Bajo', group: 'Instrumentos', date: '2099-01-01', at: 1 }));
+    await assertSucceeds(getDocs(query(collection(db, 'churches', C, 'participations'), where('personKey', '==', 'juan'))));
+    await assertSucceeds(deleteDoc(doc(db, 'churches', C, 'participations', 'e1__juan')));
+    await assertSucceeds(deleteDoc(doc(db, 'churches', C, 'members', 'juan')));
+  });
+  it('cada uno cambia su nombre en su ficha', async () => {
+    const db = cuenta('juan');
+    await unirse(db, 'juan', 'ABCDEF');
+    await assertSucceeds(updateDoc(doc(db, 'churches', C, 'people', 'juan'), { name: 'Juan Pablo' }));
+    await assertSucceeds(setDoc(doc(db, 'users', 'juan'), { name: 'Juan Pablo' }, { merge: true }));
   });
   it('quien creó la iglesia no puede salir de ella', async () => {
     await assertFails(deleteDoc(doc(cuenta('ana'), 'churches', C, 'members', 'ana')));

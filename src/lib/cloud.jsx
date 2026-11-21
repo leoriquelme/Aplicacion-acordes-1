@@ -12,9 +12,6 @@ import { normalize } from './chordpro.js';
 import { keyOf } from './claves.js';
 import { datosEnVivo } from './envivo.js';
 
-// Se entra con Iglesia + Nombre. Por detrás, cada equipo tiene una sesión anónima de Firebase
-// (invisible para la persona) que permite que las reglas de permisos funcionen.
-
 // Cada persona entra con su cuenta (Google o correo y contraseña). Sin iglesia ve los himnos,
 // la biblioteca compartida y sus canciones personales. Puede crear una iglesia o unirse con un código.
 
@@ -105,6 +102,16 @@ export async function guardarPerfil(name) {
   await setDoc(userRef(u.uid), { name: name.trim().slice(0, 60), email: u.email || '' }, { merge: true });
 }
 
+/** Cambiar mi nombre en mi cuenta y en mi ficha de todas mis iglesias. */
+export async function cambiarMiNombre(nombre) {
+  const name = nombre.trim().replace(/\s+/g, ' ').slice(0, 60);
+  if (!name) return;
+  const uid = auth.currentUser.uid;
+  await setDoc(userRef(uid), { name }, { merge: true });
+  const mias = Object.keys((await getDoc(userRef(uid))).data()?.churches || {});
+  await Promise.all(mias.map((c) => updateDoc(personRef(c, uid), { name }).catch(() => {})));
+}
+
 /** Anotar en mi perfil una iglesia a la que pertenezco (para mostrarla en "Mis iglesias"). */
 async function anotarIglesia(churchId, churchName) {
   await setDoc(userRef(auth.currentUser.uid), { churches: { [churchId]: { name: churchName } } }, { merge: true });
@@ -134,7 +141,9 @@ async function entrarComoMiembro(churchId, { code = '', role = 'colaborador', na
   if (!ya?.exists()) {
     const b = writeBatch(db);
     b.set(memberRef(churchId, uid), { key: uid, name, role, ...(code ? { code } : {}), joinedAt: now });
-    b.set(personRef(churchId, uid), { name, uid, role, firstSeen: now, lastSeen: now }, { merge: true });
+    // Sin merge: si volvió a unirse, su ficha antigua (con foto, equipos…) se reemplaza entera.
+    // La foto se vuelve a poner justo abajo, desde su cuenta.
+    b.set(personRef(churchId, uid), { name, uid, role, firstSeen: now, lastSeen: now });
     await b.commit();
   }
   const c = (await getDoc(doc(db, 'churches', churchId))).data();
@@ -229,7 +238,12 @@ export async function crearIglesia({ church, city = '', name, cuantas = 0 }) {
 
 /** Salir de una iglesia (deja de ser miembro). */
 export async function salirDeIglesia(churchId) {
-  await deleteDoc(memberRef(churchId, auth.currentUser.uid));
+  const uid = auth.currentUser.uid;
+  // Antes de salir (después ya no se puede): quitarme de los eventos que vienen.
+  const hoy = new Date().toISOString().slice(0, 10);
+  const mias = await getDocs(query(collection(db, 'churches', churchId, 'participations'), where('personKey', '==', uid))).catch(() => null);
+  await Promise.all((mias?.docs || []).filter((d) => (d.data().date || '') >= hoy).map((d) => deleteDoc(d.ref).catch(() => {})));
+  await deleteDoc(memberRef(churchId, uid));
   await olvidarIglesia(churchId);
 }
 
@@ -377,6 +391,17 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
       .filter((p) => !p.uid || roleOf[p.key]) // quien salió de la iglesia ya no aparece
       .map((p) => (p.uid ? { ...p, role: roleOf[p.key] } : p));
   }, [peopleDocs, members]);
+  const person = mySession ? people.find((p) => p.key === mySession.key) : null;
+
+  // Inscripciones con el nombre actual de cada persona. En los eventos que vienen no aparece
+  // quien ya no es miembro (en el historial sí queda).
+  const participacionesVisibles = useMemo(() => {
+    const nombre = Object.fromEntries(people.map((p) => [p.key, p.name]));
+    const hoy = new Date().toISOString().slice(0, 10);
+    return participations
+      .filter((p) => nombre[p.personKey] !== undefined || (p.date || '') < hoy)
+      .map((p) => (nombre[p.personKey] && nombre[p.personKey] !== p.name ? { ...p, name: nombre[p.personKey] } : p));
+  }, [participations, people]);
 
   // Favoritas: un documento por persona que solo esa persona puede leer.
   const myKey = mySession?.key;
@@ -445,10 +470,7 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
   }, [report]);
 
   /** Cambiar el nombre que ven los demás (la persona sigue siendo la misma). */
-  const updateMyName = useCallback((name) => {
-    if (!myKey) return Promise.resolve();
-    return updateDoc(personRef(churchId, myKey), { name: name.trim().slice(0, 60) });
-  }, [churchId, myKey]);
+  const updateMyName = useCallback((name) => cambiarMiNombre(name), []);
 
   /** Mi foto (en mi cuenta y en todas mis iglesias). */
   const setMyPhoto = useCallback((photo) => guardarMiFoto(photo), []);
@@ -500,10 +522,13 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
   /** El administrador saca a alguien de la iglesia. */
   const removePerson = useCallback(async (key) => {
     try {
+      const hoy = new Date().toISOString().slice(0, 10);
+      await Promise.all(participations.filter((p) => p.personKey === key && (p.date || '') >= hoy)
+        .map((p) => deleteDoc(doc(col('participations'), p.id)).catch(() => {})));
       if (members.some((m) => m.uid === key)) await deleteDoc(memberRef(churchId, key));
       await deleteDoc(personRef(churchId, key));
     } catch (e) { report(e); }
-  }, [churchId, members, report]);
+  }, [churchId, members, report, participations, col]);
 
   /** Sube canciones de este equipo a la iglesia, saltando títulos que ya existen. */
   const uploadLocal = useCallback(async ({ songs: localSongs }) => {
@@ -519,9 +544,9 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
       churchId, churchName: churchDoc?.name || churchName, songId: song.id,
       title: song.title, author: song.author || '', key: song.key || '', content: song.content || '',
       ...(song.order?.length ? { order: song.order } : {}),
-      sharedBy: mySession?.name || '', confirmed: true, sharedAt: Date.now(),
+      sharedBy: person?.name || mySession?.name || '', confirmed: true, sharedAt: Date.now(),
     });
-  }, [churchId, churchName, churchDoc?.name, mySession?.name]);
+  }, [churchId, churchName, churchDoc?.name, mySession?.name, person?.name]);
 
   const unshareSong = useCallback(
     (songId) => deleteDoc(doc(db, 'library', `${churchId}__${songId}`)).catch(report),
@@ -624,17 +649,16 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
     setDoc(doc(db, 'churches', churchId, 'live', 'actual'), datosEnVivo({ ...live, by: user.uid, byName: live.byName, active: false })).catch(() => {});
   }, [churchId, user.uid, live]);
 
-  const person = mySession ? people.find((p) => p.key === mySession.key) : null;
   const role = mySession?.role || 'colaborador';
   const can = ROLES[role] || ROLES.colaborador;
   const me = mySession === undefined ? undefined : expired ? null : mySession && { name: person?.name || mySession.name, key: mySession.key, teams: person?.teams || [], photo: person?.photo || '' };
   const church = { id: churchId, name: churchDoc?.name || churchName, ownerUid: churchDoc?.ownerUid, logo: churchDoc?.logo || '' };
 
   const value = useMemo(() => ({
-    mode: 'cloud', churchId, church, me, role, can, people, songs, events, participations, error,
+    mode: 'cloud', churchId, church, me, role, can, people, songs, events, participations: participacionesVisibles, error,
     clearError: () => setError(''), saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples, myShares, shareSong, unshareSong, loadLibrary,
     favorites, toggleFavorite, suggestions, sendSuggestion, resolveSuggestion, prayers, pray, updateMyName, setMyTeams, setMyPhoto, removePhoto, setChurchLogo, isTest, fillTestData, resetTestChurch, getAccessCode, setAccessCode, restoreBackup, myNotes, setMyNotes, live, publishLive, stopLive, myUid: user.uid,
-  }), [churchId, church.name, church.logo, me?.name, me?.key, me?.photo, setMyPhoto, removePhoto, setChurchLogo, expired, role, can, people, songs, events, participations, error, saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples, myShares, shareSong, unshareSong, loadLibrary, favorites, toggleFavorite, suggestions, sendSuggestion, resolveSuggestion, prayers, pray, updateMyName, setMyTeams, person?.teams?.join('|'), isTest, fillTestData, resetTestChurch, getAccessCode, setAccessCode, restoreBackup, myNotes, setMyNotes, live, publishLive, stopLive, user.uid]); // eslint-disable-line react-hooks/exhaustive-deps
+  }), [churchId, church.name, church.logo, me?.name, me?.key, me?.photo, setMyPhoto, removePhoto, setChurchLogo, expired, role, can, people, songs, events, participacionesVisibles, error, saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples, myShares, shareSong, unshareSong, loadLibrary, favorites, toggleFavorite, suggestions, sendSuggestion, resolveSuggestion, prayers, pray, updateMyName, setMyTeams, person?.teams?.join('|'), isTest, fillTestData, resetTestChurch, getAccessCode, setAccessCode, restoreBackup, myNotes, setMyNotes, live, publishLive, stopLive, user.uid]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }

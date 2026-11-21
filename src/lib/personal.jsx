@@ -6,7 +6,7 @@ import { cancionesEjemplo } from '../data/ejemplos.js';
 import { db } from './firebase.js';
 import { DataContext } from './store.jsx';
 import { normalize } from './chordpro.js';
-import { guardarMiFoto, useAuth } from './cloud.jsx';
+import { cambiarMiNombre, guardarMiFoto, useAuth } from './cloud.jsx';
 
 // Vista personal (sin iglesia): mis canciones (users/{uid}/songs), himnos de ejemplo y la
 // biblioteca que comparten las iglesias. Sin eventos ni miembros.
@@ -68,7 +68,7 @@ export function PersonalStoreProvider({ children }) {
     setDoc(doc(db, 'stats', 'oracion'), { count: increment(1) }, { merge: true }).catch(report);
   }, [report]);
 
-  const updateMyName = useCallback((name) => setDoc(userDoc, { name: name.trim().slice(0, 60) }, { merge: true }), [userDoc]);
+  const updateMyName = useCallback((name) => cambiarMiNombre(name), []);
 
   const me = { name: profile?.name || user.displayName || '', key: uid, teams: [], photo: profile?.photo || '' };
   const value = useMemo(() => ({
