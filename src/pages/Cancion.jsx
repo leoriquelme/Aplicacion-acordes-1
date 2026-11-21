@@ -9,6 +9,8 @@ import SongView from '../components/SongView.jsx';
 import CompartirCancion from '../components/CompartirCancion.jsx';
 import ArrangementEditor from '../components/ArrangementEditor.jsx';
 import Icon from '../components/Icon.jsx';
+import SpotifyLogo from '../components/SpotifyLogo.jsx';
+import { linkAbrir } from '../lib/spotify.js';
 import ConfirmarEliminar from '../components/ConfirmarEliminar.jsx';
 import { ElegirNota } from '../components/NotasCancion.jsx';
 import { alternarNota, notasPorSeccion } from '../lib/notas.js';
@@ -124,6 +126,11 @@ export default function Cancion() {
       </h1>
       <p className="cancion-meta">
         {[song.author, song.bpm && `${song.bpm} BPM`, song.compas].filter(Boolean).join(' • ')}
+        {linkAbrir(song.spotify) && (
+          <a className="spotify-btn" href={linkAbrir(song.spotify)} target="_blank" rel="noopener noreferrer" title="Abrir esta canción en Spotify">
+            <SpotifyLogo /> Escuchar en Spotify
+          </a>
+        )}
       </p>
       {(fromEvent || capo > 0) && (
         <p className="cancion-aviso muted small">

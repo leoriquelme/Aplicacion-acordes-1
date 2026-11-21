@@ -6,9 +6,10 @@ import SectionButtons from '../components/SectionButtons.jsx';
 import { autodetect } from '../lib/importar.js';
 import SongView from '../components/SongView.jsx';
 import Icon from '../components/Icon.jsx';
+import { esLinkSpotify } from '../lib/spotify.js';
 
 const BORRADOR = 'cancionero-borrador';
-const pick = (f) => ({ title: f.title, author: f.author, key: f.key, content: f.content, bpm: f.bpm || '', compas: f.compas || '' });
+const pick = (f) => ({ title: f.title, author: f.author, key: f.key, content: f.content, bpm: f.bpm || '', compas: f.compas || '', spotify: f.spotify || '' });
 function leerBorrador() {
   try {
     const b = JSON.parse(localStorage.getItem(BORRADOR));
@@ -178,6 +179,16 @@ export default function EditarCancion() {
               </datalist>
             </label>
           </div>
+          <label>
+            Link de Spotify <span className="muted small">(opcional)</span>
+            <input
+              type="url" inputMode="url"
+              value={form.spotify || ''}
+              onChange={(e) => setForm((f) => ({ ...f, spotify: e.target.value.trim().slice(0, 300) }))}
+              placeholder="Pega aquí el link (Spotify → Compartir → Copiar enlace)"
+            />
+            {!esLinkSpotify(form.spotify) && <span className="error small">Ese link no parece de Spotify. Debe empezar con https://open.spotify.com/…</span>}
+          </label>
           <div className="field">
             <label htmlFor="letra" className="field-label">Letra y acordes</label>
             <div className="row gap wrap between">

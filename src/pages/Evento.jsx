@@ -16,6 +16,8 @@ import Participacion from '../components/Participacion.jsx';
 import ConfirmX from '../components/ConfirmX.jsx';
 import ConfirmarEliminar from '../components/ConfirmarEliminar.jsx';
 import Icon from '../components/Icon.jsx';
+import EscucharCulto from '../components/EscucharCulto.jsx';
+import { esLinkSpotify } from '../lib/spotify.js';
 
 export default function Evento() {
   const { id } = useParams();
@@ -89,6 +91,7 @@ export default function Evento() {
           <Link className="btn small" to={`/imprimir/evento/${event.id}`}><Icon name="print" /> PDF del culto</Link>
           {MOSTRAR_RECORDATORIO && <button className="btn small" onClick={() => descargarRecordatorio(event)}><Icon name="bell" /> Recordarme</button>}
         </div>
+        <EscucharCulto event={event} lines={lines} />
         {event.notes && <p className="card">{event.notes}</p>}
         <section className="card orden-culto">
         <h2>Orden del culto</h2>
@@ -186,6 +189,16 @@ export default function Evento() {
         <label>
           Notas
           <textarea rows={2} value={event.notes || ''} onChange={(e) => update({ notes: e.target.value })} placeholder="Ej. Cena del Señor, bautismo…" />
+        </label>
+        <label>
+          Playlist de Spotify <span className="muted small">(opcional)</span>
+          <input
+            type="url" inputMode="url"
+            value={event.spotify || ''}
+            onChange={(e) => update({ spotify: e.target.value.trim().slice(0, 300) })}
+            placeholder="Si armaste la playlist en Spotify, pega aquí su link"
+          />
+          {!esLinkSpotify(event.spotify) && <span className="error small">Ese link no parece de Spotify.</span>}
         </label>
       </div>
 
