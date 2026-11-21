@@ -866,3 +866,31 @@ button.nota-chip { cursor: pointer; }
 .invitacion .card { text-align: left; margin: 1rem 0; }
 .link-invitacion { background: var(--bg, #f6f7fb); border-radius: 8px; padding: 0.5rem 0.7rem; overflow-wrap: anywhere; font-size: 0.9rem; margin: 0.4rem 0 0.7rem; }
 :root[data-theme='oscuro'] .aviso-invitacion { background: #1b2a3d; color: #cfe1f5; border-color: #2c4565; }
+
+/* En vivo: el director pasa la letra y los demás la siguen */
+.en-vivo-dot { display: inline-block; width: 0.6em; height: 0.6em; border-radius: 50%; background: #e53935; flex-shrink: 0; animation: en-vivo-latido 1.6s ease-in-out infinite; }
+@keyframes en-vivo-latido { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) { .en-vivo-dot { animation: none; } }
+.en-vivo-barra {
+  display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;
+  margin: 0.75rem auto 0; max-width: 1100px; width: calc(100% - 2rem);
+  padding: 0.6rem 0.9rem; border-radius: 12px; border: 1px solid var(--border);
+  background: var(--surface); box-shadow: var(--shadow);
+}
+.en-vivo-barra .grow { flex: 1; min-width: 12rem; }
+.en-vivo-pill {
+  position: fixed; top: max(0.75rem, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 25;
+  display: flex; align-items: center; gap: 0.5rem; max-width: calc(100vw - 7rem);
+  background: rgba(30, 30, 30, 0.95); color: #eee; border: 1px solid #3a3a3a; border-radius: 999px;
+  padding: 0.3rem 0.4rem 0.3rem 0.8rem; font-size: 0.9rem; white-space: nowrap;
+}
+.en-vivo-pill:not(:has(button)) { padding-right: 0.8rem; }
+.en-vivo-pill .btn { background: #2a2a2a; color: #fff; border-color: #3a3a3a; }
+.en-vivo-pill .btn.primary { background: #3f51b5; border-color: #3f51b5; }
+.present-menu-panel .btn.en-vivo-btn { background: #3a1d1d; border-color: #e53935; color: #fff; }
+.present .song .block { transition: background-color 0.3s, box-shadow 0.3s; }
+.present .song .block.en-vivo-actual { box-shadow: inset 4px 0 0 #e53935; background: rgba(229, 57, 53, 0.08); border-radius: 8px; }
+@media (max-width: 640px) {
+  .en-vivo-pill { font-size: 0.8rem; top: auto; bottom: max(0.75rem, env(safe-area-inset-bottom)); left: 0.75rem; transform: none; max-width: calc(100vw - 7.5rem); overflow: hidden; }
+  .en-vivo-barra { width: calc(100% - 2rem); }
+}

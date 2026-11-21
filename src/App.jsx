@@ -1,4 +1,4 @@
-import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { Link, NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import Inicio from './pages/Inicio.jsx';
 import Canciones from './pages/Canciones.jsx';
 import Cancion from './pages/Cancion.jsx';
@@ -17,6 +17,7 @@ import Importar from './pages/Importar.jsx';
 import InicioPersonal from './pages/InicioPersonal.jsx';
 import { useStore } from './lib/store.jsx';
 import Icon from './components/Icon.jsx';
+import { enVivoActivo } from './lib/envivo.js';
 
 const TABS = [
   { to: '/', label: 'Inicio', icon: 'home', end: true },
@@ -29,7 +30,8 @@ const TABS = [
 export default function App() {
   const { pathname } = useLocation();
   const presenting = pathname.startsWith('/presentar');
-  const { mode, church, me } = useStore();
+  const { mode, church, me, live, myUid, events = [] } = useStore();
+  const liveEvent = enVivoActivo(live) ? events.find((e) => e.id === live.eventId) : null;
   const personal = mode === 'personal';
   // Sin iglesia: Inicio, Canciones, Mi iglesia (para unirse o crear) y Ajustes.
   const tabs = personal ? TABS.filter((t) => ['/', '/canciones', '/mi-iglesia', '/ajustes'].includes(t.to)) : TABS;
@@ -52,6 +54,22 @@ export default function App() {
             <div className="church-chip" title={`${me?.name} en ${church.name}`}><Icon name="church" /> {church.name}</div>
           )}
         </header>
+      )}
+      {!presenting && liveEvent && (
+        <div className="en-vivo-barra" role="status">
+          <span className="en-vivo-dot" />
+          {live.by === myUid ? (
+            <>
+              <span className="grow">Estás pasando la letra en vivo de <strong>{liveEvent.name}</strong></span>
+              <Link className="btn small primary" to={`/presentar/evento/${liveEvent.id}?envivo=1`}>Volver</Link>
+            </>
+          ) : (
+            <>
+              <span className="grow"><strong>{live.byName || 'El director'}</strong> está pasando la letra de {liveEvent.name}</span>
+              <Link className="btn small primary" to={`/presentar/evento/${liveEvent.id}?seguir=1`}><Icon name="play" /> Seguir en vivo</Link>
+            </>
+          )}
+        </div>
       )}
       <main className={presenting ? '' : 'content'}>
         <Routes>
