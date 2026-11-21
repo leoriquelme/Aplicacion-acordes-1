@@ -178,7 +178,6 @@ export default function Cancion() {
           </aside>
         ) : (
           <aside className="order-rail" aria-label="Orden de la canción">
-            <span className="rail-title">Orden</span>
             <ArrangementEditor
               content={song.content}
               order={shownOrder}

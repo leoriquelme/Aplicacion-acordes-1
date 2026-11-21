@@ -1,7 +1,7 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import ConfirmX from './ConfirmX.jsx';
 import {
-  MARKER, MAX_CUSTOM, sectionAbbr, sectionBase, sectionLabel, cleanCustomName, flattenGroups, groupOrder, isMarker, markerName, parseSong, sectionKind,
+  MARKER, MAX_CUSTOM, sectionAbbr, sectionLabel, cleanCustomName, flattenGroups, groupOrder, isMarker, markerName, parseSong, sectionKind,
   validCustomName,
 } from '../lib/chordpro.js';
 
@@ -26,6 +26,7 @@ export default function ArrangementEditor({ content, order, onChange, fallbackOr
   const [writing, setWriting] = useState(false);
   const [text, setText] = useState('');
   const [error, setError] = useState('');
+  const [actual, setActual] = useState(0);
   const listRef = useRef(null);
   const drag = useRef(null);
 
@@ -91,20 +92,30 @@ export default function ArrangementEditor({ content, order, onChange, fallbackOr
 
   const isCustom = Boolean(order?.length);
 
-  // Vista compacta (solo lectura): columna angosta con número y abreviatura (1 V, 2 PC, 3 C…).
+  // Vista compacta: marca la parte que se está viendo mientras se baja por la canción.
+  useEffect(() => {
+    if (!compact || typeof IntersectionObserver === 'undefined') return undefined;
+    const els = groups.map((_, i) => document.getElementById(`seccion-${i}`)).filter(Boolean);
+    if (!els.length) return undefined;
+    const obs = new IntersectionObserver((entries) => {
+      const visible = entries.filter((e) => e.isIntersecting).map((e) => Number(e.target.id.split('-')[1]));
+      if (visible.length) setActual(Math.min(...visible));
+    }, { rootMargin: '-25% 0px -65% 0px' });
+    els.forEach((el) => obs.observe(el));
+    return () => obs.disconnect();
+  }, [compact, groups.length, content]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Vista compacta (solo lectura): puntos pastel con la letra de cada parte, sin números.
   if (compact) {
-    const bases = sections.map((s) => sectionBase(s.name));
     return (
       <ol className="order-rail-list">
         {groups.map((g, i) => {
           const label = isMarker(g.name) ? markerName(g.name) : sectionLabel(g.name);
-          const many = bases.filter((b) => b === sectionBase(label)).length > 1;
-          const num = label.match(/(\d+)$/)?.[1];
+          const nombre = `${label}${g.times > 1 ? ` ×${g.times}` : ''}`;
           return (
-            <li key={i} className={`rail-item k-${sectionKind(label)}`}>
-              <button type="button" onClick={() => onPick?.(i)} title={`${i + 1}. ${label}${g.times > 1 ? ` ×${g.times}` : ''}`} aria-label={`${i + 1}. ${label}`}>
-                <span className="rail-num">{i + 1}</span>
-                <span className="rail-abbr">{sectionAbbr(label)}{many && num ? <sub>{num}</sub> : null}</span>
+            <li key={i} className={`rail-item k-${sectionKind(label)} ${i === actual ? 'actual' : ''}`}>
+              <button type="button" onClick={() => { setActual(i); onPick?.(i); }} title={nombre} aria-label={nombre} aria-current={i === actual ? 'true' : undefined}>
+                <span className="rail-abbr">{sectionAbbr(label)}</span>
                 {g.times > 1 && <span className="rail-times">×{g.times}</span>}
               </button>
             </li>
