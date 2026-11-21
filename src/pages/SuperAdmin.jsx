@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  actividadGeneral, actividadIglesia, cambiarEstadoIglesia, eliminarIglesia, soySuperAdmin, todasLasIglesias, useAuth,
+  actividadGeneral, actividadIglesia, cambiarEstadoIglesia, eliminarIglesia, reiniciarOraciones, soySuperAdmin, todasLasIglesias, useAuth,
 } from '../lib/cloud.jsx';
 import ConfirmX from '../components/ConfirmX.jsx';
 import Icon from '../components/Icon.jsx';
@@ -134,6 +134,8 @@ function Panel({ email }) {
         </p>
       </section>
 
+      <ReiniciarOraciones />
+
       <div className="row gap wrap" style={{ margin: '1rem 0 0.6rem', alignItems: 'center' }}>
         <h2 style={{ margin: 0, flex: 1 }}>Iglesias</h2>
         <select value={filtro} onChange={(e) => setFiltro(e.target.value)} aria-label="Filtrar iglesias">
@@ -215,6 +217,29 @@ function IglesiaFila({ ig, a, onCambio }) {
         </div>
       )}
       {error && <p className="error">{error}</p>}
+    </section>
+  );
+}
+
+/** Deja en 0 el contador de oraciones de toda la app. */
+function ReiniciarOraciones() {
+  const [msg, setMsg] = useState('');
+  const reiniciar = async () => {
+    setMsg('');
+    try {
+      await reiniciarOraciones();
+      setMsg('✓ Contador en 0.');
+    } catch (e) {
+      setMsg(`No se pudo: ${e.message}. Revisa que pegaste las reglas nuevas.`);
+    }
+  };
+  return (
+    <section className="card">
+      <h2>Contador de oraciones</h2>
+      <div className="row gap wrap" style={{ alignItems: 'center' }}>
+        <ConfirmX onConfirm={reiniciar} label="Reiniciar contador de oraciones" className="btn" text="Reiniciar a 0" armedText="¿Dejar en 0?" />
+        {msg && <span className="small">{msg}</span>}
+      </div>
     </section>
   );
 }

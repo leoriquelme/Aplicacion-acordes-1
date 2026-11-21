@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useStore } from '../lib/store.jsx';
 import { descargarOracion } from '../lib/recordatorio.js';
@@ -8,15 +8,28 @@ import Icon from '../components/Icon.jsx';
 // Recordatorio diario para orar (archivo de calendario). Escondido por ahora; poner true para volver a mostrarlo.
 const MOSTRAR_RECORDATORIO = false;
 
-const MIS_KEY = 'cancionero-oraciones';
-const leer = () => { try { return Number(localStorage.getItem(MIS_KEY)) || 0; } catch { return 0; } };
-const guardar = (n) => { try { localStorage.setItem(MIS_KEY, String(n)); } catch { /* sin espacio */ } };
+// El conteo se reinició el 21-nov (clave nueva = todos parten de 0).
+const MIS_KEY = 'cancionero-oraciones-2';
+const ULTIMA_KEY = 'cancionero-ultima-oracion';
+const ESPERA = 60 * 60 * 1000; // 1 hora entre una oración y la siguiente
+const leerNum = (k) => { try { return Number(localStorage.getItem(k)) || 0; } catch { return 0; } };
+const guardarNum = (k, n) => { try { localStorage.setItem(k, String(n)); } catch { /* sin espacio */ } };
 
 /** Apoyo: un botón para sumar oraciones por el proyecto y (más adelante) donar. */
 export default function Apoyo() {
   const { prayers, pray } = useStore();
-  const [mias, setMias] = useState(leer);
+  const [mias, setMias] = useState(() => leerNum(MIS_KEY));
+  const [ultima, setUltima] = useState(() => leerNum(ULTIMA_KEY));
+  const [ahora, setAhora] = useState(() => Date.now());
   const [gracias, setGracias] = useState(false);
+  const esperando = ahora - ultima < ESPERA;
+
+  // Mientras espera, revisa cada minuto si ya pasó la hora.
+  useEffect(() => {
+    if (!esperando) return undefined;
+    const t = setInterval(() => setAhora(Date.now()), 60 * 1000);
+    return () => clearInterval(t);
+  }, [esperando]);
   const [hora, setHora] = useState('07:00');
   // Sin iglesia (o sin conexión al contador) se muestra el conteo de este equipo.
   const total = typeof prayers === 'number' ? prayers : mias;
@@ -25,8 +38,12 @@ export default function Apoyo() {
     // Al cerrar la ventana de gracias se aplica el conteo.
     setGracias(false);
     const n = mias + 1;
+    const t = Date.now();
     setMias(n);
-    guardar(n);
+    setUltima(t);
+    setAhora(t);
+    guardarNum(MIS_KEY, n);
+    guardarNum(ULTIMA_KEY, t);
     pray?.();
   };
 
@@ -41,7 +58,9 @@ export default function Apoyo() {
           <strong>{total}</strong>
           <span className="muted">{total === 1 ? 'oración' : 'oraciones'}</span>
         </div>
-        <button className="btn primary orar-btn" onClick={() => setGracias(true)}><Icon name="pray" /> Oré por el proyecto</button>
+        <button className="btn primary orar-btn" disabled={esperando || gracias} onClick={() => setGracias(true)}>
+          <Icon name="pray" /> {esperando ? 'Gracias por orar' : 'Oré por el proyecto'}
+        </button>
         <p className="muted small center">Tú has orado {mias} {mias === 1 ? 'vez' : 'veces'}.</p>
       </section>
 

@@ -101,7 +101,8 @@ service cloud.firestore {
       allow read: if account();
       allow create: if account() && request.resource.data.keys().hasOnly(['count']) && request.resource.data.count == 1;
       allow update: if account() && request.resource.data.keys().hasOnly(['count'])
-        && request.resource.data.count == resource.data.count + 1;
+        && (request.resource.data.count == resource.data.count + 1
+          || (isSuper() && request.resource.data.count == 0));
       allow delete: if false;
     }
 
