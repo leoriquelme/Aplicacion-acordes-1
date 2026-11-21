@@ -28,7 +28,7 @@ export default function AddMenu({ cloud }) {
       {open && (
         <div className="add-menu-panel" role="menu">
           <Link role="menuitem" to="/canciones/nueva"><span className="menu-t"><Icon name="edit" /> Nueva canción</span><span>Escribir desde cero</span></Link>
-          <Link role="menuitem" to="/canciones/importar">⤓ Importar<span>Pegar letra y acordes de una página web</span></Link>
+          <Link role="menuitem" to="/canciones/importar">⤓ Importar<span>Desde un link de LaCuerda o pegando el texto</span></Link>
           {cloud && <Link role="menuitem" to="/canciones/biblioteca"><span className="menu-t"><Icon name="globe" /> De otras iglesias</span><span>Buscar y copiar a tu iglesia</span></Link>}
         </div>
       )}
