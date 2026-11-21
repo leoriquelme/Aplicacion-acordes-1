@@ -370,8 +370,9 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
     return ref.id;
   }, [col, report]);
 
-  const deleteSong = useCallback((id) => {
-    deleteDoc(doc(col('songs'), id)).catch(report);
+  // Devuelve una promesa: si Firebase no deja borrar (p. ej. por permisos), la página muestra el error.
+  const deleteSong = useCallback(async (id) => {
+    await deleteDoc(doc(col('songs'), id));
     deleteDoc(doc(db, 'library', `${churchId}__${id}`)).catch(() => {});
     events.filter((e) => e.items.some((i) => i.songId === id)).forEach((e) => {
       setDoc(doc(col('events'), e.id), { ...sinId(e), items: e.items.filter((i) => i.songId !== id) }).catch(report);
@@ -384,8 +385,8 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
     return ref.id;
   }, [col, report]);
 
-  const deleteEvent = useCallback((id) => {
-    deleteDoc(doc(col('events'), id)).catch(report);
+  const deleteEvent = useCallback(async (id) => {
+    await deleteDoc(doc(col('events'), id));
     participations.filter((p) => p.eventId === id).forEach((p) => deleteDoc(doc(col('participations'), p.id)).catch(() => {}));
   }, [col, report, participations]);
 

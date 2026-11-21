@@ -30,7 +30,7 @@ export function PersonalStoreProvider({ children }) {
     setDoc(ref, { ...sinId(song), updatedAt: Date.now() }).catch(report);
     return ref.id;
   }, [col, report]);
-  const deleteSong = useCallback((id) => { deleteDoc(doc(col, id)).catch(report); }, [col, report]);
+  const deleteSong = useCallback((id) => deleteDoc(doc(col, id)), [col]);
 
   const addExamples = useCallback(async () => {
     const titles = new Set(songs.map((s) => normalize(s.title)));
