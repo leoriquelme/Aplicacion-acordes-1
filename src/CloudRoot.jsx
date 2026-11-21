@@ -33,7 +33,7 @@ function Gate() {
   if (invitacion) return <AceptarInvitacion code={invitacion} onListo={() => setInvitacion('')} />;
   // Página del Super Admin: no es de una iglesia, se abre con #/super
   if (pathname.startsWith('/super')) return <SuperAdmin />;
-  if (!session && (abrirSola || abriendo) && !pathname.startsWith('/super')) return <div className="loading">Abriendo la iglesia…</div>;
+  if (!session && (abrirSola || abriendo) && !pathname.startsWith('/super')) return <div className="loading">Entrando a la iglesia…</div>;
   if (!session) {
     return (
       <PersonalStoreProvider>
@@ -97,7 +97,7 @@ function MemberCheck() {
   useEffect(() => {
     if (me === null) { marcarIglesiaCerrada(true); setSession(null); }
   }, [me, setSession]);
-  if (!me) return <div className="loading">Abriendo la iglesia…</div>;
+  if (!me) return <div className="loading">Entrando a la iglesia…</div>;
   return <ConAvisos />;
 }
 

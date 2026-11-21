@@ -9,10 +9,10 @@ import Icon from '../components/Icon.jsx';
 import MisIglesias from '../components/MisIglesias.jsx';
 import InvitarCard from '../components/InvitarCard.jsx';
 import { CodigoAcceso } from '../components/Administracion.jsx';
-import { FilaAbre, Grupo } from '../components/Comunicacion.jsx';
+import { FilaAbre, Grupo, SalirIglesia } from '../components/Comunicacion.jsx';
 import IglesiaLogo from '../components/IglesiaLogo.jsx';
 
-/** Pestaña "Mi iglesia": datos de la iglesia, mis equipos, canciones más usadas e historial. */
+/** Pestaña "Iglesia": datos de la iglesia, mis equipos, canciones más usadas e historial. */
 export default function MiIglesia() {
   const { mode, church, people = [], songs, events, participations = [], can } = useStore();
   const today = todayISO();
@@ -32,7 +32,7 @@ export default function MiIglesia() {
       <section className="card bloque-iglesia">
         <IglesiaLogo />
         <div className="grow">
-          <h1>{mode === 'cloud' ? church?.name : 'Mi iglesia'}</h1>
+          <h1>{mode === 'cloud' ? church?.name : 'Iglesia'}</h1>
           {mode === 'cloud' && <Avatares people={people} max={8} size="sm" />}
         </div>
       </section>
@@ -58,6 +58,7 @@ export default function MiIglesia() {
         )}
       </Grupo>
       {mode === 'cloud' && <MisIglesias actual={church?.id} />}
+      <SalirIglesia />
     </div>
   );
 }

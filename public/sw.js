@@ -1,6 +1,6 @@
 // Service worker del Cancionero: guarda la app en el equipo para que abra sin internet.
 // Las canciones las guarda Firebase en el equipo (caché sin conexión).
-const CACHE = 'cancionero-v21';
+const CACHE = 'cancionero-v22';
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './index.html', './manifest.webmanifest', './icono-192.png'])).then(() => self.skipWaiting()));

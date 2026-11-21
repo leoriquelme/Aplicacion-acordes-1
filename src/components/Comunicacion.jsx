@@ -92,7 +92,7 @@ export function IglesiaTarjeta() {
         </Link>
       ) : (
         <Link to="/mi-iglesia" className="iglesia-tarjeta">
-          <span className="grow"><strong>Mis iglesias</strong><span className="muted">{tieneIglesias ? 'Abrir, unirme o crear una' : 'Unirme o crear una'}</span></span>
+          <span className="grow"><strong>Mis iglesias</strong><span className="muted">{tieneIglesias ? 'Entrar, unirme o crear una' : 'Unirme o crear una'}</span></span>
           <span className="fila-flecha" aria-hidden="true">›</span>
         </Link>
       )}
@@ -156,14 +156,42 @@ export function EditarPerfil() {
   );
 }
 
-/** Abajo de Ajustes: sugerir mejoras, apoyo, cambiar de iglesia, cerrar sesión y versión. */
-export function AjustesFinal() {
-  const { mode, churchId, church, can, suggestions = [] } = useStore();
+/**
+ * Dentro de la iglesia (su página y la pestaña Iglesia): salir de la iglesia (volver a mi vista personal,
+ * sigo siendo miembro) o dejar de ser miembro (hace falta el código para volver).
+ */
+export function SalirIglesia() {
+  const { mode, churchId, church } = useStore();
   const { setSession: setS, user } = useAuth() || {};
+  const navigate = useNavigate();
+  const [msg, setMsg] = useState('');
+  if (mode !== 'cloud') return null;
+  const salir = () => { navigate('/'); setS?.(null); };
+  const soyDueno = church?.ownerUid && church.ownerUid === user?.uid;
+  return (
+    <>
+      <Grupo>
+        <Fila label={<><Icon name="church" /> Salir de la iglesia</>} onClick={() => { marcarIglesiaCerrada(true); salir(); }} flecha={false} />
+        {!soyDueno && (
+          <ConfirmX label={`Dejar de ser miembro de ${church?.name}`} className="fila fila-peligro" text={`Dejar de ser miembro de ${church?.name}`} armedText="¿Seguro? Necesitarás el código para volver a entrar"
+            onConfirm={async () => {
+              try { await salirDeIglesia(churchId); salir(); } catch (e) { setMsg(`No se pudo: ${e.message}`); }
+            }} />
+        )}
+      </Grupo>
+      <p className="muted small">Al salir sigues siendo miembro: vuelves a entrar cuando quieras desde Ajustes.</p>
+      {msg && <p className="error">{msg}</p>}
+    </>
+  );
+}
+
+/** Abajo de Ajustes: sugerir mejoras, apoyo, cerrar sesión y versión. */
+export function AjustesFinal() {
+  const { mode, can, suggestions = [] } = useStore();
+  const { setSession: setS } = useAuth() || {};
   const navigate = useNavigate();
   const setSession = (x) => { navigate('/'); setS?.(x); };
   const [msg, setMsg] = useState('');
-  const soyDueno = church?.ownerUid && church.ownerUid === user?.uid;
   const pendientes = can.users && suggestions.length > 0 ? suggestions.length : null;
   return (
     <>
@@ -173,13 +201,6 @@ export function AjustesFinal() {
       </Grupo>
       {(mode === 'cloud' || mode === 'personal') && (
         <Grupo>
-          {mode === 'cloud' && <Fila label="Cerrar esta iglesia" onClick={() => { marcarIglesiaCerrada(true); setSession?.(null); }} flecha={false} />}
-          {mode === 'cloud' && !soyDueno && (
-            <ConfirmX label={`Salir de ${church?.name}`} className="fila fila-peligro" text={`Salir de ${church?.name}`} armedText="¿Seguro? Necesitarás el código para volver"
-              onConfirm={async () => {
-                try { await salirDeIglesia(churchId); setSession?.(null); } catch (e) { setMsg(`No se pudo: ${e.message}`); }
-              }} />
-          )}
           <Fila label="Cerrar sesión" className="fila-peligro" flecha={false} onClick={async () => { setSession?.(null); await cerrarSesion(); }} />
         </Grupo>
       )}
