@@ -5,6 +5,7 @@ import { Avatar } from '../components/Avatares.jsx';
 import Icon from '../components/Icon.jsx';
 import { CodigoAcceso } from '../components/Administracion.jsx';
 import InvitarCard from '../components/InvitarCard.jsx';
+import { Grupo } from '../components/Comunicacion.jsx';
 import IglesiaLogo from '../components/IglesiaLogo.jsx';
 import ElegirFoto from '../components/ElegirFoto.jsx';
 
@@ -39,9 +40,13 @@ export default function Miembros() {
         {can.users && church?.logo && <button className="btn ghost small" onClick={() => setChurchLogo(null)}>Quitar logo</button>}
       </header>
       <p className="muted">{people.length} {people.length === 1 ? 'miembro' : 'miembros'}</p>
-      {/* El código de acceso: solo el Administrador, y solo al entrar desde Ajustes. */}
-      {desdeAjustes && <CodigoAcceso />}
-      <InvitarCard />
+      {/* Invitar y código de acceso: solo el Administrador. */}
+      {can.users && (
+        <Grupo>
+          <InvitarCard />
+          <CodigoAcceso />
+        </Grupo>
+      )}
       {can.users ? (
         <UsersCard />
       ) : (

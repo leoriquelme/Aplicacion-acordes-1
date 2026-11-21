@@ -8,6 +8,7 @@ import HistorialParticipacion from '../components/HistorialParticipacion.jsx';
 import Icon from '../components/Icon.jsx';
 import MisIglesias from '../components/MisIglesias.jsx';
 import InvitarCard from '../components/InvitarCard.jsx';
+import { CodigoAcceso } from '../components/Administracion.jsx';
 import { FilaAbre, Grupo } from '../components/Comunicacion.jsx';
 import IglesiaLogo from '../components/IglesiaLogo.jsx';
 
@@ -47,8 +48,9 @@ export default function MiIglesia() {
         <div className="card dato"><strong>{pasados}</strong><span>eventos realizados</span></div>
       </div>
 
-      {mode === 'cloud' && <InvitarCard />}
       <Grupo>
+        {mode === 'cloud' && <InvitarCard />}
+        {mode === 'cloud' && <CodigoAcceso />}
         {mode === 'cloud' && <FilaAbre label={<><Icon name="users" /> Equipos</>}><ResumenEquipos /></FilaAbre>}
         <FilaAbre label={<><Icon name="music" /> Más usadas</>}><SongRanking songs={songs} events={events} /></FilaAbre>
         {can.events && mode === 'cloud' && (
