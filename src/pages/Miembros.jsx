@@ -5,7 +5,7 @@ import { Avatar } from '../components/Avatares.jsx';
 import Icon from '../components/Icon.jsx';
 import { CodigoAcceso } from '../components/Administracion.jsx';
 import InvitarCard from '../components/InvitarCard.jsx';
-import { Grupo } from '../components/Comunicacion.jsx';
+import { Grupo, SalirIglesia } from '../components/Comunicacion.jsx';
 import IglesiaLogo from '../components/IglesiaLogo.jsx';
 import ElegirFoto from '../components/ElegirFoto.jsx';
 
@@ -26,7 +26,7 @@ export default function Miembros() {
     <div className="page">
       {desdeAjustes
         ? <Link to="/ajustes" className="back">← Ajustes</Link>
-        : <Link to="/mi-iglesia" className="back">← Mi iglesia</Link>}
+        : <Link to="/mi-iglesia" className="back">← Iglesia</Link>}
       <header className="iglesia-cabeza">
         <div className="perfil-foto">
           <IglesiaLogo className="logo-grande" size="2.4rem" />
@@ -60,6 +60,7 @@ export default function Miembros() {
           ))}
         </ul>
       )}
+      <SalirIglesia />
     </div>
   );
 }

@@ -35,7 +35,7 @@ export function CodigoAcceso() {
         <input className="code-input" value={nuevo} onChange={(e) => { setNuevo(cleanCode(e.target.value)); setMsg(''); }} placeholder="Ej. KXMPRT" maxLength={12} style={{ width: '10rem' }} aria-label="Nuevo código" />
         <button className="btn" onClick={() => { setNuevo(randomCode()); setMsg(''); }}>Generar al azar</button>
         <button className="btn primary" disabled={nuevo.length < 4 || nuevo === actual} onClick={() => guardar(nuevo)}>Guardar</button>
-        {actual && <button className="btn ghost" onClick={() => guardar('')}>Quitar código (cerrar la iglesia)</button>}
+        {actual && <button className="btn ghost" onClick={() => guardar('')}>Quitar código (nadie nuevo podrá unirse)</button>}
       </div>
       {nuevo && nuevo.length < 4 && <p className="muted small">Mínimo 4 letras o números.</p>}
       {msg && <p className="small">{msg}</p>}

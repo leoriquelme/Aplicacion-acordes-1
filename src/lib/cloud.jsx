@@ -146,7 +146,7 @@ async function entrarComoMiembro(churchId, { code = '', role = 'colaborador', na
 
 /** Máximo de iglesias por persona (creadas + unidas). */
 export const MAX_IGLESIAS = 3;
-const LLENO = `Ya perteneces a ${MAX_IGLESIAS} iglesias, que es el máximo. Para unirte o crear otra, primero sal de una (en Ajustes, dentro de esa iglesia).`;
+const LLENO = `Ya perteneces a ${MAX_IGLESIAS} iglesias, que es el máximo. Para unirte o crear otra, primero deja de ser miembro de una (entra a ella y, abajo en la pestaña Iglesia, toca “Dejar de ser miembro”).`;
 const codeRef = (code) => doc(db, 'codes', code);
 
 /** Unirse solo con el código de acceso. Siempre entra como Colaborador. */
@@ -185,7 +185,7 @@ export async function abrirIglesia(churchId, name) {
   try {
     return await entrarComoMiembro(churchId, { name });
   } catch {
-    throw new Error('No se pudo abrir esa iglesia: puede que te hayan quitado de ella, que ya no exista o que esté bloqueada.');
+    throw new Error('No se pudo entrar a esa iglesia: puede que te hayan quitado de ella, que ya no exista o que esté bloqueada.');
   }
 }
 

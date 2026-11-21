@@ -48,11 +48,11 @@ export default function MisIglesias({ actual = null }) {
       {mias.length > 0 && (
         <div className="stack">
           {mias.map((c) => (c.id === actual ? (
-            <div key={c.id} className="row gap iglesia-actual"><Icon name="church" /> <strong className="grow">{c.name}</strong> <span className="etiqueta bien">Abierta ahora</span></div>
+            <div key={c.id} className="row gap iglesia-actual"><Icon name="church" /> <strong className="grow">{c.name}</strong> <span className="etiqueta bien">Estás dentro</span></div>
           ) : (
             <div key={c.id} className="row gap">
               <button className="btn grow" disabled={busy} onClick={hacer(() => abrirIglesia(c.id, name))}>
-                <Icon name="church" /> {actual ? `Cambiar a ${c.name}` : `Abrir ${c.name}`}
+                <Icon name="church" /> {actual ? `Cambiar a ${c.name}` : `Entrar a ${c.name}`}
               </button>
               <button className="btn ghost small" title="Quitar de esta lista (no te saca de la iglesia)" onClick={() => olvidarIglesia(c.id)}>✕</button>
             </div>
@@ -71,7 +71,7 @@ export default function MisIglesias({ actual = null }) {
       {alerta && (
         <div className="alerta-limite" role="alert">
           <strong>Llegaste al límite de {MAX_IGLESIAS} iglesias.</strong> Para unirte o crear otra, primero sal de una
-          (ábrela y ve a Ajustes → Salir de la iglesia).
+          (entra a ella y, abajo en la pestaña Iglesia, toca “Dejar de ser miembro”).
           <button className="btn small ghost" onClick={() => setAlerta(false)}>Entendido</button>
         </div>
       )}
