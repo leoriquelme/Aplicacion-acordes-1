@@ -141,7 +141,7 @@ export default function Cancion() {
       </p>
       {(fromEvent || capo > 0) && (
         <p className="cancion-aviso muted small">
-          {fromEvent && <>Tono del culto <Link to={`/eventos/${fromEvent.id}`}>“{fromEvent.name}”</Link>. </>}
+          {fromEvent && <>Tono del servicio <Link to={`/eventos/${fromEvent.id}`}>“{fromEvent.name}”</Link>. </>}
           {capo > 0 && <>Capo {capo}{tono ? `: tocas como en ${displayKey(tono, steps - capo, settings.notation)}, suena en ${tonoActual}` : ''}.</>}
         </p>
       )}

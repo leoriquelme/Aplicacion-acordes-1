@@ -27,7 +27,7 @@ export default function IglesiaPrueba() {
   return (
     <FilaAbre label={<><Icon name="sparkle" /> Iglesia de prueba</>}>
       <div className="row gap wrap">
-        <button className="btn primary" disabled={busy} onClick={() => run(fillTestData, '✓ Listo: 15 hermanos, 20 canciones y 13 cultos con voluntarios.')}>
+        <button className="btn primary" disabled={busy} onClick={() => run(fillTestData, '✓ Listo: 15 hermanos, 20 canciones y 13 servicios con voluntarios.')}>
           Llenar con datos
         </button>
         {!confirmar ? (

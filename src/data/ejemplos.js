@@ -119,7 +119,7 @@ export function eventosEjemplo() {
   return [
     {
       id: 'ejemplo-culto',
-      name: 'Culto dominical',
+      name: 'Servicio de Adoración',
       date: proximoDomingo(),
       time: '11:00',
       notes: 'Evento de ejemplo. Puedes editarlo o eliminarlo.',

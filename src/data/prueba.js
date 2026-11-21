@@ -49,7 +49,7 @@ export function datosPrueba(now = new Date()) {
     const id = `prueba-culto-${w + 9}`;
     const pick = [0, 1, 2, 3].map((k) => songs[(Math.abs(w) * 3 + k * 5) % songs.length]);
     events.push({
-      id, name: 'Culto dominical', date: iso(d), time: '11:00', notes: w === 0 ? 'Cena del Señor' : '', prueba: true,
+      id, name: 'Servicio de Adoración', date: iso(d), time: '11:00', notes: w === 0 ? 'Cena del Señor' : '', prueba: true,
       items: [
         { type: 'text', label: 'Bienvenida', detail: '' },
         { songId: pick[0].id, transpose: 0 }, { songId: pick[1].id, transpose: w % 2 },
