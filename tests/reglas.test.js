@@ -270,3 +270,13 @@ describe('Super Admin', () => {
     await assertFails(updateDoc(doc(cuenta('bea'), 'owners', 'ana'), { churches: [] }));
   });
 });
+
+describe('Contador de oraciones', () => {
+  it('cualquiera suma de a uno; solo el Super Admin lo deja en 0', async () => {
+    await assertSucceeds(setDoc(doc(cuenta('ana'), 'stats', 'oracion'), { count: 1 }));
+    await assertSucceeds(setDoc(doc(cuenta('juan'), 'stats', 'oracion'), { count: 2 }));
+    await assertFails(setDoc(doc(cuenta('juan'), 'stats', 'oracion'), { count: 0 }));
+    await assertSucceeds(setDoc(doc(cuenta('leo'), 'stats', 'oracion'), { count: 0 }));
+    await assertSucceeds(setDoc(doc(cuenta('ana'), 'stats', 'oracion'), { count: 1 }));
+  });
+});

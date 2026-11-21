@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '../lib/store.jsx';
 import { FilaAbre } from './Comunicacion.jsx';
+import Icon from './Icon.jsx';
 
 /** Solo en la iglesia PRUEBA y solo para el Administrador: llenar con datos inventados o reiniciar. */
 export default function IglesiaPrueba() {
@@ -24,7 +25,7 @@ export default function IglesiaPrueba() {
   };
 
   return (
-    <FilaAbre label="Iglesia de prueba">
+    <FilaAbre label={<><Icon name="sparkle" /> Iglesia de prueba</>}>
       <div className="row gap wrap">
         <button className="btn primary" disabled={busy} onClick={() => run(fillTestData, '✓ Listo: 15 hermanos, 20 canciones y 13 cultos con voluntarios.')}>
           Llenar con datos

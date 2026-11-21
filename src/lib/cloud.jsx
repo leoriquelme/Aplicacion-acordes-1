@@ -228,6 +228,11 @@ export async function salirDeIglesia(churchId) {
 
 // ---------- Super Admin ----------
 
+/** Super Admin: deja en 0 el contador de oraciones por el proyecto. */
+export async function reiniciarOraciones() {
+  await setDoc(doc(db, 'stats', 'oracion'), { count: 0 });
+}
+
 export async function soySuperAdmin() {
   const uid = auth.currentUser?.uid;
   if (!uid) return false;

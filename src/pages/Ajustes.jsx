@@ -78,26 +78,6 @@ export default function Ajustes() {
         </div>
       </Grupo>
 
-      {store.mode === 'cloud' && (store.can.users || store.can.edit) && (
-        <Grupo titulo="Iglesia">
-          {store.can.users && (
-            <FilaAbre label="Respaldo">
-              <Respaldo />
-            </FilaAbre>
-          )}
-          {store.can.edit && (
-            <FilaAbre label="Himnos de ejemplo">
-              <div className="row gap wrap">
-                <AgregarEjemplos />
-                <UploadLocal onDone={setMsg} />
-              </div>
-              {msg && <p className="ok">{msg}</p>}
-            </FilaAbre>
-          )}
-          <IglesiaPrueba />
-        </Grupo>
-      )}
-
       {store.mode === 'local' && (
         <Grupo titulo="Datos">
           <FilaAbre label="Respaldo">
@@ -126,6 +106,21 @@ export default function Ajustes() {
       )}
 
       <Grupo titulo="App">
+          {store.mode === 'cloud' && store.can.users && (
+            <FilaAbre label={<><Icon name="download" /> Respaldo</>}>
+              <Respaldo />
+            </FilaAbre>
+          )}
+          {store.mode === 'cloud' && store.can.edit && (
+            <FilaAbre label={<><Icon name="book" /> Himnos de ejemplo</>}>
+              <div className="row gap wrap">
+                <AgregarEjemplos />
+                <UploadLocal onDone={setMsg} />
+              </div>
+              {msg && <p className="ok">{msg}</p>}
+            </FilaAbre>
+          )}
+          {store.mode === 'cloud' && (store.can.users || store.can.edit) && <IglesiaPrueba />}
         <FilaAbre label={<><Icon name="phone" /> Instalar la app</>}>
           <InstalarCard bare />
         </FilaAbre>
