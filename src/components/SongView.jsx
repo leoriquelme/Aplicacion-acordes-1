@@ -1,4 +1,4 @@
-import { arrangeSections, chordOptions, guessKey, parseSong, sectionLabel, transposeChord } from '../lib/chordpro.js';
+import { arrangeSections, chordOptions, guessKey, parseSong, sectionAbbr, sectionLabel, transposeChord } from '../lib/chordpro.js';
 import { convertPlainChords } from '../lib/importar.js';
 import { notaPorId } from '../lib/notas.js';
 import Icon from './Icon.jsx';
@@ -78,7 +78,7 @@ export default function SongView({ content, songKey, steps = 0, order, settings,
       {blocks.map((b, i) => (
         <section className={`block ${b.type} k-${b.kind} ${b.marker ? 'marker' : ''}`} key={i} id={`seccion-${i}`}>
           <div className="block-label">
-            <span className="sec-chip">{b.marker ? b.name : sectionLabel(b.name)}</span>
+            <span className="sec-chip"><Abrev nombre={b.marker ? b.name : sectionLabel(b.name)} />{b.marker ? b.name : sectionLabel(b.name)}</span>
             {b.times > 1 && <span className="times">×{b.times}</span>}
             <NotasSeccion list={notes?.[b.name]} onRemove={onRemoveNote && ((n) => onRemoveNote(b.name, n))} canEditDirector={canEditDirector} />
             {onAddNote && (
@@ -96,4 +96,10 @@ export default function SongView({ content, songKey, steps = 0, order, settings,
       ))}
     </div>
   );
+}
+
+/** Letra corta de la parte (ej. "V1", "C"), para la etiqueta de color. */
+function Abrev({ nombre }) {
+  const num = String(nombre).match(/(\d+)$/)?.[1] || '';
+  return <span className="sec-abrev" aria-hidden="true">{sectionAbbr(nombre)}{num}</span>;
 }

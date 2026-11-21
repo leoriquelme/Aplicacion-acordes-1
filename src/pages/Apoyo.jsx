@@ -82,11 +82,7 @@ export default function Apoyo() {
         </div>
       </section>}
 
-      <section className="card donar">
-        <h2>Donar</h2>
-        <button className="btn big-inline" disabled aria-disabled="true"><Icon name="heart" /> Donar</button>
-        <p className="muted small">Muy pronto.</p>
-      </section>
+      {/* Donar: se agregará cuando esté disponible. */}
     </div>
   );
 }
