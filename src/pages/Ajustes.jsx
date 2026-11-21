@@ -2,13 +2,11 @@ import { useRef, useState } from 'react';
 import { readLocalData, useStore } from '../lib/store.jsx';
 import SongView from '../components/SongView.jsx';
 import AgregarEjemplos from '../components/AgregarEjemplos.jsx';
-import { AjustesFinal, FilaAbre, Grupo, PerfilCard } from '../components/Comunicacion.jsx';
+import { AjustesFinal, FilaAbre, Grupo, IglesiaTarjeta, PerfilCard } from '../components/Comunicacion.jsx';
 import InstalarCard from '../components/InstalarCard.jsx';
 import IglesiaPrueba from '../components/IglesiaPrueba.jsx';
 import { Respaldo } from '../components/Administracion.jsx';
 import Icon from '../components/Icon.jsx';
-import ElegirFoto from '../components/ElegirFoto.jsx';
-import IglesiaLogo from '../components/IglesiaLogo.jsx';
 import { descargar } from '../lib/descargar.js';
 
 const MUESTRA = '[G]Cuán grande es [C]Él, [G]cuán grande es [D]Él';
@@ -41,11 +39,13 @@ export default function Ajustes() {
 
   return (
     <div className="page ajustes">
+      <h1>Ajustes</h1>
       <PerfilCard />
+      <IglesiaTarjeta />
 
-      <Grupo titulo="Preferencias">
+      <Grupo titulo="Personal">
         <div className="fila">
-          <span className="fila-label">Letra</span>
+          <span className="fila-label"><Icon name="text" /> Letra</span>
           <input
             className="grow" type="range" min="14" max="40" value={settings.fontSize} aria-label="Tamaño de letra"
             onChange={(e) => updateSettings({ fontSize: Number(e.target.value) })}
@@ -53,25 +53,25 @@ export default function Ajustes() {
           <span className="fila-valor fija">{settings.fontSize}</span>
         </div>
         <label className="fila">
-          <span className="fila-label">Acordes</span>
+          <span className="fila-label"><Icon name="music" /> Acordes</span>
           <input
             type="checkbox" className="interruptor" checked={settings.showChords}
             onChange={(e) => updateSettings({ showChords: e.target.checked })}
           />
         </label>
         <label className="fila">
-          <span className="fila-label">Notación</span>
+          <span className="fila-label"><Icon name="note" /> Notación</span>
           <select className="fila-select" value={settings.notation} onChange={(e) => updateSettings({ notation: e.target.value })}>
             <option value="americano">C, D, E</option>
             <option value="latino">Do, Re, Mi</option>
           </select>
         </label>
         <label className="fila">
-          <span className="fila-label">Tema</span>
-          <select className="fila-select" value={settings.theme} onChange={(e) => updateSettings({ theme: e.target.value })}>
-            <option value="claro">Claro</option>
-            <option value="oscuro">Oscuro</option>
-          </select>
+          <span className="fila-label"><Icon name="moon" /> Modo oscuro</span>
+          <input
+            type="checkbox" className="interruptor" checked={settings.theme === 'oscuro'}
+            onChange={(e) => updateSettings({ theme: e.target.checked ? 'oscuro' : 'claro' })}
+          />
         </label>
         <div className="fila fila-muestra">
           <SongView content={MUESTRA} songKey="G" settings={settings} />
@@ -80,15 +80,6 @@ export default function Ajustes() {
 
       {store.mode === 'cloud' && (store.can.users || store.can.edit) && (
         <Grupo titulo="Iglesia">
-          {store.can.users && store.setChurchLogo && (
-            <FilaAbre label="Logo" valor={store.church?.logo ? <img className="logo-mini" src={store.church.logo} alt="" /> : 'Agregar'}>
-              <div className="row gap wrap">
-                <IglesiaLogo />
-                <ElegirFoto modo="contener" onFoto={store.setChurchLogo}><Icon name="image" /> {store.church?.logo ? 'Cambiar' : 'Subir logo'}</ElegirFoto>
-                {store.church?.logo && <button className="btn ghost danger" onClick={() => store.setChurchLogo(null)}>Quitar</button>}
-              </div>
-            </FilaAbre>
-          )}
           {store.can.users && (
             <FilaAbre label="Respaldo">
               <Respaldo />
