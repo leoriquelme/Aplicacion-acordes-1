@@ -57,6 +57,8 @@ export default function Presentacion() {
   const [size, setSize] = useState(() => Math.round(settings.fontSize * (window.innerWidth < 640 ? 1 : 1.5)));
   const [showChords, setShowChords] = useState(settings.showChords);
   const [isFull, setIsFull] = useState(false);
+  // En iPhone, Safari no deja poner una página en pantalla completa: ahí no se muestra el botón.
+  const puedePantallaCompleta = typeof document !== 'undefined' && Boolean(document.fullscreenEnabled && document.documentElement.requestFullscreen);
   const [controlsVisible, setControlsVisible] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [editNotes, setEditNotes] = useState(false);
@@ -224,9 +226,9 @@ export default function Presentacion() {
     return () => blocks.forEach((b) => b.classList.remove('en-vivo-actual'));
   }, [marcada, index, items.length]);
 
-  // Que la pantalla no se apague mientras se pasa o se sigue la letra.
+  // Que la pantalla no se apague mientras se presenta (también al pasar o seguir la letra en vivo).
   useEffect(() => {
-    if (!(broadcasting || following) || !navigator.wakeLock) return undefined;
+    if (!navigator.wakeLock) return undefined;
     let lock = null;
     let done = false;
     const pedir = () => navigator.wakeLock.request('screen').then((l) => { if (done) l.release(); else lock = l; }).catch(() => {});
@@ -234,7 +236,7 @@ export default function Presentacion() {
     const onVis = () => { if (document.visibilityState === 'visible') pedir(); };
     document.addEventListener('visibilitychange', onVis);
     return () => { done = true; lock?.release().catch(() => {}); document.removeEventListener('visibilitychange', onVis); };
-  }, [broadcasting, following]);
+  }, []);
 
   // Los avisos cortos se van solos.
   useEffect(() => {
@@ -409,7 +411,7 @@ export default function Presentacion() {
               </button>
             )}
             <button className="btn" onClick={() => setShowChords((v) => !v)}>{showChords ? 'Ocultar acordes' : 'Mostrar acordes'}</button>
-            <button className="btn" onClick={toggleFull}>{isFull ? 'Salir de pantalla completa' : <><Icon name="expand" /> Pantalla completa</>}</button>
+            {puedePantallaCompleta && <button className="btn" onClick={toggleFull}>{isFull ? 'Salir de pantalla completa' : <><Icon name="expand" /> Pantalla completa</>}</button>}
             <button className="btn danger-solid" onClick={exit}>✕ Salir de la presentación</button>
           </div>
         )}

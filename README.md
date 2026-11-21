@@ -4,15 +4,15 @@ App para leer las letras y acordes de las canciones de la iglesia.
 
 ## Qué tiene
 
-- **Inicio**: los próximos eventos (cultos) con su lista de canciones.
+- **Inicio**: los próximos eventos (servicios) de la iglesia, con sus voluntarios.
 - **Canciones**: todas las canciones, con buscador por título o autor. Cada canción muestra la letra con los acordes encima, se puede cambiar el tono con − y +, editar y presentar.
 - **Secciones**: cada canción se divide en Verso 1, Coro, Puente, etc. En "Orden de las secciones" se arrastran para cambiar el orden, se repiten o se quitan. Cada evento puede tener su propio orden para cada canción.
 - **Importar**: pega una canción copiada de una página web (acordes en la línea de arriba de la letra) y la app pone los acordes entre corchetes y detecta intro, versos, coros, puentes y repeticiones. No usa internet ni tiene costo.
-- **Eventos**: crear un evento (nombre, fecha, hora), armar su lista de canciones, ordenarla y elegir el tono de cada canción para ese culto. Incluye un ranking de las canciones más y menos usadas del último año, con su última fecha de uso.
+- **Eventos**: crear un evento (nombre, fecha, hora), armar su lista de canciones, ordenarla y elegir el tono de cada canción para ese servicio. Incluye un ranking de las canciones más y menos usadas del último año, con su última fecha de uso.
 - **Ajustes**: tamaño de letra, mostrar u ocultar acordes, notación americana (C, D, E) o latina (Do, Re, Mi), tema claro u oscuro, y respaldo de los datos.
 - **Modo presentación** a pantalla completa. Teclas: `→` / `←` siguiente y anterior canción, `+` / `−` cambiar tono, `F` pantalla completa, `Esc` salir.
 
-Las canciones y eventos se guardan **en el mismo equipo** (en el navegador). Usa *Ajustes → Descargar respaldo* para guardar una copia.
+Las canciones y eventos de cada iglesia se guardan en Firebase (y quedan copiados en el teléfono para abrir sin internet). El Administrador puede descargar un respaldo en *Ajustes → Respaldo*.
 
 ## Formato de las canciones
 
@@ -35,7 +35,7 @@ Las canciones y eventos se guardan **en el mismo equipo** (en el navegador). Usa
 
 ## Iglesias y perfiles
 
-Se entra con **Iglesia + Nombre**. Perfiles: Administrador, Director musical (con PIN) y Colaborador. Los datos de cada iglesia se guardan en Firebase; ver [docs/configurar-firebase.md](docs/configurar-firebase.md). Mientras `src/firebase-config.js` esté vacío, la app funciona en modo local.
+Cada persona entra con su cuenta (Google o correo y contraseña). Puede crear una iglesia (queda como Administrador) o unirse con un código o link de invitación (entra como Colaborador; el Administrador la puede subir a Director musical). Ver [docs/configurar-firebase.md](docs/configurar-firebase.md). Mientras `src/firebase-config.js` esté vacío, la app funciona en modo local.
 
 Pruebas de permisos: `npm run test:rules` (usa el emulador de Firebase).
 

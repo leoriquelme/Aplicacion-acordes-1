@@ -1,61 +1,29 @@
 # Conectar el Cancionero a Firebase (gratis)
 
 Firebase guarda las canciones de cada iglesia en internet. El plan gratis (Spark) alcanza de sobra.
+Proyecto en uso: **cancionero-leo1** (Firestore en `southamerica-west1`, Santiago).
 
-## 1. Crear el proyecto
-1. Entra a https://console.firebase.google.com con tu cuenta de Google.
-2. **Agregar proyecto** → nombre `cancionero-leo1` (el que usamos) → desactiva Google Analytics → **Crear proyecto**.
+## 1. Activar las dos formas de entrar
+1. https://console.firebase.google.com → proyecto **cancionero-leo1**.
+2. **Authentication** → pestaña **Sign-in method**.
+3. **Agregar proveedor nuevo** → **Google** → **Habilitar** → elige tu correo de asistencia → **Guardar**.
+4. **Agregar proveedor nuevo** → **Correo electrónico/contraseña** → solo el primer interruptor (**Habilitar**) → **Guardar**.
+5. Pestaña **Configuración** → **Dominios autorizados** → agrega `leoriquelme.github.io`.
 
-## 2. Activar el ingreso
-1. Menú izquierdo: **Compilación → Authentication → Comenzar**.
-2. Pestaña **Método de acceso** → **Anónimo** → activar → **Guardar**.
-   (La persona no ve nada de esto: solo escribe iglesia y nombre.)
-3. Pestaña **Configuración → Dominios autorizados → Agregar dominio** → `leoriquelme.github.io`.
+No se usa el ingreso anónimo ni PIN: cada persona entra con su cuenta.
 
-## 3. Crear la base de datos
-1. **Compilación → Firestore Database → Crear base de datos**.
-2. Ubicación: `southamerica-west1 (Santiago)` → **Comenzar en modo de producción** → **Crear**.
-3. Pestaña **Reglas**: borra todo, pega el contenido de [`firestore.rules`](../firestore.rules) → **Publicar**.
+## 2. Pegar las reglas
+1. **Firestore Database** → pestaña **Reglas**.
+2. Borra todo, pega el contenido de [`firestore.rules`](../firestore.rules) y toca **Publicar**.
 
-## 4. Registrar la iglesia PSG
-En **Firestore Database → Datos → Iniciar colección**:
-- ID de la colección: `churches`
-- ID del documento: `psg`
-- Campos (todos de tipo *string*):
-  - `name` = `PSG`
-  - `adminKey` = tu nombre en minúsculas, sin tildes, con un solo espacio. Ej.: `leonardo riquelme`
-  - `adminPin` = tu PIN de administrador: **solo números y al menos 8** (con menos, las reglas no te dejan entrar)
+Cada vez que cambien las reglas en este repositorio hay que volver a pegarlas.
 
-Opcional, pero recomendado: después de entrar, ve a **Mi iglesia** y activa un **código de acceso**
-para que solo entren los que lo conocen.
+## 3. Hacerte Super Admin
+1. Entra a la app y abre `#/super`. Toca **Copiar código**.
+2. En Firebase: **Firestore Database** → **Datos** → **+ Iniciar colección** → ID `superadmins`.
+3. ID del documento: pega el código. Agrega un campo `nombre` (string) → **Guardar**.
 
-Para agregar otra iglesia más adelante se repite este paso con otro documento
-(el ID es el nombre de la iglesia en minúsculas, sin tildes).
-
-## 5. Conectar la app
-1. Ícono ⚙ → **Configuración del proyecto → General → Tus apps** → ícono `</>` (Web).
-2. Apodo `cancionero` → **Registrar app** (sin Hosting).
-3. Copia el bloque `const firebaseConfig = { ... }` en `src/firebase-config.js`.
-   Estos datos no son secretos: la seguridad la dan las reglas del paso 3.
-
-## Seguridad (lo que hacen las reglas)
-- Un nombre de **Director** o **Administrador** solo entra con su PIN. Nadie puede escribir tu nombre
-  y entrar como Colaborador para ver tus notas.
-- Los PIN deben tener **8 números o más** (uno de 4 se adivina probando).
-- Si cambias un PIN, un perfil o el código de acceso, las personas afectadas tienen que volver a entrar.
-- Cada vez que cambie `firestore.rules`, hay que volver a pegarlo en **Firestore → Reglas → Publicar**.
-
-## Ingreso con cuenta (desde el 19-nov-2026)
-
-Cada persona entra con su cuenta de Google o con correo y contraseña. Sin iglesia ve sus canciones
-personales, los himnos de ejemplo y la biblioteca compartida. Puede crear una iglesia (queda como
-Administrador, máx. 3 por cuenta) o unirse a una con su nombre y código de acceso (entra como Colaborador).
-El Administrador sube a Director desde Miembros. No hay PIN.
-
-1. Authentication → Sign-in method → habilitar **Google** y **Correo electrónico/contraseña**.
-2. Authentication → Configuración → Dominios autorizados → agregar `leoriquelme.github.io`.
-3. Pegar `firestore.rules` en Firestore → Reglas → Publicar.
-4. Entrar a la app, abrir `#/super`, copiar el código y crear `superadmins/{ese código}` con un campo `nombre`.
-
-- Los nombres de iglesia son únicos: el id es el nombre normalizado (`keyOf`) y las reglas lo recalculan (`norm`).
-- Las iglesias antiguas (PSG, prueba) quedan solo visibles para el Super Admin, que puede eliminarlas.
+## Cómo funcionan las iglesias
+- Cualquiera con cuenta puede crear una iglesia (queda como **Administrador**) o unirse con el **código de acceso** o un link de invitación (entra como **Colaborador**).
+- El Administrador sube a alguien a **Director musical** desde Miembros.
+- Máximo 3 iglesias por persona.

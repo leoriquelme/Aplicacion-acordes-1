@@ -185,7 +185,7 @@ export function SalirIglesia() {
   );
 }
 
-/** Abajo de Ajustes: sugerir mejoras, apoyo, cerrar sesión y versión. */
+/** Abajo de Ajustes: sugerencias para la iglesia, apoyo, cerrar sesión y versión. */
 export function AjustesFinal() {
   const { mode, can, suggestions = [] } = useStore();
   const { setSession: setS } = useAuth() || {};
@@ -196,7 +196,7 @@ export function AjustesFinal() {
   return (
     <>
       <Grupo>
-        <Fila label={<><Icon name="bulb" /> Sugerir mejoras</>} valor={pendientes} to="/sugerencias" />
+        <Fila label={<><Icon name="bulb" /> Sugerencias para la iglesia</>} valor={pendientes} to="/sugerencias" />
         <Fila label={<><Icon name="heart" /> Apoyo</>} to="/apoyo" />
       </Grupo>
       {(mode === 'cloud' || mode === 'personal') && (

@@ -265,11 +265,12 @@ export default function EditarCancion() {
             </ul>
           </details>
           {error && <p className="error">{error}</p>}
-          <div className="row gap">
-            <button type="submit" className="btn primary">{existing ? 'Listo' : 'Crear'}</button>
-            {!existing && <Link className="btn" to="/canciones" onClick={borrarBorrador}>Cancelar</Link>}
-            {saved && <span className={`small ${saved.startsWith('✓') ? 'ok' : 'muted'}`}>{saved}</span>}
-          </div>
+          {(!existing || saved) && (
+            <div className="row gap">
+              {!existing && <Link className="btn" to="/canciones" onClick={borrarBorrador}>Cancelar</Link>}
+              {saved && <span className={`small ${saved.startsWith('✓') ? 'ok' : 'muted'}`}>{saved}</span>}
+            </div>
+          )}
         </div>
         <div className="editor-preview">
           <div className="muted small">Vista previa</div>
