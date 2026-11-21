@@ -52,7 +52,7 @@ export default function MisIglesias({ actual = null }) {
           ) : (
             <div key={c.id} className="row gap">
               <button className="btn grow" disabled={busy} onClick={hacer(() => abrirIglesia(c.id, name))}>
-                <Icon name="church" /> Cambiar a {c.name}
+                <Icon name="church" /> {actual ? `Cambiar a ${c.name}` : `Abrir ${c.name}`}
               </button>
               <button className="btn ghost small" title="Quitar de esta lista (no te saca de la iglesia)" onClick={() => olvidarIglesia(c.id)}>✕</button>
             </div>

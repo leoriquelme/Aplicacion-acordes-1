@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ROLES, useStore } from '../lib/store.jsx';
-import { salirDeIglesia, useAuth } from '../lib/cloud.jsx';
+import { marcarIglesiaCerrada, salirDeIglesia, useAuth } from '../lib/cloud.jsx';
 import { cerrarSesion } from '../lib/acceso.js';
 import ConfirmX from './ConfirmX.jsx';
 import { APP_VERSION } from '../lib/version.js';
@@ -71,13 +71,15 @@ export function PerfilCard() {
 /** Debajo del perfil: mi iglesia con sus miembros. Al tocarla se entra a la iglesia. */
 export function IglesiaTarjeta() {
   const { mode, church, people = [] } = useStore();
+  const { profile } = useAuth() || {};
+  const tieneIglesias = Object.keys(profile?.churches || {}).length > 0;
   if (mode !== 'cloud' && mode !== 'personal') return null;
   const cloud = mode === 'cloud';
   return (
     <section className="grupo">
       <div className="grupo-titulo row between">
         <span>Iglesia</span>
-        <Link to="/mi-iglesia" className="grupo-accion">Cambiar</Link>
+        {cloud && <Link to="/mi-iglesia" className="grupo-accion">Cambiar</Link>}
       </div>
       {cloud ? (
         <Link to="/mi-iglesia/miembros" state={{ from: 'ajustes' }} className="iglesia-tarjeta">
@@ -90,7 +92,7 @@ export function IglesiaTarjeta() {
         </Link>
       ) : (
         <Link to="/mi-iglesia" className="iglesia-tarjeta">
-          <span className="grow"><strong>Sin iglesia</strong><span className="muted">Unirme o crear una</span></span>
+          <span className="grow"><strong>Mis iglesias</strong><span className="muted">{tieneIglesias ? 'Abrir, unirme o crear una' : 'Unirme o crear una'}</span></span>
           <span className="fila-flecha" aria-hidden="true">›</span>
         </Link>
       )}
@@ -171,7 +173,7 @@ export function AjustesFinal() {
       </Grupo>
       {(mode === 'cloud' || mode === 'personal') && (
         <Grupo>
-          {mode === 'cloud' && <Fila label="Cerrar esta iglesia" onClick={() => setSession?.(null)} flecha={false} />}
+          {mode === 'cloud' && <Fila label="Cerrar esta iglesia" onClick={() => { marcarIglesiaCerrada(true); setSession?.(null); }} flecha={false} />}
           {mode === 'cloud' && !soyDueno && (
             <ConfirmX label={`Salir de ${church?.name}`} className="fila fila-peligro" text={`Salir de ${church?.name}`} armedText="¿Seguro? Necesitarás el código para volver"
               onConfirm={async () => {
