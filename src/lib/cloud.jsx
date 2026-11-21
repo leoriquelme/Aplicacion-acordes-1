@@ -10,6 +10,7 @@ import { auth, db } from './firebase.js';
 import { DataContext, ROLES } from './store.jsx';
 import { normalize } from './chordpro.js';
 import { keyOf } from './claves.js';
+import { datosEnVivo } from './envivo.js';
 
 // Se entra con Iglesia + Nombre. Por detrás, cada equipo tiene una sesión anónima de Firebase
 // (invisible para la persona) que permite que las reglas de permisos funcionen.
@@ -224,7 +225,7 @@ export async function soySuperAdmin() {
   }
 }
 
-const SUBCOLECCIONES = ['members', 'sessions', 'people', 'private', 'songs', 'events', 'participations', 'favorites', 'suggestions'];
+const SUBCOLECCIONES = ['members', 'sessions', 'people', 'private', 'songs', 'events', 'participations', 'favorites', 'suggestions', 'live'];
 
 /** Todas las iglesias (solo Super Admin). */
 export async function todasLasIglesias() {
@@ -327,6 +328,13 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
       ),
     ];
     return () => subs.forEach((u) => u());
+  }, [churchId, Boolean(mySession)]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // En vivo: lo que el director está mostrando ahora (un solo documento por iglesia).
+  const [live, setLive] = useState(undefined); // undefined = cargando
+  useEffect(() => {
+    if (!mySession) return undefined;
+    return onSnapshot(doc(db, 'churches', churchId, 'live', 'actual'), (s) => setLive(s.exists() ? s.data() : null), () => setLive(null));
   }, [churchId, Boolean(mySession)]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Nombre real de la iglesia (como quedó escrito al crearla).
@@ -571,6 +579,17 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
     await commitAll(people.filter((p) => p.key !== mySession?.key && p.role !== 'admin').map((p) => (b) => b.delete(personRef(churchId, p.key))));
   }, [isTest, churchId, col, people, mySession?.key]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  /** El director empieza a pasar la letra, o avisa en qué canción y sección va. */
+  const publishLive = useCallback((data) => {
+    if (!mySession) return;
+    setDoc(doc(db, 'churches', churchId, 'live', 'actual'), datosEnVivo({ ...data, by: user.uid, byName: mySession.name })).catch(report);
+  }, [churchId, user.uid, mySession?.name, report]); // eslint-disable-line react-hooks/exhaustive-deps
+  /** Terminar el modo en vivo (solo si lo estoy pasando yo, para no cortarle a otro director). */
+  const stopLive = useCallback(() => {
+    if (!live?.active || live.by !== user.uid) return;
+    setDoc(doc(db, 'churches', churchId, 'live', 'actual'), datosEnVivo({ ...live, by: user.uid, byName: live.byName, active: false })).catch(() => {});
+  }, [churchId, user.uid, live]);
+
   const person = mySession ? people.find((p) => p.key === mySession.key) : null;
   const role = mySession?.role || 'colaborador';
   const can = ROLES[role] || ROLES.colaborador;
@@ -580,8 +599,8 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
   const value = useMemo(() => ({
     mode: 'cloud', churchId, church, me, role, can, people, songs, events, participations, error,
     clearError: () => setError(''), saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples, myShares, shareSong, unshareSong, loadLibrary,
-    favorites, toggleFavorite, suggestions, sendSuggestion, resolveSuggestion, prayers, pray, updateMyName, setMyTeams, isTest, fillTestData, resetTestChurch, getAccessCode, setAccessCode, restoreBackup, myNotes, setMyNotes,
-  }), [churchId, church.name, me?.name, me?.key, expired, role, can, people, songs, events, participations, error, saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples, myShares, shareSong, unshareSong, loadLibrary, favorites, toggleFavorite, suggestions, sendSuggestion, resolveSuggestion, prayers, pray, updateMyName, setMyTeams, person?.teams?.join('|'), isTest, fillTestData, resetTestChurch, getAccessCode, setAccessCode, restoreBackup, myNotes, setMyNotes]); // eslint-disable-line react-hooks/exhaustive-deps
+    favorites, toggleFavorite, suggestions, sendSuggestion, resolveSuggestion, prayers, pray, updateMyName, setMyTeams, isTest, fillTestData, resetTestChurch, getAccessCode, setAccessCode, restoreBackup, myNotes, setMyNotes, live, publishLive, stopLive, myUid: user.uid,
+  }), [churchId, church.name, me?.name, me?.key, expired, role, can, people, songs, events, participations, error, saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples, myShares, shareSong, unshareSong, loadLibrary, favorites, toggleFavorite, suggestions, sendSuggestion, resolveSuggestion, prayers, pray, updateMyName, setMyTeams, person?.teams?.join('|'), isTest, fillTestData, resetTestChurch, getAccessCode, setAccessCode, restoreBackup, myNotes, setMyNotes, live, publishLive, stopLive, user.uid]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }

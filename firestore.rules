@@ -14,6 +14,7 @@ rules_version = '2';
 // churches/{iglesia}/members/{uid}   { key (= uid), name, role, code, joinedAt }  ← quién pertenece y con qué perfil (lo que vale)
 // churches/{iglesia}/people/{uid}    { name, uid, role, teams, firstSeen, lastSeen }  ← ficha visible de cada persona
 // churches/{iglesia}/participations/{evento__persona}, favorites/{persona}, suggestions/{id}, songs, events
+// churches/{iglesia}/live/actual      { eventId, songId, song, section, by, byName, active, at }  ← modo en vivo
 // owners/{uid} { churches: [ids] }   ← iglesias creadas por cada cuenta (máximo 3)
 // superadmins/{uid}                  ← lo crea Leonardo a mano en la consola
 // library/{iglesia__cancion}         ← biblioteca compartida entre iglesias
@@ -254,6 +255,23 @@ service cloud.firestore {
           && shortText(request.resource.data.get('group', ''), 40) && shortText(request.resource.data.get('date', ''), 10)
           && (canEdit(c) || request.resource.data.personKey == request.auth.uid);
         allow delete: if canEdit(c) || (isMember(c) && resource.data.personKey == request.auth.uid);
+      }
+
+      // En vivo: el Administrador o un Director pasa la letra durante el culto y los demás la siguen.
+      // Un solo documento por iglesia (live/actual); cada cambio de canción o sección lo reescribe.
+      match /live/{doc} {
+        allow read: if isMember(c);
+        allow create, update: if canEdit(c) && doc == 'actual'
+          && request.resource.data.keys().hasOnly(['eventId', 'songId', 'song', 'section', 'by', 'byName', 'active', 'at'])
+          && request.resource.data.eventId is string && request.resource.data.eventId.size() > 0 && request.resource.data.eventId.size() <= 100
+          && shortText(request.resource.data.get('songId', ''), 100)
+          && request.resource.data.song is int && request.resource.data.song >= 0 && request.resource.data.song < 200
+          && request.resource.data.section is int && request.resource.data.section >= 0 && request.resource.data.section < 200
+          && request.resource.data.by == request.auth.uid
+          && shortText(request.resource.data.get('byName', ''), 60)
+          && request.resource.data.active is bool
+          && request.resource.data.at is int;
+        allow delete: if canEdit(c);
       }
 
       // Favoritas y notas propias de cada persona: solo ella las ve y las cambia.

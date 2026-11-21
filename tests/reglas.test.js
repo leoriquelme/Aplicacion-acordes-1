@@ -189,6 +189,24 @@ describe('perfiles', () => {
   });
 });
 
+describe('en vivo', () => {
+  beforeEach(() => unirse(cuenta('juan'), 'juan', 'ABCDEF'));
+  const vivo = (by, extra = {}) => ({ eventId: 'e1', songId: 's1', song: 0, section: 2, by, byName: 'X', active: true, at: Date.now(), ...extra });
+  it('el Administrador o un Director pasa la letra; todos los miembros la leen', async () => {
+    await assertSucceeds(setDoc(doc(cuenta('ana'), 'churches', C, 'live', 'actual'), vivo('ana')));
+    await assertSucceeds(getDoc(doc(cuenta('juan'), 'churches', C, 'live', 'actual')));
+    await assertFails(getDoc(doc(cuenta('pedro'), 'churches', C, 'live', 'actual')));
+    await updateDoc(doc(cuenta('ana'), 'churches', C, 'members', 'juan'), { role: 'director' });
+    await assertSucceeds(setDoc(doc(cuenta('juan'), 'churches', C, 'live', 'actual'), vivo('juan')));
+  });
+  it('un Colaborador no la pasa, y nadie firma por otro', async () => {
+    await assertFails(setDoc(doc(cuenta('juan'), 'churches', C, 'live', 'actual'), vivo('juan')));
+    await assertFails(setDoc(doc(cuenta('ana'), 'churches', C, 'live', 'actual'), vivo('juan')));
+    await assertFails(setDoc(doc(cuenta('ana'), 'churches', C, 'live', 'otro'), vivo('ana')));
+    await assertFails(setDoc(doc(cuenta('ana'), 'churches', C, 'live', 'actual'), vivo('ana', { extra: 1 })));
+  });
+});
+
 describe('cuenta personal', () => {
   it('mis canciones solo las veo yo', async () => {
     await assertSucceeds(setDoc(doc(cuenta('juan'), 'users', 'juan', 'songs', 's1'), { title: 'Mía', content: '[G]Hola' }));
