@@ -72,7 +72,7 @@ export function PersonalStoreProvider({ children }) {
 
   const me = { name: profile?.name || user.displayName || '', key: uid, teams: [], photo: profile?.photo || '' };
   const value = useMemo(() => ({
-    mode: 'personal', church: null, me, role: 'personal', can: PERSONAL_CAN, people: [], songs, songsLoaded, events: [], participations: [], suggestions: [],
+    mode: 'personal', church: null, me, role: 'personal', can: PERSONAL_CAN, people: [], songs, songsLoaded, events: [], participations: [],
     error, clearError: () => setError(''), saveSong, deleteSong, saveEvent: () => null, deleteEvent: () => {}, addExamples, loadLibrary,
     favorites, toggleFavorite, myNotes, setMyNotes, prayers, pray, updateMyName, setMyPhoto: guardarMiFoto,
   }), [me.name, me.photo, songs, songsLoaded, error, saveSong, deleteSong, addExamples, loadLibrary, favorites, toggleFavorite, myNotes, setMyNotes, prayers, pray, updateMyName]); // eslint-disable-line react-hooks/exhaustive-deps

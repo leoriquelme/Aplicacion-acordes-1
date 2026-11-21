@@ -303,3 +303,29 @@ describe('Contador de oraciones', () => {
     await assertSucceeds(setDoc(doc(cuenta('ana'), 'stats', 'oracion'), { count: 1 }));
   });
 });
+
+describe('sugerencias de mejoras (solo el Super Admin)', () => {
+  const sug = (uid, extra = {}) => ({ text: 'Una idea', uid, email: `${uid}@gmail.com`, name: 'Ana', churchId: C, churchName: 'IGLESIA GRACIA', at: 1, ...extra });
+  it('cualquiera con cuenta envía, aunque no tenga iglesia', async () => {
+    await assertSucceeds(setDoc(doc(cuenta('ana'), 'feedback', 's1'), sug('ana')));
+    await assertSucceeds(setDoc(doc(cuenta('zoe'), 'feedback', 's2'), sug('zoe', { churchId: '', churchName: '' })));
+  });
+  it('no se puede enviar a nombre de otro, vacía o con campos raros', async () => {
+    await assertFails(setDoc(doc(cuenta('zoe'), 'feedback', 's1'), sug('ana')));
+    await assertFails(setDoc(doc(cuenta('ana'), 'feedback', 's1'), sug('ana', { text: '' })));
+    await assertFails(setDoc(doc(cuenta('ana'), 'feedback', 's1'), sug('ana', { extra: 1 })));
+    await assertFails(setDoc(doc(anonimo('x'), 'feedback', 's1'), sug('x')));
+  });
+  it('el Administrador de la iglesia no las lee; el Super Admin sí, y las resuelve', async () => {
+    await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), 'feedback', 's1'), sug('juan')));
+    await assertFails(getDocs(collection(cuenta('ana'), 'feedback')));
+    await assertFails(getDoc(doc(cuenta('ana'), 'feedback', 's1')));
+    await assertSucceeds(getDocs(collection(cuenta('leo'), 'feedback')));
+    await assertFails(updateDoc(doc(cuenta('leo'), 'feedback', 's1'), { text: 'x' }));
+    await assertSucceeds(deleteDoc(doc(cuenta('leo'), 'feedback', 's1')));
+  });
+  it('las sugerencias antiguas de la iglesia ya no las lee el Administrador', async () => {
+    await assertFails(getDocs(collection(cuenta('ana'), 'churches', C, 'suggestions')));
+    await assertFails(setDoc(doc(cuenta('ana'), 'churches', C, 'suggestions', 'x'), { text: 'a' }));
+  });
+});

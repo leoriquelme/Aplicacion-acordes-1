@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  actividadGeneral, actividadIglesia, cambiarEstadoIglesia, eliminarIglesia, reiniciarOraciones, soySuperAdmin, todasLasIglesias, useAuth,
+  actividadGeneral, actividadIglesia, cambiarEstadoIglesia, eliminarIglesia, reiniciarOraciones, resolverSugerencia, soySuperAdmin, todasLasIglesias, todasLasSugerencias, useAuth,
 } from '../lib/cloud.jsx';
 import ConfirmX from '../components/ConfirmX.jsx';
 import Icon from '../components/Icon.jsx';
@@ -134,6 +134,8 @@ function Panel({ email }) {
         </p>
       </section>
 
+      <SugerenciasRecibidas />
+
       <ReiniciarOraciones />
 
       <div className="row gap wrap" style={{ margin: '1rem 0 0.6rem', alignItems: 'center' }}>
@@ -240,6 +242,48 @@ function ReiniciarOraciones() {
         <ConfirmX onConfirm={reiniciar} label="Reiniciar contador de oraciones" className="btn" text="Reiniciar a 0" armedText="¿Dejar en 0?" />
         {msg && <span className="small">{msg}</span>}
       </div>
+    </section>
+  );
+}
+
+/** Sugerencias de mejoras que envían las personas desde Ajustes (de todas las iglesias). */
+function SugerenciasRecibidas() {
+  const [lista, setLista] = useState(null);
+  const [error, setError] = useState('');
+  const cargar = useCallback(() => {
+    setError('');
+    todasLasSugerencias().then(setLista).catch((e) => { setLista([]); setError(`No se pudieron cargar: ${e.message}. Revisa que pegaste las reglas nuevas.`); });
+  }, []);
+  useEffect(() => { cargar(); }, [cargar]);
+  const resolver = async (id) => {
+    try {
+      await resolverSugerencia(id);
+      setLista((l) => l.filter((s) => s.id !== id));
+    } catch (e) {
+      setError(`No se pudo: ${e.message}`);
+    }
+  };
+  return (
+    <section className="card sugerencias">
+      <h2>Sugerencias recibidas {lista?.length > 0 && <span className="badge">{lista.length}</span>}</h2>
+      {error && <p className="error">{error}</p>}
+      {lista === null ? <p className="muted small">Cargando…</p> : lista.length === 0 ? (
+        <p className="muted small">No hay sugerencias pendientes.</p>
+      ) : (
+        <ul>
+          {lista.map((s) => (
+            <li key={s.id}>
+              <div className="grow">
+                <div className="small muted">
+                  {s.name || 'Alguien'}{s.email ? ` (${s.email})` : ''} · {s.churchName || 'Sin iglesia'} · {fecha(s.at)}
+                </div>
+                <div className="sug-text">{s.text}</div>
+              </div>
+              <ConfirmX className="btn small" label="Marcar como resuelta" text="✓ Resuelta" armedText="¿Confirmar?" onConfirm={() => resolver(s.id)} />
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }
