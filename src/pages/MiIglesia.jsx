@@ -21,6 +21,7 @@ export default function MiIglesia() {
   if (mode === 'personal') {
     return (
       <div className="page">
+        <Link to="/ajustes" className="back">← Ajustes</Link>
         <MisIglesias />
       </div>
     );

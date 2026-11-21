@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { AuthProvider, CloudStoreProvider, guardarPerfil, useAuth } from './lib/cloud.jsx';
+import { AuthProvider, CloudStoreProvider, abrirIglesia, guardarPerfil, iglesiaCerradaAMano, marcarIglesiaCerrada, useAuth } from './lib/cloud.jsx';
 import { PersonalStoreProvider } from './lib/personal.jsx';
 import { DataContext } from './lib/store.jsx';
 import Bienvenida from './pages/Bienvenida.jsx';
@@ -11,9 +11,21 @@ import AceptarInvitacion from './components/AceptarInvitacion.jsx';
 import { invitacionPendiente } from './lib/invitacion.js';
 
 function Gate() {
-  const { user, profile, session } = useAuth();
+  const { user, profile, session, setSession } = useAuth();
   const { pathname } = useLocation();
   const [invitacion, setInvitacion] = useState(invitacionPendiente);
+  const [abriendo, setAbriendo] = useState(false);
+  // Si tiene una sola iglesia y no la cerró a mano, se abre sola (por ejemplo en un teléfono nuevo).
+  const ids = Object.keys(profile?.churches || {});
+  const abrirSola = !!profile?.name && !session && !invitacion && ids.length === 1 && !iglesiaCerradaAMano();
+  useEffect(() => {
+    if (!abrirSola || abriendo) return;
+    setAbriendo(true);
+    abrirIglesia(ids[0], profile.name)
+      .then((r) => setSession({ churchId: r.churchId, churchName: r.churchName, at: Date.now() }))
+      .catch(() => marcarIglesiaCerrada(true)) // no se pudo (la quitaron o se bloqueó): no reintentar
+      .finally(() => setAbriendo(false));
+  }, [abrirSola]); // eslint-disable-line react-hooks/exhaustive-deps
   if (user === undefined || (user && profile === undefined)) return <div className="loading">Cargando…</div>;
   if (!user) return <Bienvenida />;
   if (!profile?.name) return <PedirNombre />;
@@ -21,6 +33,7 @@ function Gate() {
   if (invitacion) return <AceptarInvitacion code={invitacion} onListo={() => setInvitacion('')} />;
   // Página del Super Admin: no es de una iglesia, se abre con #/super
   if (pathname.startsWith('/super')) return <SuperAdmin />;
+  if (!session && (abrirSola || abriendo) && !pathname.startsWith('/super')) return <div className="loading">Abriendo la iglesia…</div>;
   if (!session) {
     return (
       <PersonalStoreProvider>
@@ -82,7 +95,7 @@ function MemberCheck() {
   const { setSession } = useAuth();
   // Ya no pertenezco (me sacaron, la iglesia se borró o se bloqueó): volver a mi inicio.
   useEffect(() => {
-    if (me === null) setSession(null);
+    if (me === null) { marcarIglesiaCerrada(true); setSession(null); }
   }, [me, setSession]);
   if (!me) return <div className="loading">Abriendo la iglesia…</div>;
   return <ConAvisos />;

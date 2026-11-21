@@ -35,8 +35,8 @@ export default function App() {
   const { mode, church, me, live, myUid, events = [] } = useStore();
   const liveEvent = enVivoActivo(live) ? events.find((e) => e.id === live.eventId) : null;
   const personal = mode === 'personal';
-  // Sin iglesia: Inicio, Canciones, Mi iglesia (para unirse o crear) y Ajustes.
-  const tabs = personal ? TABS.filter((t) => ['/', '/canciones', '/mi-iglesia', '/ajustes'].includes(t.to)) : TABS;
+  // Sin iglesia abierta: solo Inicio, Canciones y Ajustes (a la iglesia se entra desde Ajustes o con un link).
+  const tabs = personal ? TABS.filter((t) => ['/', '/canciones', '/ajustes'].includes(t.to)) : TABS;
 
   return (
     <div className="app">

@@ -19,6 +19,12 @@ import { datosEnVivo } from './envivo.js';
 // la biblioteca compartida y sus canciones personales. Puede crear una iglesia o unirse con un código.
 
 const SESSION_KEY = 'cancionero-iglesia-abierta';
+// Si la persona cerró su iglesia a mano, no se vuelve a abrir sola en este equipo.
+const CERRADA_KEY = 'cancionero-iglesia-cerrada';
+export const iglesiaCerradaAMano = () => { try { return localStorage.getItem(CERRADA_KEY) === '1'; } catch { return false; } };
+export const marcarIglesiaCerrada = (si) => {
+  try { if (si) localStorage.setItem(CERRADA_KEY, '1'); else localStorage.removeItem(CERRADA_KEY); } catch { /* sin espacio */ }
+};
 
 export { keyOf };
 
@@ -57,6 +63,7 @@ export function AuthProvider({ children }) {
 
   const setSession = useCallback((s) => {
     setSessionState(s);
+    if (s) marcarIglesiaCerrada(false);
     if (s) localStorage.setItem(SESSION_KEY, JSON.stringify(s));
     else localStorage.removeItem(SESSION_KEY);
   }, []);
