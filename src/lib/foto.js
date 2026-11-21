@@ -20,38 +20,6 @@ export function fotoValida(x) {
   return typeof x === 'string' && x.length <= MAX_FOTO && /^data:image\/(jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(x);
 }
 
-function cargarImagen(file) {
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file);
-    const img = new Image();
-    img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('No se pudo abrir la imagen.')); };
-    img.src = url;
-  });
-}
-
-/**
- * Achica una imagen elegida por la persona a un cuadrado pequeño (JPEG).
- * Devuelve un texto "data:image/jpeg;base64,…" de menos de MAX_FOTO letras.
- */
-export async function achicarFoto(file, { lado = 192, modo = 'cubrir' } = {}) {
-  if (!file?.type?.startsWith('image/')) throw new Error('Elige una imagen.');
-  const img = await cargarImagen(file);
-  const canvas = document.createElement('canvas');
-  canvas.width = lado;
-  canvas.height = lado;
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#ffffff'; // los logos con fondo transparente quedan sobre blanco
-  ctx.fillRect(0, 0, lado, lado);
-  const { dx, dy, dw, dh } = encuadre(img.naturalWidth || img.width, img.naturalHeight || img.height, lado, modo);
-  ctx.drawImage(img, dx, dy, dw, dh);
-  for (const calidad of [0.85, 0.7, 0.55, 0.4]) {
-    const data = canvas.toDataURL('image/jpeg', calidad);
-    if (fotoValida(data)) return data;
-  }
-  throw new Error('La imagen es demasiado pesada.');
-}
-
 // ---------- Encuadrar (zoom y arrastre) antes de guardar ----------
 
 /**
@@ -79,40 +47,90 @@ export function destinoRecorte(w, h, s, { x, y }, V, lado) {
   return { dx: lado / 2 + x * k - dw / 2, dy: lado / 2 + y * k - dh / 2, dw, dh };
 }
 
-/** Abre el archivo elegido como imagen (para el visor). */
+/** Lado máximo de la imagen que se muestra en el visor (las fotos del teléfono pueden ser enormes). */
+const MAX_VISOR = 1280;
+
+function cargarDesde(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('No se pudo abrir la imagen. Prueba con otra foto.'));
+    img.src = url;
+  });
+}
+
+/** Suelta la memoria de un canvas (en iPhone hay un límite y si no se libera, falla la siguiente foto). */
+function soltar(canvas) {
+  canvas.width = 0;
+  canvas.height = 0;
+}
+
+/**
+ * Abre la imagen elegida y la deja de un tamaño razonable (máx. 1280 px por lado) para encuadrarla.
+ * Así una foto de 12 o 48 megapíxeles del iPhone no llena la memoria del teléfono.
+ */
 export async function abrirImagen(file) {
-  if (!file?.type?.startsWith('image/')) throw new Error('Elige una imagen.');
-  // Como texto (data URL) para que el visor pueda seguir mostrándola mientras se encuadra.
-  const url = await new Promise((resolve, reject) => {
+  if (!file?.type?.startsWith('image/') && !/\.(heic|heif|jpe?g|png|webp|gif)$/i.test(file?.name || '')) {
+    throw new Error('Elige una imagen.');
+  }
+  const url = URL.createObjectURL(file);
+  try {
+    const original = await cargarDesde(url);
+    const w = original.naturalWidth || original.width;
+    const h = original.naturalHeight || original.height;
+    const k = Math.min(1, MAX_VISOR / Math.max(w, h));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(w * k));
+    canvas.height = Math.max(1, Math.round(h * k));
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('El teléfono no tiene memoria libre. Cierra otras apps e inténtalo otra vez.');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(original, 0, 0, canvas.width, canvas.height);
+    const data = canvas.toDataURL('image/jpeg', 0.9);
+    soltar(canvas);
+    // Si el teléfono no pudo copiarla, se usa la original tal cual.
+    return data.startsWith('data:image/') ? await cargarDesde(data) : await cargarDesde(await leerComoTexto(file));
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+function leerComoTexto(file) {
+  return new Promise((resolve, reject) => {
     const r = new FileReader();
     r.onload = () => resolve(r.result);
     r.onerror = () => reject(new Error('No se pudo abrir la imagen.'));
     r.readAsDataURL(file);
   });
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error('No se pudo abrir la imagen.'));
-    img.src = url;
-  });
 }
 
-/** Dibuja el encuadre elegido y lo devuelve como texto JPEG pequeño. */
+/**
+ * Dibuja el encuadre elegido y lo devuelve como texto JPEG pequeño.
+ * Nunca rechaza por peso: si no cabe, baja la calidad y luego el tamaño hasta que quepa.
+ */
 export function exportarRecorte(img, s, desplazamiento, V, lado = 192) {
-  const canvas = document.createElement('canvas');
-  canvas.width = lado;
-  canvas.height = lado;
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, lado, lado);
   const w = img.naturalWidth || img.width;
   const h = img.naturalHeight || img.height;
-  const { dx, dy, dw, dh } = destinoRecorte(w, h, s, desplazamiento, V, lado);
-  ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(img, dx, dy, dw, dh);
-  for (const calidad of [0.85, 0.7, 0.55, 0.4]) {
-    const data = canvas.toDataURL('image/jpeg', calidad);
-    if (fotoValida(data)) return data;
+  for (const l of [lado, Math.round(lado * 0.8), Math.round(lado * 0.6), 96]) {
+    const canvas = document.createElement('canvas');
+    canvas.width = l;
+    canvas.height = l;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) { soltar(canvas); continue; }
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, l, l);
+    const { dx, dy, dw, dh } = destinoRecorte(w, h, s, desplazamiento, V, l);
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, dx, dy, dw, dh);
+    for (const calidad of [0.85, 0.7, 0.55, 0.4, 0.3]) {
+      for (const tipo of ['image/jpeg', 'image/webp']) {
+        const data = canvas.toDataURL(tipo, calidad);
+        if (fotoValida(data)) { soltar(canvas); return data; }
+      }
+    }
+    soltar(canvas);
   }
-  throw new Error('La imagen es demasiado pesada.');
+  throw new Error('El teléfono no pudo preparar la foto. Cierra otras apps e inténtalo otra vez.');
 }
