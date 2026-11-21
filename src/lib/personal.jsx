@@ -6,7 +6,7 @@ import { cancionesEjemplo } from '../data/ejemplos.js';
 import { db } from './firebase.js';
 import { DataContext } from './store.jsx';
 import { normalize } from './chordpro.js';
-import { useAuth } from './cloud.jsx';
+import { guardarMiFoto, useAuth } from './cloud.jsx';
 
 // Vista personal (sin iglesia): mis canciones (users/{uid}/songs), himnos de ejemplo y la
 // biblioteca que comparten las iglesias. Sin eventos ni miembros.
@@ -70,12 +70,12 @@ export function PersonalStoreProvider({ children }) {
 
   const updateMyName = useCallback((name) => setDoc(userDoc, { name: name.trim().slice(0, 60) }, { merge: true }), [userDoc]);
 
-  const me = { name: profile?.name || user.displayName || '', key: uid, teams: [] };
+  const me = { name: profile?.name || user.displayName || '', key: uid, teams: [], photo: profile?.photo || '' };
   const value = useMemo(() => ({
     mode: 'personal', church: null, me, role: 'personal', can: PERSONAL_CAN, people: [], songs, songsLoaded, events: [], participations: [], suggestions: [],
     error, clearError: () => setError(''), saveSong, deleteSong, saveEvent: () => null, deleteEvent: () => {}, addExamples, loadLibrary,
-    favorites, toggleFavorite, myNotes, setMyNotes, prayers, pray, updateMyName,
-  }), [me.name, songs, songsLoaded, error, saveSong, deleteSong, addExamples, loadLibrary, favorites, toggleFavorite, myNotes, setMyNotes, prayers, pray, updateMyName]); // eslint-disable-line react-hooks/exhaustive-deps
+    favorites, toggleFavorite, myNotes, setMyNotes, prayers, pray, updateMyName, setMyPhoto: guardarMiFoto,
+  }), [me.name, me.photo, songs, songsLoaded, error, saveSong, deleteSong, addExamples, loadLibrary, favorites, toggleFavorite, myNotes, setMyNotes, prayers, pray, updateMyName]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }

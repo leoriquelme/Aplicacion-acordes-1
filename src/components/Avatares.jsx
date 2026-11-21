@@ -1,7 +1,13 @@
+import { useStore } from '../lib/store.jsx';
 import { colorDe, iniciales } from '../lib/participacion.js';
 
-/** Círculo con las iniciales de una persona. */
-export function Avatar({ name, personKey, size = 'md' }) {
+/** Círculo con la foto de la persona (si subió una) o con sus iniciales. */
+export function Avatar({ name, personKey, size = 'md', photo }) {
+  const { people = [], me } = useStore() || {};
+  const foto = photo ?? (personKey && personKey === me?.key ? me?.photo : people.find((p) => p.key === personKey)?.photo);
+  if (foto) {
+    return <img className={`avatar avatar-${size} avatar-foto`} src={foto} alt={name} title={name} />;
+  }
   return (
     <span className={`avatar avatar-${size}`} style={{ background: colorDe(personKey || name) }} title={name} aria-label={name}>
       {iniciales(name)}

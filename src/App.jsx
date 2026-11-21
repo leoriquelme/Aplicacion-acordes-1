@@ -18,6 +18,7 @@ import InicioPersonal from './pages/InicioPersonal.jsx';
 import { useStore } from './lib/store.jsx';
 import Icon from './components/Icon.jsx';
 import { enVivoActivo } from './lib/envivo.js';
+import IglesiaLogo from './components/IglesiaLogo.jsx';
 
 const TABS = [
   { to: '/', label: 'Inicio', icon: 'home', end: true },
@@ -51,7 +52,7 @@ export default function App() {
           </nav>
           {personal && <div className="church-chip" title={me?.name}><Icon name="user" /> {me?.name}</div>}
           {mode === 'cloud' && church && (
-            <div className="church-chip" title={`${me?.name} en ${church.name}`}><Icon name="church" /> {church.name}</div>
+            <div className="church-chip" title={`${me?.name} en ${church.name}`}><IglesiaLogo className="logo-chip" /> {church.name}</div>
           )}
         </header>
       )}

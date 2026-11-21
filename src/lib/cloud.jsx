@@ -102,6 +102,18 @@ export async function guardarPerfil(name) {
 async function anotarIglesia(churchId, churchName) {
   await setDoc(userRef(auth.currentUser.uid), { churches: { [churchId]: { name: churchName } } }, { merge: true });
 }
+/**
+ * Mi foto de perfil (texto data:image/jpeg… o null para quitarla). Se guarda en mi cuenta
+ * y en mi ficha de cada iglesia donde estoy, para que todos la vean.
+ */
+export async function guardarMiFoto(photo) {
+  const uid = auth.currentUser.uid;
+  const valor = photo || deleteField();
+  await setDoc(userRef(uid), { photo: valor }, { merge: true });
+  const mias = Object.keys((await getDoc(userRef(uid))).data()?.churches || {});
+  await Promise.all(mias.map((c) => updateDoc(personRef(c, uid), { photo: valor }).catch(() => {})));
+}
+
 /** Quitar una iglesia de "Mis iglesias". */
 export async function olvidarIglesia(churchId) {
   await updateDoc(userRef(auth.currentUser.uid), { [`churches.${churchId}`]: deleteField() }).catch(() => {});
@@ -120,7 +132,8 @@ async function entrarComoMiembro(churchId, { code = '', role = 'colaborador', na
   }
   const c = (await getDoc(doc(db, 'churches', churchId))).data();
   await anotarIglesia(churchId, c.name);
-  await updateDoc(personRef(churchId, uid), { lastSeen: now }).catch(() => {});
+  const miFoto = (await getDoc(userRef(uid)).catch(() => null))?.data()?.photo;
+  await updateDoc(personRef(churchId, uid), { lastSeen: now, ...(miFoto ? { photo: miFoto } : {}) }).catch(() => {});
   return { churchId, churchName: c.name };
 }
 
@@ -425,6 +438,15 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
     return updateDoc(personRef(churchId, myKey), { name: name.trim().slice(0, 60) });
   }, [churchId, myKey]);
 
+  /** Mi foto (en mi cuenta y en todas mis iglesias). */
+  const setMyPhoto = useCallback((photo) => guardarMiFoto(photo), []);
+
+  /** El Administrador quita la foto de alguien (por ejemplo, si no es apropiada). */
+  const removePhoto = useCallback((key) => updateDoc(personRef(churchId, key), { photo: deleteField() }).catch(report), [churchId, report]);
+
+  /** Logo de la iglesia (solo el Administrador). null lo quita. */
+  const setChurchLogo = useCallback((logo) => updateDoc(doc(db, 'churches', churchId), { logo: logo || deleteField() }), [churchId]);
+
   /** Equipos en los que sirvo (para inscribirme más rápido en los eventos). */
   const setMyTeams = useCallback((teams) => {
     if (!myKey) return;
@@ -593,14 +615,14 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
   const person = mySession ? people.find((p) => p.key === mySession.key) : null;
   const role = mySession?.role || 'colaborador';
   const can = ROLES[role] || ROLES.colaborador;
-  const me = mySession === undefined ? undefined : expired ? null : mySession && { name: person?.name || mySession.name, key: mySession.key, teams: person?.teams || [] };
-  const church = { id: churchId, name: churchDoc?.name || churchName, ownerUid: churchDoc?.ownerUid };
+  const me = mySession === undefined ? undefined : expired ? null : mySession && { name: person?.name || mySession.name, key: mySession.key, teams: person?.teams || [], photo: person?.photo || '' };
+  const church = { id: churchId, name: churchDoc?.name || churchName, ownerUid: churchDoc?.ownerUid, logo: churchDoc?.logo || '' };
 
   const value = useMemo(() => ({
     mode: 'cloud', churchId, church, me, role, can, people, songs, events, participations, error,
     clearError: () => setError(''), saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples, myShares, shareSong, unshareSong, loadLibrary,
-    favorites, toggleFavorite, suggestions, sendSuggestion, resolveSuggestion, prayers, pray, updateMyName, setMyTeams, isTest, fillTestData, resetTestChurch, getAccessCode, setAccessCode, restoreBackup, myNotes, setMyNotes, live, publishLive, stopLive, myUid: user.uid,
-  }), [churchId, church.name, me?.name, me?.key, expired, role, can, people, songs, events, participations, error, saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples, myShares, shareSong, unshareSong, loadLibrary, favorites, toggleFavorite, suggestions, sendSuggestion, resolveSuggestion, prayers, pray, updateMyName, setMyTeams, person?.teams?.join('|'), isTest, fillTestData, resetTestChurch, getAccessCode, setAccessCode, restoreBackup, myNotes, setMyNotes, live, publishLive, stopLive, user.uid]); // eslint-disable-line react-hooks/exhaustive-deps
+    favorites, toggleFavorite, suggestions, sendSuggestion, resolveSuggestion, prayers, pray, updateMyName, setMyTeams, setMyPhoto, removePhoto, setChurchLogo, isTest, fillTestData, resetTestChurch, getAccessCode, setAccessCode, restoreBackup, myNotes, setMyNotes, live, publishLive, stopLive, myUid: user.uid,
+  }), [churchId, church.name, church.logo, me?.name, me?.key, me?.photo, setMyPhoto, removePhoto, setChurchLogo, expired, role, can, people, songs, events, participations, error, saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples, myShares, shareSong, unshareSong, loadLibrary, favorites, toggleFavorite, suggestions, sendSuggestion, resolveSuggestion, prayers, pray, updateMyName, setMyTeams, person?.teams?.join('|'), isTest, fillTestData, resetTestChurch, getAccessCode, setAccessCode, restoreBackup, myNotes, setMyNotes, live, publishLive, stopLive, user.uid]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }
