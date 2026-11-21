@@ -31,7 +31,7 @@ export function CodigoAcceso() {
     <section className="card">
       <h2>Código de acceso</h2>
       <p className="muted small">
-        Para unirse a la iglesia, cada hermano entra con su cuenta y escribe el nombre de la iglesia y este código.
+        Para unirse a la iglesia, cada hermano entra con su cuenta y escribe este código (o abre el link de invitación, que ya lo trae).
         Si lo cambias, quienes ya se unieron siguen dentro.
       </p>
       <p>Código actual: <strong className="codigo">{actual === null ? '…' : actual || 'sin código'}</strong></p>

@@ -7,13 +7,18 @@ import Bienvenida from './pages/Bienvenida.jsx';
 import { cerrarSesion } from './lib/acceso.js';
 import SuperAdmin from './pages/SuperAdmin.jsx';
 import App from './App.jsx';
+import AceptarInvitacion from './components/AceptarInvitacion.jsx';
+import { invitacionPendiente } from './lib/invitacion.js';
 
 function Gate() {
   const { user, profile, session } = useAuth();
   const { pathname } = useLocation();
+  const [invitacion, setInvitacion] = useState(invitacionPendiente);
   if (user === undefined || (user && profile === undefined)) return <div className="loading">Cargando…</div>;
   if (!user) return <Bienvenida />;
   if (!profile?.name) return <PedirNombre />;
+  // Llegó con un link de invitación: ofrecer unirse a esa iglesia.
+  if (invitacion) return <AceptarInvitacion code={invitacion} onListo={() => setInvitacion('')} />;
   // Página del Super Admin: no es de una iglesia, se abre con #/super
   if (pathname.startsWith('/super')) return <SuperAdmin />;
   if (!session) {

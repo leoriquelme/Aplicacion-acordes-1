@@ -3,6 +3,7 @@ import Icon from '../components/Icon.jsx';
 import {
   crearCuentaConCorreo, entrarConCorreo, entrarConGoogle, mensajeAcceso, recuperarContrasena,
 } from '../lib/acceso.js';
+import { invitacionPendiente } from '../lib/invitacion.js';
 
 /** Página de entrada: con Google, o con correo y contraseña. */
 export default function Bienvenida({ notice }) {
@@ -44,6 +45,11 @@ export default function Bienvenida({ notice }) {
         <h1>Cancionero</h1>
         <p className="muted">Letras y acordes para tu iglesia</p>
         {notice && <p className="error">{notice}</p>}
+        {invitacionPendiente() && (
+          <p className="aviso-invitacion">
+            <strong>Te invitaron a unirte a una iglesia.</strong> Entra con tu cuenta (o crea una gratis) y quedarás dentro.
+          </p>
+        )}
 
         <button className="btn big google-btn" disabled={busy} onClick={hacer(entrarConGoogle)}>
           <GoogleG /> Entrar con Google
