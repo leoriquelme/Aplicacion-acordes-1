@@ -1,10 +1,27 @@
 import { useState } from 'react';
 import { useStore } from '../lib/store.jsx';
 import ConfirmX from './ConfirmX.jsx';
+import { Avatar } from './Avatares.jsx';
 
 function shortDate(ms) {
   if (!ms) return '—';
   return new Date(ms).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+/** Nombre con su foto; el Administrador puede quitar la foto de otra persona. */
+function Nombre({ p, isMe }) {
+  const { removePhoto } = useStore();
+  return (
+    <td>
+      <span className="row gap nombre-celda">
+        <Avatar name={p.name} personKey={p.key} size="sm" photo={p.photo || ''} />
+        <span><strong>{p.name}</strong>{isMe && <span className="muted"> (tú)</span>}</span>
+      </span>
+      {p.photo && !isMe && removePhoto && (
+        <ConfirmX label={`Quitar la foto de ${p.name}`} className="btn small ghost danger" text="Quitar foto" armedText="¿Quitar foto?" onConfirm={() => removePhoto(p.key)} />
+      )}
+    </td>
+  );
 }
 
 function PersonRow({ p, isMe, onSave, onRemove }) {
@@ -14,7 +31,7 @@ function PersonRow({ p, isMe, onSave, onRemove }) {
   if (p.role === 'admin') {
     return (
       <tr>
-        <td><strong>{p.name}</strong>{isMe && <span className="muted"> (tú)</span>}</td>
+        <Nombre p={p} isMe={isMe} />
         <td><span className="role-pill role-admin">Administrador</span></td>
         <td className="muted small">{shortDate(p.lastSeen)}</td>
         <td />
@@ -24,7 +41,7 @@ function PersonRow({ p, isMe, onSave, onRemove }) {
 
   return (
     <tr>
-      <td><strong>{p.name}</strong>{isMe && <span className="muted"> (tú)</span>}</td>
+      <Nombre p={p} isMe={isMe} />
       <td>
         <select
           value={p.role || 'colaborador'}

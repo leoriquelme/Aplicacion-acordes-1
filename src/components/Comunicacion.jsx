@@ -6,6 +6,7 @@ import { cerrarSesion } from '../lib/acceso.js';
 import ConfirmX from './ConfirmX.jsx';
 import { APP_VERSION } from '../lib/version.js';
 import { Avatar } from './Avatares.jsx';
+import ElegirFoto from './ElegirFoto.jsx';
 import { EquiposPerfil } from './MisEquipos.jsx';
 import Icon from './Icon.jsx';
 
@@ -50,7 +51,7 @@ export function FilaAbre({ label, valor, children }) {
 
 /** Arriba de Ajustes: mi foto (iniciales), nombre y perfil. Debajo, el grupo "Perfil". */
 export function PerfilCard() {
-  const { mode, church, me, role, updateMyName } = useStore();
+  const { mode, church, me, role, updateMyName, setMyPhoto } = useStore();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState('');
   const [msg, setMsg] = useState('');
@@ -73,9 +74,17 @@ export function PerfilCard() {
   return (
     <>
       <header className="perfil-cabeza">
-        <Avatar name={nombre || '?'} personKey={me?.key} size="xl" />
+        <div className="perfil-foto">
+          <Avatar name={nombre || '?'} personKey={me?.key} size="xl" photo={me?.photo || ''} />
+          {setMyPhoto && (
+            <ElegirFoto className="perfil-camara" label="Cambiar foto" onFoto={setMyPhoto}>
+              <Icon name="camera" />
+            </ElegirFoto>
+          )}
+        </div>
         <h1 className="perfil-nombre">{nombre}</h1>
         {cloud && <span className={`role-pill role-${role}`}>{ROLES[role]?.label || 'Colaborador'}</span>}
+        {me?.photo && setMyPhoto && <button className="btn ghost small" onClick={() => setMyPhoto(null)}>Quitar foto</button>}
       </header>
 
       {(cloud || personal) && (

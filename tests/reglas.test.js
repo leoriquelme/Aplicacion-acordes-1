@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
 import { assertFails, assertSucceeds, initializeTestEnvironment } from '@firebase/rules-unit-testing';
 import {
-  collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, setDoc, updateDoc, writeBatch,
+  collection, deleteDoc, deleteField, doc, getDoc, getDocs, serverTimestamp, setDoc, updateDoc, writeBatch,
 } from 'firebase/firestore';
 import { keyOf } from '../src/lib/claves.js';
 
@@ -175,6 +175,18 @@ describe('perfiles', () => {
     await assertFails(updateDoc(doc(cuenta('juan'), 'churches', C), { accessCode: 'MIO123' }));
     await assertSucceeds(deleteDoc(doc(cuenta('ana'), 'churches', C, 'members', 'juan')));
     await assertFails(getDocs(collection(cuenta('juan'), 'churches', C, 'songs')));
+  });
+  it('fotos: cada uno sube la suya, el Administrador la quita y sube el logo', async () => {
+    const foto = 'data:image/jpeg;base64,/9j/4AAQSkZJRg==';
+    await assertSucceeds(updateDoc(doc(cuenta('juan'), 'churches', C, 'people', 'juan'), { photo: foto }));
+    await assertSucceeds(setDoc(doc(cuenta('juan'), 'users', 'juan'), { photo: foto }, { merge: true }));
+    await assertFails(updateDoc(doc(cuenta('juan'), 'churches', C, 'people', 'ana'), { photo: foto }));
+    await assertFails(updateDoc(doc(cuenta('juan'), 'churches', C, 'people', 'juan'), { photo: 'https://otro.com/x.jpg' }));
+    await assertFails(updateDoc(doc(cuenta('juan'), 'churches', C, 'people', 'juan'), { photo: `data:image/jpeg;base64,${'A'.repeat(60000)}` }));
+    await assertSucceeds(updateDoc(doc(cuenta('ana'), 'churches', C, 'people', 'juan'), { photo: deleteField() }));
+    await assertSucceeds(updateDoc(doc(cuenta('ana'), 'churches', C), { logo: foto }));
+    await assertFails(updateDoc(doc(cuenta('juan'), 'churches', C), { logo: foto }));
+    await assertSucceeds(updateDoc(doc(cuenta('ana'), 'churches', C), { logo: deleteField() }));
   });
   it('favoritas solo propias', async () => {
     await assertSucceeds(setDoc(doc(cuenta('juan'), 'churches', C, 'favorites', 'juan'), { songs: ['a'] }));

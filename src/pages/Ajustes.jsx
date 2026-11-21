@@ -7,6 +7,8 @@ import InstalarCard from '../components/InstalarCard.jsx';
 import IglesiaPrueba from '../components/IglesiaPrueba.jsx';
 import { Respaldo } from '../components/Administracion.jsx';
 import Icon from '../components/Icon.jsx';
+import ElegirFoto from '../components/ElegirFoto.jsx';
+import IglesiaLogo from '../components/IglesiaLogo.jsx';
 import { descargar } from '../lib/descargar.js';
 
 const MUESTRA = '[G]Cuán grande es [C]Él, [G]cuán grande es [D]Él';
@@ -78,6 +80,15 @@ export default function Ajustes() {
 
       {store.mode === 'cloud' && (store.can.users || store.can.edit) && (
         <Grupo titulo="Iglesia">
+          {store.can.users && store.setChurchLogo && (
+            <FilaAbre label="Logo" valor={store.church?.logo ? <img className="logo-mini" src={store.church.logo} alt="" /> : 'Agregar'}>
+              <div className="row gap wrap">
+                <IglesiaLogo />
+                <ElegirFoto modo="contener" onFoto={store.setChurchLogo}><Icon name="image" /> {store.church?.logo ? 'Cambiar' : 'Subir logo'}</ElegirFoto>
+                {store.church?.logo && <button className="btn ghost danger" onClick={() => store.setChurchLogo(null)}>Quitar</button>}
+              </div>
+            </FilaAbre>
+          )}
           {store.can.users && (
             <FilaAbre label="Respaldo">
               <Respaldo />

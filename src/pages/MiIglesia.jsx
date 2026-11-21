@@ -9,6 +9,7 @@ import Icon from '../components/Icon.jsx';
 import MisIglesias from '../components/MisIglesias.jsx';
 import InvitarCard from '../components/InvitarCard.jsx';
 import { FilaAbre, Grupo } from '../components/Comunicacion.jsx';
+import IglesiaLogo from '../components/IglesiaLogo.jsx';
 
 /** Pestaña "Mi iglesia": datos de la iglesia, mis equipos, canciones más usadas e historial. */
 export default function MiIglesia() {
@@ -27,7 +28,7 @@ export default function MiIglesia() {
   return (
     <div className="page">
       <section className="card bloque-iglesia">
-        <div className="bloque-icono"><Icon name="church" /></div>
+        <IglesiaLogo />
         <div className="grow">
           <h1>{mode === 'cloud' ? church?.name : 'Mi iglesia'}</h1>
           {mode === 'cloud' && <Avatares people={people} max={8} size="sm" />}

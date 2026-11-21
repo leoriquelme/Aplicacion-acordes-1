@@ -4,6 +4,7 @@ import { formatLong, relativeDay, sortEvents, todayISO } from '../lib/dates.js';
 import Avatares from '../components/Avatares.jsx';
 import Icon from '../components/Icon.jsx';
 import VersiculoDelDia from '../components/VersiculoDelDia.jsx';
+import IglesiaLogo from '../components/IglesiaLogo.jsx';
 
 const MAX_EVENTOS = 4;
 
@@ -16,7 +17,7 @@ export default function Inicio() {
     <div className="page inicio">
       {/* Bloque 1: la iglesia */}
       <section className="card bloque-iglesia">
-        <div className="bloque-icono"><Icon name="church" /></div>
+        <IglesiaLogo />
         <div>
           <h1>{mode === 'cloud' ? church?.name : 'Cancionero'}</h1>
           <p className="muted">

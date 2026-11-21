@@ -12,7 +12,7 @@ rules_version = '2';
 //   ← el id es el nombre "normalizado" (sin mayúsculas, tildes ni espacios de más): no puede haber dos iglesias con el mismo nombre.
 //     status: 'activa' (o sin campo) | 'bloqueada' (la bloquea el Super Admin: nadie entra)
 // churches/{iglesia}/members/{uid}   { key (= uid), name, role, code, joinedAt }  ← quién pertenece y con qué perfil (lo que vale)
-// churches/{iglesia}/people/{uid}    { name, uid, role, teams, firstSeen, lastSeen }  ← ficha visible de cada persona
+// churches/{iglesia}/people/{uid}    { name, uid, role, teams, photo, firstSeen, lastSeen }  ← ficha visible de cada persona
 // churches/{iglesia}/participations/{evento__persona}, favorites/{persona}, suggestions/{id}, songs, events
 // churches/{iglesia}/live/actual      { eventId, songId, song, section, by, byName, active, at }  ← modo en vivo
 // owners/{uid} { churches: [ids] }   ← iglesias creadas por cada cuenta (máximo 3)
@@ -55,13 +55,17 @@ service cloud.firestore {
     function codePath(x) { return /databases/$(database)/documents/codes/$(x); }
     // El código queda anotado en codes/{código} → { churchId }: así no hay dos iglesias con el mismo código
     // (Firebase no deja crear un documento que ya existe) y para unirse basta con escribir el código.
+    // Foto o logo achicado en el teléfono (texto data:image/jpeg;base64,… de menos de 60.000 letras).
+    function validPhoto(x) { return x is string && x.size() <= 60000 && x.matches('^data:image/(jpeg|webp);base64,[A-Za-z0-9+/=]+$'); }
+    function photoOk(d) { return !('photo' in d) || validPhoto(d.photo); }
     function codeFor(c, x) { return validCode(x) && existsAfter(codePath(x)) && getAfter(codePath(x)).data.churchId == c; }
 
     // ---------- Cuenta personal ----------
     match /users/{uid} {
       allow read, delete: if signedIn() && request.auth.uid == uid;
       allow create, update: if account() && request.auth.uid == uid
-        && request.resource.data.keys().hasOnly(['name', 'email', 'churches', 'favorites', 'notes', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['name', 'email', 'churches', 'favorites', 'notes', 'createdAt', 'photo'])
+        && photoOk(request.resource.data)
         && (!('name' in request.resource.data) || validName(request.resource.data.name))
         && (!('churches' in request.resource.data) || (request.resource.data.churches is map && request.resource.data.churches.size() <= 20))
         && (!('favorites' in request.resource.data) || (request.resource.data.favorites is list && request.resource.data.favorites.size() <= 500))
@@ -169,9 +173,11 @@ service cloud.firestore {
       allow delete: if false; // el Super Admin borra (ver arriba)
       // El Administrador cambia (o quita) el código de acceso.
       // El Super Admin bloquea o desbloquea, y puede asignar el dueño de una iglesia antigua.
+      // También sube o quita el logo de la iglesia.
       allow update: if (isAdmin(c)
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['accessCode'])
-          && (!('accessCode' in request.resource.data) || codeFor(c, request.resource.data.accessCode)))
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['accessCode', 'logo'])
+          && (!('accessCode' in request.resource.data) || codeFor(c, request.resource.data.accessCode))
+          && (!('logo' in request.resource.data) || validPhoto(request.resource.data.logo)))
         || (isSuper()
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
           && request.resource.data.get('status', 'activa') in ['activa', 'bloqueada']);
@@ -215,10 +221,12 @@ service cloud.firestore {
           && validName(request.resource.data.name)
           // El Administrador puede agregar fichas sin cuenta (p. ej. datos de prueba).
           || (isAdmin(c) && request.resource.data.get('uid', '') == '' && validName(request.resource.data.name));
-        allow update: if isAdmin(c)
-          // Cada uno actualiza su "última vez", su nombre y sus equipos.
+        // El Administrador puede cambiar cualquier ficha (por ejemplo, quitar una foto inapropiada).
+        allow update: if (isAdmin(c) && photoOk(request.resource.data))
+          // Cada uno actualiza su "última vez", su nombre, sus equipos y su foto.
           || (isMember(c) && key == request.auth.uid
-              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastSeen', 'name', 'teams'])
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastSeen', 'name', 'teams', 'photo'])
+              && photoOk(request.resource.data)
               && validName(request.resource.data.name)
               && (!('teams' in request.resource.data) || (request.resource.data.teams is list && request.resource.data.teams.size() <= 12)));
         allow delete: if isAdmin(c);
