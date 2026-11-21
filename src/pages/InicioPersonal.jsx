@@ -14,7 +14,7 @@ export default function InicioPersonal() {
         <div>
           <h1>Hola{name ? `, ${name.split(' ')[0]}` : ''}</h1>
           <p className="muted">
-            {tiene ? 'Para ver los eventos y el equipo de tu iglesia, ábrela en la pestaña Mi iglesia.' : 'Para ver los eventos y el equipo de tu iglesia, únete con su código o crea la tuya en la pestaña Mi iglesia.'}
+            {tiene ? 'Abre tu iglesia en Mi iglesia.' : 'Únete o crea tu iglesia en Mi iglesia.'}
           </p>
         </div>
       </section>

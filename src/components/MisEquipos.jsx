@@ -26,7 +26,7 @@ function EditorEquipos() {
   };
   return (
     <div className="mis-equipos">
-      <p className="muted small">Marca dónde sirves. En cada evento te aparecerán primero para inscribirte con un toque.</p>
+      <p className="muted small">Marca dónde sirves.</p>
       {GRUPOS.filter((g) => g.roles.length).map((g) => (
         <div key={g.id} className={`role-group g-${g.id}`}>
           <h3>{g.nombre}</h3>
@@ -49,7 +49,7 @@ function EditorEquipos() {
         <div className="row gap" style={{ marginTop: '0.5rem' }}>
           <input
             className="grow" value={otro} maxLength={30}
-            placeholder="Ej. Bienvenida, Escuela dominical, Niños…"
+            placeholder="Otro equipo"
             onChange={(e) => setOtro(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && add()}
             disabled={teams.length >= MAX}
@@ -62,23 +62,19 @@ function EditorEquipos() {
   );
 }
 
-/** En Ajustes (perfil): mis equipos y un botón que abre la ventana para elegirlos. */
+/** En Ajustes (perfil): una fila con mis equipos que abre la ventana para elegirlos. */
 export function EquiposPerfil() {
   const { me, setMyTeams } = useStore();
   const [open, setOpen] = useState(false);
   if (!setMyTeams || !me) return null;
   const teams = me.teams || [];
   return (
-    <div className="equipos-perfil">
-      <div className="row between wrap">
-        <span className="field-label" style={{ margin: 0 }}>Mis equipos</span>
-        <button className="btn small" onClick={() => setOpen(true)}>{teams.length ? 'Cambiar mis equipos' : 'Elegir mis equipos'}</button>
-      </div>
-      {teams.length ? (
-        <div className="chips">{teams.map((t) => <span key={t} className="chip">{t}</span>)}</div>
-      ) : (
-        <p className="muted small">Todavía no eliges dónde sirves.</p>
-      )}
+    <>
+      <button type="button" className="fila" onClick={() => setOpen(true)}>
+        <span className="fila-label">Mis equipos</span>
+        <span className="fila-valor">{teams.length ? teams.join(', ') : 'Elegir'}</span>
+        <span className="fila-flecha" aria-hidden="true">›</span>
+      </button>
       {open && createPortal(
         <div className="modal-fondo" role="dialog" aria-modal="true" aria-label="Elegir mis equipos" onClick={() => setOpen(false)}>
           <div className="modal modal-roles" onClick={(e) => e.stopPropagation()}>
@@ -94,7 +90,7 @@ export function EquiposPerfil() {
         </div>,
         document.body,
       )}
-    </div>
+    </>
   );
 }
 
@@ -114,7 +110,7 @@ export default function ResumenEquipos() {
       </div>
       <p className="small">
         <span className="muted">Mis equipos: </span>
-        {mine.length ? mine.join(' · ') : <span className="muted">todavía no eliges (se hace en Ajustes).</span>}
+        {mine.length ? mine.join(' · ') : <span className="muted">ninguno</span>}
       </p>
       {equipos.length > 0 && (
         <ul className="equipos-lista">

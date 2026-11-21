@@ -209,15 +209,11 @@ export default function EditarCancion() {
             <textarea id="letra" ref={textRef} value={form.content} onChange={onContent} rows={18} spellCheck={false} />
           </div>
           <details className="help">
-            <summary>¿Cómo escribir la canción?</summary>
+            <summary>Ayuda</summary>
             <ul>
-              <li>Para empezar una sección elige su tipo en "＋ Agregar sección". Se escribe entre corchetes donde está el cursor, por ejemplo <code>[CORO]</code>.</li>
-              <li>Tipos: INTRO, VERSO, PRE CORO, CORO, PUENTE, INTERLUDIO, INSTRUMENTAL, FINAL y CODA. La segunda vez se numeran solas (<code>[VERSO 2]</code>), hasta 5.</li>
-              <li>La última opción, "Personalizada", te deja escribir otro nombre (en MAYÚSCULAS), hasta 3 por canción.</li>
-              <li>Una sección termina con una línea vacía (un Enter extra).</li>
-              <li>Pon el acorde entre corchetes justo antes de la sílaba: <code>[G]Cuán grande es [C]Él</code></li>
-              <li>Acordes como <code>[Am]</code>, <code>[D7]</code>, <code>[G/B]</code> o en latino: <code>[Sol]</code>, <code>[Lam]</code>.</li>
-              <li>Escribe cada sección una sola vez. El orden y las repeticiones se eligen después en "Orden de las secciones".</li>
+              <li>Sección: <code>[CORO]</code> sola en una línea; termina con una línea vacía.</li>
+              <li>Acorde antes de la sílaba: <code>[G]Cuán grande es [C]Él</code></li>
+              <li>Cada sección una vez; el orden se elige después.</li>
             </ul>
           </details>
           {error && <p className="error">{error}</p>}

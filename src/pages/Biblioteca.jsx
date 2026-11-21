@@ -48,16 +48,12 @@ export default function Biblioteca() {
     <div className="page">
       <Link to="/canciones" className="back">← Canciones</Link>
       <h1>Biblioteca compartida</h1>
-      <p className="muted">
-        Alabanzas que otras iglesias decidieron compartir. Puedes verlas y copiarlas a tu iglesia;
-        la copia es tuya y puedes editarla sin cambiar la original.
-      </p>
       <input type="search" className="search" placeholder="Buscar por título, autor o iglesia…" value={q} onChange={(e) => setQ(e.target.value)} />
       {error && <p className="error">No se pudo cargar: {error}</p>}
       {items === null && !error && <p className="muted">Cargando…</p>}
-      {items && <p className="muted small">{list.length} de {items.length} alabanzas compartidas</p>}
+      {items && <p className="muted small">{list.length} de {items.length}</p>}
       {items && items.length === 0 && (
-        <div className="empty card"><p>Todavía ninguna otra iglesia ha compartido alabanzas.</p></div>
+        <div className="empty card"><p>Aún no hay alabanzas compartidas.</p></div>
       )}
       <ul className="song-list">
         {list.map((x) => {

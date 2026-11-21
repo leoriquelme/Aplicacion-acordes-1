@@ -30,10 +30,6 @@ export function CodigoAcceso() {
   return (
     <section className="card">
       <h2>Código de acceso</h2>
-      <p className="muted small">
-        Para unirse a la iglesia, cada hermano entra con su cuenta y escribe este código (o abre el link de invitación, que ya lo trae).
-        Si lo cambias, quienes ya se unieron siguen dentro.
-      </p>
       <p>Código actual: <strong className="codigo">{actual === null ? '…' : actual || 'sin código'}</strong></p>
       <div className="row gap wrap">
         <input className="code-input" value={nuevo} onChange={(e) => { setNuevo(cleanCode(e.target.value)); setMsg(''); }} placeholder="Ej. KXMPRT" maxLength={12} style={{ width: '10rem' }} aria-label="Nuevo código" />
@@ -79,18 +75,13 @@ export function Respaldo() {
   };
 
   return (
-    <section className="card">
-      <h2>Respaldo</h2>
-      <p className="muted small">
-        Descarga un archivo con todas las canciones y eventos de la iglesia. Guárdalo en tu computador, en Google Drive o en tu correo.
-        Si algo se borra por error, con "Restaurar" lo vuelves a subir.
-      </p>
+    <div>
       <div className="row gap wrap">
-        <button className="btn" onClick={descargar}><Icon name="download" /> Descargar respaldo</button>
-        <button className="btn" disabled={busy} onClick={() => fileRef.current?.click()}><Icon name="upload" /> {busy ? 'Restaurando…' : 'Restaurar respaldo'}</button>
+        <button className="btn" onClick={descargar}><Icon name="download" /> Descargar</button>
+        <button className="btn" disabled={busy} onClick={() => fileRef.current?.click()}><Icon name="upload" /> {busy ? 'Restaurando…' : 'Restaurar'}</button>
         <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={restaurar} />
       </div>
       {msg && <p className="small">{msg}</p>}
-    </section>
+    </div>
   );
 }

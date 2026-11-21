@@ -144,7 +144,7 @@ export default function Cancion() {
             steps={steps - capo}
             opts={chordOptions(songKey(song) || guessKey(song.content), steps - capo, settings.notation)}
           />
-          {editNotes && <p className="muted small notas-ayuda">Toca “+ Nota” en una parte de la canción. Las notas <span className="nota-chip director">del director</span> las ven todos; las <span className="nota-chip mia">tuyas</span> solo tú.</p>}
+          {editNotes && <p className="muted small notas-ayuda">Toca “+ Nota” en una parte.</p>}
           <SongView content={song.content} songKey={songKey(song)} steps={steps - capo} order={shownOrder} settings={settings}
             notes={notasPorSeccion(directorNotes, misNotas)}
             onAddNote={editNotes ? setNoteFor : undefined}
@@ -169,7 +169,7 @@ export default function Cancion() {
               <h3>Orden</h3>
               <button className="btn small primary" onClick={() => setEditOrder(false)}>✓ Listo</button>
             </div>
-            <p className="muted small">Arrastra desde ⠿ para mover (también con el dedo). Usa + para repetir (×2).</p>
+            <p className="muted small">Arrastra ⠿ para mover · + repite</p>
             <ArrangementEditor
               content={song.content}
               order={song.order}

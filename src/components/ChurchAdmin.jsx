@@ -65,11 +65,6 @@ export function UsersCard() {
   return (
     <section className="card">
       <h2>Usuarios</h2>
-      <p className="muted small">
-        Aquí aparecen todos los que se unieron a la iglesia con el código. <strong>Director musical:</strong> edita canciones
-        y crea eventos. <strong>Colaborador:</strong> ve canciones, se inscribe para servir y cambia su tono personal.
-        Si quitas a alguien, para volver necesitará el código (cámbialo si no quieres que vuelva).
-      </p>
       <div className="table-scroll">
         <table className="rank-table users-table">
           <thead>

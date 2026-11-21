@@ -8,6 +8,7 @@ import HistorialParticipacion from '../components/HistorialParticipacion.jsx';
 import Icon from '../components/Icon.jsx';
 import MisIglesias from '../components/MisIglesias.jsx';
 import InvitarCard from '../components/InvitarCard.jsx';
+import { FilaAbre, Grupo } from '../components/Comunicacion.jsx';
 
 /** Pestaña "Mi iglesia": datos de la iglesia, mis equipos, canciones más usadas e historial. */
 export default function MiIglesia() {
@@ -45,9 +46,13 @@ export default function MiIglesia() {
       </div>
 
       {mode === 'cloud' && <InvitarCard />}
-      {mode === 'cloud' && <ResumenEquipos />}
-      <SongRanking songs={songs} events={events} />
-      {can.events && mode === 'cloud' && <HistorialParticipacion participations={participations} events={events} />}
+      <Grupo>
+        {mode === 'cloud' && <FilaAbre label={<><Icon name="users" /> Equipos</>}><ResumenEquipos /></FilaAbre>}
+        <FilaAbre label={<><Icon name="music" /> Más usadas</>}><SongRanking songs={songs} events={events} /></FilaAbre>
+        {can.events && mode === 'cloud' && (
+          <FilaAbre label={<><Icon name="hand" /> Participación</>}><HistorialParticipacion participations={participations} events={events} /></FilaAbre>
+        )}
+      </Grupo>
       {mode === 'cloud' && <MisIglesias actual={church?.id} />}
     </div>
   );

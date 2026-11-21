@@ -44,7 +44,7 @@ export default function MisIglesias({ actual = null }) {
   return (
     <section className="card">
       <h2>Mis iglesias</h2>
-      {mias.length === 0 && <p className="muted">Todavía no perteneces a ninguna iglesia. Únete con el código que te dé su Administrador, o crea la tuya.</p>}
+      {mias.length === 0 && <p className="muted">Únete con un código o crea tu iglesia.</p>}
       {mias.length > 0 && (
         <div className="stack">
           {mias.map((c) => (c.id === actual ? (
@@ -105,12 +105,11 @@ function Crear({ busy, onSubmit }) {
         Nombre de la iglesia
         <input value={church} onChange={(e) => setChurch(e.target.value)} maxLength={60} placeholder="Ej. Iglesia Bautista Gracia" autoFocus />
       </label>
-      {id && <p className="muted small" style={{ margin: 0 }}>Se llamará <strong>{church.trim().replace(/\s+/g, ' ').toUpperCase()}</strong>. No puede haber dos iglesias con el mismo nombre (no importan mayúsculas ni tildes).</p>}
+      {id && <p className="muted small" style={{ margin: 0 }}>Se llamará <strong>{church.trim().replace(/\s+/g, ' ').toUpperCase()}</strong>.</p>}
       <label>
         Ciudad o comuna <span className="muted small">(opcional)</span>
         <input value={city} onChange={(e) => setCity(e.target.value)} maxLength={60} placeholder="Ej. Santiago" />
       </label>
-      <p className="muted small" style={{ margin: 0 }}>Serás su Administrador. Te daremos un código para que los hermanos se unan (lo verás en Ajustes → tu iglesia).</p>
       <button className="btn primary" disabled={busy || id.length < 3}>{busy ? 'Creando…' : 'Crear iglesia'}</button>
     </form>
   );

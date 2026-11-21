@@ -60,7 +60,7 @@ export default function Evento() {
   if (lleno) {
     return (
       <div className="page">
-        <p>Ya hay {MAX_FUTUROS} eventos próximos, que es el máximo. Cuando pase uno (o lo elimines) podrás crear otro.</p>
+        <p>Máximo {MAX_FUTUROS} eventos próximos.</p>
         <Link to="/eventos">← Volver a eventos</Link>
       </div>
     );
@@ -87,7 +87,7 @@ export default function Evento() {
         {event.notes && <p className="card">{event.notes}</p>}
         <section className="card orden-culto">
         <h2>Orden del culto</h2>
-        {lines.length === 0 && <p className="muted">Todavía no hay nada en este evento.</p>}
+        {lines.length === 0 && <p className="muted">Vacío.</p>}
         <ol className="setlist">
           {lines.map(({ item, index, song }, n) => (
             <li key={index} className={`setlist-item ${song ? '' : 'parte'}`}>
@@ -154,7 +154,7 @@ export default function Evento() {
         <div>
           <h1>{isNew ? 'Nuevo evento' : event.name}</h1>
           <p className="muted">
-            {isNew ? 'Elige los datos, las canciones y las partes del culto. El evento se guarda al pulsar "Crear evento".' : when}
+            {isNew ? null : when}
           </p>
         </div>
         {!isNew && (
@@ -187,7 +187,7 @@ export default function Evento() {
       <section className="card orden-culto">
       <h2>Orden del culto</h2>
       {lines.length === 0 ? (
-        <p className="muted">Agrega canciones y partes del culto abajo.</p>
+        <p className="muted">Vacío.</p>
       ) : (
         <ol className="setlist">
           {lines.map(({ item, index: i, song: s }, n) => (

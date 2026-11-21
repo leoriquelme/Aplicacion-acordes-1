@@ -39,12 +39,9 @@ export default function CompartirCancion({ song }) {
         <button className="btn small ghost" onClick={() => setOpen(true)}><Icon name="globe" /> Compartir con otras iglesias</button>
       ) : (
         <div className="card">
-          <p style={{ marginTop: 0 }}>
-            Al compartir, las otras iglesias podrán ver esta alabanza y copiarla a su cancionero.
-          </p>
           <label className="check">
             <input type="checkbox" checked={ok} onChange={(e) => setOk(e.target.checked)} />
-            Confirmo que esta alabanza es de dominio público o que tenemos permiso del autor para compartirla.
+            Es de dominio público o tenemos permiso del autor.
           </label>
           <div className="row gap">
             <button

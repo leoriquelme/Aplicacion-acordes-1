@@ -12,11 +12,9 @@ export default function HistorialParticipacion({ participations, events }) {
   return (
     <section className="card ranking">
       <h2>Historial de participación</h2>
-      <p className="muted small">
-        Últimos {HISTORIAL_MESES} meses. Solo cuentan los eventos que ya pasaron. Solo lo ven Administradores y Directores.
-      </p>
+      <p className="muted small">Últimos {HISTORIAL_MESES} meses</p>
       {lista.length === 0 ? (
-        <p className="muted">Todavía no hay participaciones registradas.</p>
+        <p className="muted">Sin participaciones aún.</p>
       ) : (
         <div className="table-scroll">
           <table className="rank-table">

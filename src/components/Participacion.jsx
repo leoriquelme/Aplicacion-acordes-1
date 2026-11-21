@@ -5,7 +5,6 @@ import { eventDateTime } from '../lib/stats.js';
 import { GRUPOS, inscritosPorGrupo, participationId } from '../lib/participacion.js';
 import ConfirmX from './ConfirmX.jsx';
 import Avatares, { Avatar } from './Avatares.jsx';
-import { Link } from 'react-router-dom';
 import Icon from './Icon.jsx';
 
 /**
@@ -37,7 +36,6 @@ export default function Participacion({ event }) {
           <Avatares people={todos} max={8} />
           <p className="muted small">
             {total === 0 ? 'Todavía no hay nadie inscrito.' : `${total} ${total === 1 ? 'persona inscrita' : 'personas inscritas'}.`}
-            {' '}Cada persona elige un solo rol por servicio.
           </p>
         </div>
         {me && !past && (
@@ -69,10 +67,7 @@ export default function Participacion({ event }) {
             <h2>¿Cómo vas a servir?</h2>
             <button className="btn ghost small" onClick={() => setChoosing(false)} aria-label="Cerrar">✕</button>
           </div>
-          <p className="small muted">
-            Elige cómo vas a servir. Con un clic quedas asignado.
-            {' '}<Link to="/ajustes">Elige tus equipos en Ajustes</Link> para verlos primero.
-          </p>
+          <p className="small muted">¿Cómo vas a servir?</p>
           {teams.length > 0 && (
             <div className="role-group g-otros">
               <h3>Mis equipos</h3>

@@ -87,10 +87,9 @@ export default function Canciones() {
       )}
       {list.length === 0 ? (
         <div className="empty card">
-          <p>{onlyFav && !favorites.length ? 'Aún no tienes favoritas. Abre una canción y toca la ☆ junto al título.' : songs.length ? 'No se encontraron canciones.' : 'Todavía no hay canciones.'}</p>
+          <p>{onlyFav && !favorites.length ? 'Aún no tienes favoritas (☆).' : songs.length ? 'No se encontraron canciones.' : 'Todavía no hay canciones.'}</p>
           {!songs.length && (
             <>
-              <p className="muted small">Puedes empezar con himnos clásicos de dominio público (sin derechos de autor).</p>
               <AgregarEjemplos className="btn primary" />
             </>
           )}

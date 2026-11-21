@@ -1007,3 +1007,64 @@ input, select, textarea { border-radius: 12px; }
   :root[data-theme='oscuro'] .tabs { border: 1px solid var(--border); }
   .tab { border-radius: 16px; flex: 1; padding: 0.45rem 0.2rem; font-size: 0.72rem; }
 }
+
+/* ===== Ajustes tipo teléfono: cabeza del perfil y grupos de filas ===== */
+.ajustes { max-width: 640px; }
+.perfil-cabeza { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; margin: 0.5rem 0 1.6rem; text-align: center; }
+.perfil-cabeza .perfil-nombre { margin: 0.3rem 0 0; font-size: 1.45rem; }
+.avatar-xl { width: 6rem; height: 6rem; font-size: 2.1rem; border-width: 4px; box-shadow: var(--shadow-float); }
+.perfil-cabeza .role-pill { background: var(--primary-soft); color: var(--primary); text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.75rem; padding: 0.3rem 0.8rem; }
+
+.grupo { margin-bottom: 1.4rem; }
+.grupo-titulo { font-size: 0.95rem; font-weight: 600; color: var(--muted); margin: 0 0 0.5rem 0.3rem; }
+.grupo-filas { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+:root[data-theme='oscuro'] .grupo-filas { border: 1px solid var(--border); }
+.fila {
+  display: flex; align-items: center; gap: 0.75rem; width: 100%; min-height: 3.2rem;
+  padding: 0.7rem 1.1rem; margin: 0; font: inherit; font-size: 1rem; font-weight: 400; color: var(--text);
+  background: none; border: 0; border-radius: 0; text-align: left; text-decoration: none; cursor: default;
+  flex-direction: row;
+}
+.grupo-filas > * + *, .grupo-filas > .fila-abre + *, .grupo-filas > * + .fila-abre { border-top: 1px solid var(--border); }
+a.fila, button.fila, summary.fila, label.fila { cursor: pointer; }
+a.fila:hover, button.fila:hover, summary.fila:hover { background: var(--surface-2); text-decoration: none; }
+.fila-label { display: inline-flex; align-items: center; gap: 0.5rem; white-space: nowrap; }
+.fila-valor { margin-left: auto; color: var(--muted); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; }
+.fila-valor.fija { margin-left: 0; min-width: 2ch; }
+.fila-flecha { color: var(--muted); font-size: 1.3rem; line-height: 1; margin-left: 0.1rem; }
+.fila-valor + .fila-flecha { margin-left: 0; }
+.fila-label + .fila-flecha { margin-left: auto; }
+.fila-peligro { color: var(--danger); }
+.fila.armed { background: var(--danger); color: #fff; }
+.fila input[type='range'] { flex: 1; accent-color: var(--primary); }
+.fila-select { margin-left: auto; border: 0; background: transparent; color: var(--muted); padding: 0.2rem 0; text-align: right; cursor: pointer; }
+.fila-select:focus { outline-offset: 2px; }
+.fila-muestra { display: block; background: var(--surface-2); cursor: default; }
+.fila-muestra .song { margin: 0; }
+.fila-muestra .block { margin: 0; }
+
+/* Interruptor (checkbox con forma de switch) */
+.interruptor {
+  appearance: none; -webkit-appearance: none; margin-left: auto; flex-shrink: 0;
+  width: 2.9rem !important; height: 1.75rem !important; border-radius: 999px; background: var(--border);
+  position: relative; cursor: pointer; transition: background 0.15s; border: 0; padding: 0;
+}
+.interruptor::after {
+  content: ''; position: absolute; top: 3px; left: 3px; width: calc(1.75rem - 6px); height: calc(1.75rem - 6px);
+  border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25); transition: transform 0.15s;
+}
+.interruptor:checked { background: var(--primary); }
+.interruptor:checked::after { transform: translateX(1.15rem); }
+
+/* Fila que se abre */
+.fila-abre > summary { list-style: none; }
+.fila-abre > summary::-webkit-details-marker { display: none; }
+.fila-abre > summary .fila-flecha { transition: transform 0.15s; }
+.fila-abre[open] > summary .fila-flecha { transform: rotate(90deg); }
+.fila-detalle { padding: 0.2rem 1.1rem 1rem; }
+.fila-detalle .pasos { margin-top: 0; }
+
+.ajustes-version { text-align: center; display: flex; align-items: center; justify-content: center; gap: 0.4rem; margin: 0.5rem 0 1rem; }
+/* Secciones dentro de una fila que se abre: sin tarjeta ni título repetido */
+.fila-detalle > .card { background: none; box-shadow: none; border: 0; padding: 0; margin: 0; }
+.fila-detalle > .card h2 { display: none; }
