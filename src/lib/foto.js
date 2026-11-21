@@ -17,7 +17,12 @@ export function encuadre(w, h, lado, modo = 'cubrir') {
 
 /** ¿Es un texto de foto válido para guardar? */
 export function fotoValida(x) {
-  return typeof x === 'string' && x.length <= MAX_FOTO && /^data:image\/(jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(x);
+  if (typeof x !== 'string' || x.length > MAX_FOTO) return false;
+  const m = /^data:image\/(jpeg|webp);base64,/.exec(x);
+  if (!m) return false;
+  // Se buscan letras no permitidas (sin repetir patrones largos: en iPhone una expresión larga puede fallar).
+  const resto = x.slice(m[0].length);
+  return resto.length > 0 && !/[^A-Za-z0-9+/=]/.test(resto);
 }
 
 // ---------- Encuadrar (zoom y arrastre) antes de guardar ----------
@@ -59,6 +64,15 @@ function cargarDesde(url) {
   });
 }
 
+// Un solo lienzo para todo: en iPhone crear muchos lienzos llena la memoria y dejan de funcionar.
+let compartido = null;
+function lienzo(ancho, alto) {
+  compartido ||= document.createElement('canvas');
+  compartido.width = ancho;
+  compartido.height = alto;
+  return compartido;
+}
+
 /** Suelta la memoria de un canvas (en iPhone hay un límite y si no se libera, falla la siguiente foto). */
 function soltar(canvas) {
   canvas.width = 0;
@@ -79,9 +93,7 @@ export async function abrirImagen(file) {
     const w = original.naturalWidth || original.width;
     const h = original.naturalHeight || original.height;
     const k = Math.min(1, MAX_VISOR / Math.max(w, h));
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.max(1, Math.round(w * k));
-    canvas.height = Math.max(1, Math.round(h * k));
+    const canvas = lienzo(Math.max(1, Math.round(w * k)), Math.max(1, Math.round(h * k)));
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('El teléfono no tiene memoria libre. Cierra otras apps e inténtalo otra vez.');
     ctx.fillStyle = '#ffffff';
@@ -113,10 +125,9 @@ function leerComoTexto(file) {
 export function exportarRecorte(img, s, desplazamiento, V, lado = 192) {
   const w = img.naturalWidth || img.width;
   const h = img.naturalHeight || img.height;
+  let pista = 'sin-ctx';
   for (const l of [lado, Math.round(lado * 0.8), Math.round(lado * 0.6), 96]) {
-    const canvas = document.createElement('canvas');
-    canvas.width = l;
-    canvas.height = l;
+    const canvas = lienzo(l, l);
     const ctx = canvas.getContext('2d');
     if (!ctx) { soltar(canvas); continue; }
     ctx.fillStyle = '#ffffff';
@@ -126,11 +137,13 @@ export function exportarRecorte(img, s, desplazamiento, V, lado = 192) {
     ctx.drawImage(img, dx, dy, dw, dh);
     for (const calidad of [0.85, 0.7, 0.55, 0.4, 0.3]) {
       for (const tipo of ['image/jpeg', 'image/webp']) {
-        const data = canvas.toDataURL(tipo, calidad);
+        let data = '';
+        try { data = canvas.toDataURL(tipo, calidad); } catch (e) { pista = `err-${e.name}`; continue; }
         if (fotoValida(data)) { soltar(canvas); return data; }
+        pista = `${data.slice(5, 15)}-${data.length}`;
       }
     }
     soltar(canvas);
   }
-  throw new Error('El teléfono no pudo preparar la foto. Cierra otras apps e inténtalo otra vez.');
+  throw new Error(`El teléfono no pudo preparar la foto. Cierra otras apps e inténtalo otra vez. (${pista}, ${w}×${h})`);
 }
