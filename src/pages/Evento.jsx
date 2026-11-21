@@ -28,7 +28,7 @@ export default function Evento() {
   const [otra, setOtra] = useState('');
   // Evento nuevo: se arma aquí y solo se guarda al pulsar "Crear evento".
   const isNew = id === 'nuevo';
-  const [draft, setDraft] = useState(() => ({ name: 'Culto dominical', date: todayISO(), time: '11:00', notes: '', items: [] }));
+  const [draft, setDraft] = useState(() => ({ name: 'Servicio de Adoración', date: todayISO(), time: '11:00', notes: '', items: [] }));
   const [error, setError] = useState('');
   const [editing, setEditing] = useState(false);
   const event = isNew ? draft : events.find((e) => e.id === id);
