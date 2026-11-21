@@ -573,16 +573,6 @@ textarea.mono { font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
 .event-key { display: inline-flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
 .key-pill.big { font-size: 1rem; padding: 0.2rem 0.7rem; }
 
-/* Diagramas de guitarra */
-.diagramas-grid { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 0.6rem; }
-.diagramas figure {
-  margin: 0; padding: 0.4rem 0.5rem; border: 1px solid var(--border); border-radius: 10px;
-  background: var(--surface); text-align: center; width: 104px;
-}
-.diagramas figure.simple { border-style: dashed; }
-.diagramas figcaption { font-size: 0.85rem; line-height: 1.2; min-height: 2.1em; }
-.diagrama { width: 84px; height: 100px; color: var(--text); }
-.diagrama .dot { fill: var(--primary); }
 .fav-mini { color: #e0a100; }
 
 /* Ajustes: estado y sugerencias */
@@ -1405,3 +1395,40 @@ img.logo-chip { background: #fff; }
 .hoja-guardar:disabled { background: var(--border); color: var(--muted); border-color: transparent; }
 .orden-fila .order-rail-list { width: auto; }
 .orden-fila { gap: 0.35rem; } .orden-fila .order-rail-list { gap: 0.45rem; } .orden-fila .rail-item button { min-width: 2.75rem; height: 2.75rem; }
+
+/* ===== 21-nov: acordes azules, Presentar destacado, secuencia y avance automático ===== */
+label.barra-btn { margin: 0; display: inline-grid; font-weight: 700; }
+.barra-presentar { background: var(--primary); color: #fff; padding: 0 1rem 0 0.8rem; display: inline-flex; gap: 0.4rem; align-items: center; }
+.barra-presentar:hover { background: color-mix(in srgb, var(--primary) 85%, #000); color: #fff; }
+.content .song-tarjetas .chord { color: var(--chord); }
+.present-envivo { margin-left: auto; align-self: center; }
+
+.secuencia {
+  position: sticky; top: -2.5vh; z-index: 5; display: flex; gap: 0.5rem; overflow-x: auto;
+  margin: -0.2rem -4vw 1rem; padding: 0.6rem 4vw; background: #000; scrollbar-width: none;
+}
+.secuencia::-webkit-scrollbar { display: none; }
+.sec-pill {
+  flex: 0 0 auto; min-width: 3.1rem; height: 2.5rem; padding: 0 0.8rem; border-radius: 999px;
+  background: transparent; color: var(--sec, #ccc); font: inherit; font-weight: 700; font-size: 0.95rem; cursor: pointer;
+  border: 2.5px solid var(--sec, #666);
+}
+.sec-pill small { font-weight: 600; opacity: 0.8; }
+.sec-pill:disabled { cursor: default; }
+.sec-pill.actual { background: var(--sec, #fff); color: #15151c; box-shadow: 0 0 16px color-mix(in srgb, var(--sec, #fff) 60%, transparent); }
+
+.auto-avance {
+  position: fixed; left: 0.75rem; bottom: max(0.75rem, env(safe-area-inset-bottom)); z-index: 20;
+  display: flex; align-items: center; gap: 0.5rem; transition: opacity 0.3s;
+}
+.auto-avance.dim { opacity: 0.35; }
+.auto-play {
+  width: 3.6rem; height: 3.6rem; border-radius: 50%; border: 2px solid #333; background: #141414; cursor: pointer;
+  display: grid; place-items: center; color: #15151c; font-size: 1.2rem;
+}
+.auto-play svg { width: 2.2rem; height: 2.2rem; padding: 0.45rem; border-radius: 50%; background: var(--sec-prechorus, #ffd6a5); }
+.auto-play.on svg { background: var(--sec-intro, #b5e3c4); }
+.auto-vel { display: flex; align-items: center; gap: 0.3rem; background: #141414; border: 1px solid #333; border-radius: 999px; padding: 0.2rem; color: #fff; }
+.auto-vel button { width: 2.2rem; height: 2.2rem; border-radius: 50%; border: 0; background: #262626; color: #fff; font-size: 1.1rem; cursor: pointer; }
+.auto-vel span { min-width: 1.4rem; text-align: center; font-weight: 700; }
+.present-head { align-items: center; } .present-head h1 { flex: 1; } .present-count { white-space: nowrap; }

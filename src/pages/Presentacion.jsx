@@ -2,7 +2,8 @@ import { songKey } from '../lib/importar.js';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { getCapo, setCapo as saveCapo, useStore } from '../lib/store.jsx';
-import { displayKey } from '../lib/chordpro.js';
+import { arrangeSections, displayKey, parseSong, sectionAbbr, sectionKind, sectionLabel } from '../lib/chordpro.js';
+import { convertPlainChords } from '../lib/importar.js';
 import SongView from '../components/SongView.jsx';
 import { alternarNota, notasPorSeccion } from '../lib/notas.js';
 import { ElegirNota } from '../components/NotasCancion.jsx';
@@ -151,12 +152,12 @@ export default function Presentacion() {
   // Director: mira en qué sección va (con flechas o bajando con el dedo).
   useEffect(() => {
     const root = rootRef.current;
-    if (!broadcasting || !root) return undefined;
+    if (!root) return undefined;
     let t;
-    const onScroll = () => { clearTimeout(t); t = setTimeout(() => setSection(seccionActual(root)), 150); };
+    const onScroll = () => { clearTimeout(t); t = setTimeout(() => setSection(seccionActual(root)), 120); };
     root.addEventListener('scroll', onScroll, { passive: true });
     return () => { clearTimeout(t); root.removeEventListener('scroll', onScroll); };
-  }, [broadcasting]);
+  }, [current ? 1 : 0]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Director: avisa a todos la canción y la sección (un solo envío por cambio).
   const currentSongId = items[index]?.song.id;
@@ -254,6 +255,30 @@ export default function Presentacion() {
     setMenuOpen(false);
   };
 
+  // ---------- Avance automático: la letra baja sola, a la velocidad elegida ----------
+  const [auto, setAuto] = useState(false);
+  const [velocidad, setVelocidad] = useState(3); // 1 (lento) a 8 (rápido)
+  useEffect(() => {
+    if (!auto) return undefined;
+    const root = rootRef.current;
+    if (!root) return undefined;
+    let raf;
+    let antes = performance.now();
+    let resto = 0;
+    const paso = (ahora) => {
+      const dt = Math.min(100, ahora - antes);
+      antes = ahora;
+      resto += (velocidad * 6 * dt) / 1000; // px por segundo
+      const px = Math.floor(resto);
+      if (px > 0) { root.scrollTop += px; resto -= px; }
+      if (root.scrollTop + root.clientHeight >= root.scrollHeight - 2) { setAuto(false); return; }
+      raf = requestAnimationFrame(paso);
+    };
+    raf = requestAnimationFrame(paso);
+    return () => cancelAnimationFrame(raf);
+  }, [auto, velocidad, index]);
+  useEffect(() => { if (following) setAuto(false); }, [following]);
+
   // Oculta los controles después de unos segundos sin mover el mouse.
   const poke = useCallback(() => {
     setControlsVisible(true);
@@ -293,7 +318,23 @@ export default function Presentacion() {
       <header className="present-head">
         <h1>{current.song.title}</h1>
         {items.length > 1 && <span className="present-count">{index + 1} / {items.length}</span>}
+        {puedoPasar && !broadcasting && (
+          <button type="button" className="btn small en-vivo-btn present-envivo" onClick={empezarEnVivo}>
+            <Icon name="live" /> {otroPasando ? 'Tomar control' : 'En vivo'}
+          </button>
+        )}
       </header>
+
+      <Secuencia
+        content={current.song.content}
+        order={current.order}
+        actual={broadcasting ? section : (liveSection ?? section)}
+        onPick={following ? undefined : (i) => {
+          const root = rootRef.current;
+          const b = root ? [...root.querySelectorAll('.song .block')][i] : null;
+          if (b) root.scrollTo({ top: root.scrollTop + b.getBoundingClientRect().top - root.getBoundingClientRect().top - 70, behavior: 'smooth' });
+        }}
+      />
 
       {(broadcasting || following || otroPasando || aviso) && (
         <div className={`en-vivo-pill ${broadcasting || following ? 'on' : ''}`} role="status">
@@ -387,6 +428,21 @@ export default function Presentacion() {
           container={rootRef.current}
         />
       )}
+      {!following && (
+        <div className={`auto-avance ${controlsVisible || auto ? '' : 'dim'}`}>
+          <button type="button" className={`auto-play ${auto ? 'on' : ''}`} onClick={() => setAuto((v) => !v)}
+            aria-label={auto ? 'Pausar avance automático' : 'Avance automático'} title={auto ? 'Pausar' : 'Avance automático'}>
+            <Icon name={auto ? 'pause' : 'play'} />
+          </button>
+          {auto && (
+            <div className="auto-vel" role="group" aria-label="Velocidad">
+              <button type="button" onClick={() => setVelocidad((v) => Math.max(1, v - 1))} aria-label="Más lento">−</button>
+              <span>{velocidad}</span>
+              <button type="button" onClick={() => setVelocidad((v) => Math.min(8, v + 1))} aria-label="Más rápido">+</button>
+            </div>
+          )}
+        </div>
+      )}
       {items.length > 1 && !following && (
         <div className={`present-nav ${controlsVisible ? '' : 'dim'}`}>
           <button onClick={() => go(-1)} disabled={index === 0} aria-label="Canción anterior"><Icon name="chevronLeft" /></button>
@@ -394,5 +450,30 @@ export default function Presentacion() {
         </div>
       )}
     </div>
+  );
+}
+
+/** Fila de partes de la canción (V1, C, P…); la que se está cantando va marcada. */
+function Secuencia({ content, order, actual, onPick }) {
+  const bloques = arrangeSections(parseSong(convertPlainChords(content || '')), order);
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current?.children[actual];
+    el?.scrollIntoView?.({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+  }, [actual]);
+  if (bloques.length < 2) return null;
+  return (
+    <nav className="secuencia" aria-label="Partes de la canción" ref={ref}>
+      {bloques.map((b, i) => {
+        const nombre = b.marker ? b.name : sectionLabel(b.name);
+        const num = String(nombre).match(/(\d+)$/)?.[1] || '';
+        return (
+          <button key={i} type="button" className={`sec-pill k-${sectionKind(nombre)} ${i === actual ? 'actual' : ''}`}
+            onClick={() => onPick?.(i)} disabled={!onPick} aria-current={i === actual ? 'true' : undefined} title={nombre}>
+            {sectionAbbr(nombre)}{num}{b.times > 1 ? <small> ×{b.times}</small> : null}
+          </button>
+        );
+      })}
+    </nav>
   );
 }

@@ -20,7 +20,7 @@ import Icon from '../components/Icon.jsx';
 export default function Evento() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { events, songs, settings, saveEvent, deleteEvent, can } = useStore();
+  const { events, songs, settings, saveEvent, deleteEvent, can, mode } = useStore();
   const [q, setQ] = useState('');
   const [openOrder, setOpenOrder] = useState(null);
   const [otra, setOtra] = useState('');
@@ -78,6 +78,11 @@ export default function Evento() {
           <div className="head-actions">
             {can.events && editable && <button className="btn" onClick={() => setEditing(true)}><Icon name="edit" /> Editar</button>}
             {hasSongs && <Link className="btn primary" to={`/presentar/evento/${event.id}`}><Icon name="play" /> Presentar</Link>}
+            {hasSongs && mode === 'cloud' && can.edit && (
+              <Link className="btn en-vivo-btn" to={`/presentar/evento/${event.id}?envivo=1`} title="Tú avanzas la letra y todos la ven en su teléfono">
+                <Icon name="live" /> En vivo
+              </Link>
+            )}
           </div>
         </div>
         <div className="event-tools">
