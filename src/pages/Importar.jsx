@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useStore } from '../lib/store.jsx';
 import { analyzeSong, buildSong } from '../lib/importar.js';
 import SectionAdjuster from '../components/SectionAdjuster.jsx';
-import { parseSong } from '../lib/chordpro.js';
+import { KEYS, detectKey, normalizeKey, parseSong } from '../lib/chordpro.js';
 import SongView from '../components/SongView.jsx';
 import { importFromLink } from '../lib/importarLink.js';
 
@@ -28,6 +28,7 @@ export default function Importar() {
   const [author, setAuthor] = useState('');
   const [raw, setRaw] = useState('');
   const [state, setState] = useState(null); // secciones detectadas, se pueden ajustar a mano
+  const [keyChoice, setKeyChoice] = useState(''); // '' = usar el tono detectado
   const [link, setLink] = useState('');
   const [loading, setLoading] = useState(false);
   const [linkMsg, setLinkMsg] = useState(null); // { ok, text }
@@ -59,9 +60,12 @@ export default function Importar() {
 
   const onPaste = (text) => {
     setRaw(text);
+    setKeyChoice('');
     setState(text.trim() ? analyzeSong(text) : null);
   };
-  const result = state ? { ...buildSong(state.sections, state.order), key: state.key } : null;
+  const built = state ? buildSong(state.sections, state.order) : null;
+  const detected = built ? normalizeKey(state.key) || detectKey(built.content) : '';
+  const result = built ? { ...built, key: keyChoice || detected } : null;
   const sections = result ? parseSong(result.content) : [];
 
   const usar = () => {
@@ -70,7 +74,7 @@ export default function Importar() {
         imported: {
           title: title.trim(),
           author: author.trim(),
-          key: result.key || 'G',
+          key: result.key,
           content: result.content,
           order: result.order,
         },
@@ -124,6 +128,13 @@ export default function Importar() {
             <label className="grow">
               Autor
               <input value={author} onChange={(e) => setAuthor(e.target.value)} placeholder="Opcional" />
+            </label>
+            <label>
+              Tono{detected && !keyChoice ? ' (detectado)' : ''}
+              <select value={result?.key || ''} onChange={(e) => setKeyChoice(e.target.value)} disabled={!result}>
+                <option value="">—</option>
+                {KEYS.map((k) => <option key={k} value={k}>{k}</option>)}
+              </select>
             </label>
           </div>
           <label>
