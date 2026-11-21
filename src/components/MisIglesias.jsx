@@ -5,6 +5,7 @@ import {
 } from '../lib/cloud.jsx';
 import { keyOf } from '../lib/claves.js';
 import Icon from './Icon.jsx';
+import { Fila, FilaAbre, Grupo } from './Comunicacion.jsx';
 
 /**
  * Mis iglesias: cambiar de iglesia, unirme con un código o crear una.
@@ -41,26 +42,9 @@ export default function MisIglesias({ actual = null }) {
     }
   };
 
-  return (
-    <section className="card">
-      <h2>Mis iglesias</h2>
-      {mias.length === 0 && <p className="muted">Únete con un código o crea tu iglesia.</p>}
-      {mias.length > 0 && (
-        <div className="stack">
-          {mias.map((c) => (c.id === actual ? (
-            <div key={c.id} className="row gap iglesia-actual"><Icon name="church" /> <strong className="grow">{c.name}</strong> <span className="etiqueta bien">Estás dentro</span></div>
-          ) : (
-            <div key={c.id} className="row gap">
-              <button className="btn grow" disabled={busy} onClick={hacer(() => abrirIglesia(c.id, name))}>
-                <Icon name="church" /> {actual ? `Cambiar a ${c.name}` : `Entrar a ${c.name}`}
-              </button>
-              <button className="btn ghost small" title="Quitar de esta lista (no te saca de la iglesia)" onClick={() => olvidarIglesia(c.id)}>✕</button>
-            </div>
-          )))}
-        </div>
-      )}
-
-      <div className="row gap wrap" style={{ marginTop: '0.8rem' }}>
+  const opciones = (
+    <>
+      <div className="row gap wrap" style={{ marginTop: actual ? 0 : '0.8rem' }}>
         <button className={`btn ${abierto === 'unirse' ? 'primary' : ''}`} onClick={() => elegir('unirse')}>
           <Icon name="users" /> Unirme con un código
         </button>
@@ -78,6 +62,40 @@ export default function MisIglesias({ actual = null }) {
       {!lleno && abierto === 'unirse' && <Unirse busy={busy} onSubmit={hacer((code) => unirseAIglesia({ code, name, cuantas: mias.length }))} />}
       {!lleno && abierto === 'crear' && <Crear busy={busy} onSubmit={hacer((d) => crearIglesia({ ...d, name, cuantas: mias.length }))} />}
       {error && <p className="error">{error}</p>}
+    </>
+  );
+
+  // Dentro de una iglesia: no se repite la iglesia actual; cambiar a otra o unirse/crear en una fila que se abre.
+  if (actual) {
+    const otras = mias.filter((c) => c.id !== actual);
+    return (
+      <Grupo>
+        {otras.map((c) => (
+          <Fila key={c.id} label={<><Icon name="church" /> Cambiar a {c.name}</>} onClick={busy ? undefined : hacer(() => abrirIglesia(c.id, name))} />
+        ))}
+        <FilaAbre label={<><Icon name="users" /> Unirme o crear una iglesia</>}>{opciones}</FilaAbre>
+      </Grupo>
+    );
+  }
+
+  return (
+    <section className="card">
+      <h2>Mis iglesias</h2>
+      {mias.length === 0 && <p className="muted">Únete con un código o crea tu iglesia.</p>}
+      {mias.length > 0 && (
+        <div className="stack">
+          {mias.map((c) => (
+            <div key={c.id} className="row gap">
+              <button className="btn grow" disabled={busy} onClick={hacer(() => abrirIglesia(c.id, name))}>
+                <Icon name="church" /> Entrar a {c.name}
+              </button>
+              <button className="btn ghost small" title="Quitar de esta lista (no te saca de la iglesia)" onClick={() => olvidarIglesia(c.id)}>✕</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {opciones}
     </section>
   );
 }
