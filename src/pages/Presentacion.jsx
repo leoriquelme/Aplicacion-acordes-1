@@ -325,17 +325,7 @@ export default function Presentacion() {
         )}
       </header>
 
-      <Secuencia
-        content={current.song.content}
-        order={current.order}
-        actual={broadcasting ? section : (liveSection ?? section)}
-        onPick={following ? undefined : (i) => {
-          const root = rootRef.current;
-          const b = root ? [...root.querySelectorAll('.song .block')][i] : null;
-          if (b) root.scrollTo({ top: root.scrollTop + b.getBoundingClientRect().top - root.getBoundingClientRect().top - 70, behavior: 'smooth' });
-        }}
-      />
-
+      <div className="present-arriba">
       {(broadcasting || following || otroPasando || aviso) && (
         <div className={`en-vivo-pill ${broadcasting || following ? 'on' : ''}`} role="status">
           {broadcasting ? (
@@ -352,6 +342,17 @@ export default function Presentacion() {
           )}
         </div>
       )}
+      <Secuencia
+        content={current.song.content}
+        order={current.order}
+        actual={broadcasting ? section : (liveSection ?? section)}
+        onPick={following ? undefined : (i) => {
+          const root = rootRef.current;
+          const b = root ? [...root.querySelectorAll('.song .block')][i] : null;
+          if (b) root.scrollTo({ top: root.scrollTop + b.getBoundingClientRect().top - root.getBoundingClientRect().top - 70, behavior: 'smooth' });
+        }}
+      />
+      </div>
 
       <SongView
         content={current.song.content}
