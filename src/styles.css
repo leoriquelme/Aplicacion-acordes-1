@@ -1440,3 +1440,31 @@ label.barra-btn { margin: 0; display: inline-grid; font-weight: 700; }
 .tecla { display: inline-block; min-width: 1.4em; padding: 0 0.3em; border: 1px solid #c9d1de; border-radius: 6px; text-align: center; font-weight: 700; }
 .invitar-boton { width: 100%; justify-content: center; }
 .invitar-opciones { margin-top: 0.8rem; }
+
+/* ---------- Spotify (links por canción y reproductor del culto) ---------- */
+:root { --spotify: #1db954; --spotify-soft: #e3f6ea; --spotify-text: #12733a; }
+:root[data-theme='oscuro'] { --spotify-soft: #17301f; --spotify-text: #7fe0a3; }
+.spotify-logo { color: var(--spotify); flex: none; }
+.spotify-btn {
+  display: inline-flex; align-items: center; gap: 0.35rem; margin-left: 0.6rem;
+  padding: 0.2rem 0.65rem; border-radius: 999px; font-size: 0.9rem; font-weight: 600;
+  background: var(--spotify-soft); color: var(--spotify-text); vertical-align: middle;
+}
+.spotify-btn:hover { filter: brightness(0.97); }
+.btn.spotify-btn-grande { display: inline-flex; align-items: center; gap: 0.4rem; background: var(--spotify-soft); color: var(--spotify-text); border-color: transparent; font-weight: 600; }
+.btn.spotify-btn-grande.activo { background: var(--spotify); color: #fff; }
+.btn.spotify-btn-grande.activo .spotify-logo { color: #fff; --spotify-onda: var(--spotify); }
+.spotify-tools { margin-top: -0.4rem; }
+.spotify-player { display: flex; flex-direction: column; gap: 0.7rem; }
+.spotify-embed { min-height: 152px; border-radius: 12px; overflow: hidden; background: var(--surface-2); display: flex; align-items: center; justify-content: center; }
+.spotify-embed iframe { display: block; width: 100%; border: 0; border-radius: 12px; }
+.spotify-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.25rem; }
+.spotify-lista li { display: flex; align-items: center; gap: 0.4rem; border-radius: 10px; }
+.spotify-lista li.actual { background: var(--spotify-soft); }
+.spotify-item { flex: 1; display: flex; align-items: center; gap: 0.6rem; padding: 0.45rem 0.6rem; background: none; border: 0; color: var(--text); font: inherit; text-align: left; cursor: pointer; border-radius: 10px; }
+.spotify-item:disabled { cursor: default; opacity: 0.6; }
+.spotify-lista li.actual .spotify-item { font-weight: 600; color: var(--spotify-text); }
+.spotify-num { width: 1.4rem; text-align: center; color: var(--muted); font-size: 0.85rem; display: inline-flex; justify-content: center; }
+.spotify-lista li.actual .spotify-num { color: var(--spotify-text); }
+.spotify-abrir { font-size: 0.85rem; padding: 0.3rem 0.6rem; color: var(--muted); white-space: nowrap; }
+@media (max-width: 520px) { .spotify-btn { margin-left: 0; margin-top: 0.4rem; } .cancion-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0 0.5rem; } }
