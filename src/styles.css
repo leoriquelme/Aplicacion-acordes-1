@@ -894,3 +894,116 @@ button.nota-chip { cursor: pointer; }
   .en-vivo-pill { font-size: 0.8rem; top: auto; bottom: max(0.75rem, env(safe-area-inset-bottom)); left: 0.75rem; transform: none; max-width: calc(100vw - 7.5rem); overflow: hidden; }
   .en-vivo-barra { width: calc(100% - 2rem); }
 }
+
+/* =====================================================================
+   Diseño "Tarjetas suaves" (opción 4 elegida por Leonardo, 21-nov-2026)
+   Fondo gris muy claro, tarjetas blancas sin borde con sombra suave,
+   esquinas más redondas, un solo color (azul) y secciones con fondo
+   de color muy suave. Va al final para ganarle a los estilos de arriba.
+   ===================================================================== */
+:root {
+  --bg: #f3f4f7;
+  --surface: #ffffff;
+  --surface-2: #f6f7fa;
+  --text: #1a1c22;
+  --muted: #868a95;
+  --border: #e6e8ee;
+  --primary: #4a5bd4;
+  --primary-soft: #e7eafc;
+  --chord: #4a5bd4;
+  --chorus-bg: #eef0f4;
+  --radius: 20px;
+  --shadow: 0 2px 10px rgba(20, 24, 40, 0.06);
+  --shadow-float: 0 6px 22px rgba(20, 24, 40, 0.12);
+  --sec-ink: #1a1c22;
+}
+:root[data-theme='oscuro'] {
+  --primary: #8c9bff;
+  --primary-soft: #262c48;
+  --chord: #a5b2ff;
+  --shadow-float: 0 6px 22px rgba(0, 0, 0, 0.5);
+  --sec-ink: #ffffff;
+}
+
+/* Barra de arriba: sin línea ni sombra, del mismo color que el fondo */
+.topbar {
+  /* Sin backdrop-filter: haría que la barra de abajo (fixed) quede pegada arriba */
+  background: var(--bg); border-bottom: 0; box-shadow: none;
+}
+.brand { color: var(--text); }
+.tab { border-radius: 12px; }
+.topbar .church-chip {
+  border: 1px solid var(--border); border-radius: 999px; padding: 0.25rem 0.75rem;
+  display: inline-flex; align-items: center; gap: 0.35rem;
+}
+
+/* Tarjetas: sin borde, sombra apenas visible */
+.card, .song-row, .song-tile, .setlist-item, .order-panel, .editor-preview {
+  border-color: transparent;
+}
+:root[data-theme='oscuro'] .card,
+:root[data-theme='oscuro'] .song-row,
+:root[data-theme='oscuro'] .song-tile,
+:root[data-theme='oscuro'] .setlist-item,
+:root[data-theme='oscuro'] .order-panel { border-color: var(--border); }
+.song-row { border-radius: 18px; }
+.song-row:hover, .song-tile:hover { border-color: transparent; box-shadow: var(--shadow-float); }
+
+/* Botones redondeados tipo píldora */
+.btn { border-radius: 999px; }
+.btn.small { border-radius: 999px; }
+.btn.round { background: var(--surface); border-color: transparent; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08); }
+input, select, textarea { border-radius: 12px; }
+.search { border-radius: 16px; }
+
+/* Etiquetas suaves en vez de dorado */
+.badge, .badge-dorado {
+  background: var(--primary-soft); color: var(--primary);
+  text-transform: none; letter-spacing: 0; font-weight: 600; font-size: 0.78rem; padding: 0.2rem 0.65rem;
+}
+
+/* Inicio: el próximo culto destacado sin borde dorado */
+.bloque-evento { border: 0; }
+.bloque-evento.proximo { border: 0; box-shadow: var(--shadow), 0 0 0 2px var(--primary-soft); }
+.bloque-icono { border-radius: 14px; }
+.versiculo { border-left: 0; }
+.aviso { border-left: 0; background: color-mix(in srgb, #e9cf85 18%, var(--surface)); }
+
+/* Canción: cada sección es una tarjeta con su color muy suave de fondo */
+.content .song .block {
+  border: 0; border-radius: 18px; box-shadow: none;
+  padding: 0.75em 1em 0.6em;
+  background: color-mix(in srgb, var(--sec, var(--surface)) 28%, var(--surface));
+}
+.content .song .block.k-verse,
+.content .song .block:not([class*='k-']) { background: var(--surface); box-shadow: var(--shadow); }
+.content .song .block::after { display: none; }
+.content .sec-chip {
+  background: transparent; border: 0; padding: 0;
+  font-size: 0.7em; letter-spacing: 0.09em;
+  color: color-mix(in srgb, var(--sec, var(--muted)) 40%, var(--sec-ink));
+}
+.content .block.k-verse .sec-chip { color: var(--muted); }
+:root[data-theme='oscuro'] .content .song .block { background: color-mix(in srgb, var(--sec, var(--surface)) 12%, var(--surface)); }
+:root[data-theme='oscuro'] .content .song .block.k-verse { background: var(--surface); }
+:root[data-theme='oscuro'] .content .sec-chip { color: var(--sec, var(--muted)); }
+
+/* Orden de la canción: sin bordes, con el color de la sección de fondo */
+.order-item {
+  border: 0; border-radius: 12px;
+  background: color-mix(in srgb, var(--sec, var(--surface-2)) 28%, var(--surface));
+}
+.order-item.k-verse { background: var(--surface-2); }
+:root[data-theme='oscuro'] .order-item { background: color-mix(in srgb, var(--sec, var(--surface-2)) 14%, var(--surface)); }
+
+/* Teléfono: barra de abajo flotante y redondeada */
+@media (max-width: 640px) {
+  .content { padding-bottom: 7rem; }
+  .tabs {
+    left: 0.75rem; right: 0.75rem; bottom: max(0.75rem, env(safe-area-inset-bottom));
+    border: 0; border-radius: 24px; padding: 0.4rem;
+    background: var(--surface); box-shadow: var(--shadow-float);
+  }
+  :root[data-theme='oscuro'] .tabs { border: 1px solid var(--border); }
+  .tab { border-radius: 16px; flex: 1; padding: 0.45rem 0.2rem; font-size: 0.72rem; }
+}
