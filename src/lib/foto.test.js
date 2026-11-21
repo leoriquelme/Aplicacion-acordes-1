@@ -39,3 +39,12 @@ describe('encuadrar con zoom', () => {
     expect(destinoRecorte(400, 200, 0.5, { x: 50, y: 0 }, 100, 200)).toEqual({ dx: 0, dy: 0, dw: 400, dh: 200 });
   });
 });
+
+describe('fotoValida con fotos largas', () => {
+  it('acepta un JPEG de 50 000 letras y rechaza letras raras', () => {
+    const largo = `data:image/jpeg;base64,${'Ab9+/'.repeat(10000)}`;
+    expect(fotoValida(largo)).toBe(true);
+    expect(fotoValida(`${largo.slice(0, 100)}<script>`)).toBe(false);
+    expect(fotoValida('data:image/jpeg;base64,')).toBe(false);
+  });
+});
