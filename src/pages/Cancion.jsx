@@ -3,10 +3,9 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { getCapo, getPersonalKey, setCapo as saveCapo, setPersonalKey, useStore } from '../lib/store.jsx';
-import { chordOptions, displayKey, guessKey } from '../lib/chordpro.js';
+import { chordOptions, displayKey, guessKey, transposeKey } from '../lib/chordpro.js';
 import { sortEvents, todayISO, formatLong } from '../lib/dates.js';
 import SongView from '../components/SongView.jsx';
-import TransposeControls from '../components/TransposeControls.jsx';
 import CompartirCancion from '../components/CompartirCancion.jsx';
 import ArrangementEditor from '../components/ArrangementEditor.jsx';
 import DiagramasGuitarra from '../components/DiagramasGuitarra.jsx';
@@ -14,6 +13,7 @@ import Icon from '../components/Icon.jsx';
 import ConfirmarEliminar from '../components/ConfirmarEliminar.jsx';
 import { ElegirNota } from '../components/NotasCancion.jsx';
 import { alternarNota, notasPorSeccion } from '../lib/notas.js';
+import { LATINO, LETRAS, partesDeTono, pasosHacia } from '../lib/tonalidad.js';
 
 export default function Cancion() {
   const { id } = useParams();
@@ -41,6 +41,7 @@ export default function Cancion() {
   const [editOrder, setEditOrder] = useState(false);
   const [editNotes, setEditNotes] = useState(false);
   const [noteFor, setNoteFor] = useState(null);
+  const [verHoja, setVerHoja] = useState(null);
   const song = songs.find((s) => s.id === id);
 
   if (!song) {
@@ -70,133 +71,133 @@ export default function Cancion() {
     setAdded(`Agregada a "${ev.name}"`);
   };
 
+  const tono = songKey(song);
+  const tonoActual = displayKey(tono, steps, settings.notation);
+  const hoja = verHoja;
+  const setHoja = setVerHoja;
+
   return (
-    <div className="page">
-      <div className="cancion-arriba">
-        <Link to="/canciones" className="back">← Canciones</Link>
-        {can.edit && <Link className="btn small ghost editar-discreto" to={`/canciones/${song.id}/editar`}><Icon name="edit" /> Editar</Link>}
-      </div>
-      <div className="page-head">
-        <div>
-          <h1>
-            {song.title}{' '}
-            {toggleFavorite && (
-              <button
-                className={`fav-star ${favorites.includes(song.id) ? 'on' : ''}`}
-                onClick={() => toggleFavorite(song.id)}
-                aria-pressed={favorites.includes(song.id)}
-                title={favorites.includes(song.id) ? 'Quitar de mis favoritas' : 'Agregar a mis favoritas (solo tú las ves)'}
-              >
-                {favorites.includes(song.id) ? '★' : '☆'}
-              </button>
-            )}
-          </h1>
-          {song.author && <p className="muted">{song.author}</p>}
-          {(song.bpm || song.compas) && (
-            <p className="song-meta">
-              {song.bpm && <span>{song.bpm} BPM</span>}
-              {song.compas && <span>{song.compas}</span>}
-            </p>
+    <div className="page cancion">
+      <div className="cancion-barra">
+        <Link to="/canciones" className="barra-btn atras" aria-label="Volver a canciones" title="Canciones">‹</Link>
+        <div className="barra-grupo">
+          <Link className="barra-btn" to={`/presentar/cancion/${song.id}?t=${steps}`} aria-label="Presentar" title="Presentar"><Icon name="play" /></Link>
+          {setMyNotes && (
+            <button type="button" className={`barra-btn ${editNotes ? 'on' : ''}`} onClick={() => setEditNotes(!editNotes)} aria-pressed={editNotes} aria-label="Notas" title="Notas">
+              <Icon name="note" />
+            </button>
+          )}
+          {can.events && upcoming.length > 0 && (
+            <label className="barra-btn" title="Agregar a un evento">
+              <Icon name="calendar" />
+              <select className="barra-select" value="" onChange={(e) => addToEvent(e.target.value)} aria-label="Agregar a un evento">
+                <option value="">+ Agregar a un evento…</option>
+                {upcoming.map((e) => (
+                  <option key={e.id} value={e.id}>{e.name} · {formatLong(e.date)}</option>
+                ))}
+              </select>
+            </label>
+          )}
+        </div>
+        <div className="barra-grupo">
+          <button type="button" className="barra-btn barra-tono" onClick={() => setHoja('tono')} aria-label="Cambiar tono" title="Tono">
+            {tonoActual || 'Tono'}
+            {steps !== 0 && <span className="barra-badge">{steps > 0 ? `+${steps}` : steps}</span>}
+          </button>
+          {can.edit && (
+            <Link className="barra-btn" to={`/canciones/${song.id}/editar`} aria-label="Editar canción" title="Editar"><Icon name="edit" /></Link>
           )}
         </div>
       </div>
 
-      <section className="cancion-controles">
-        <div className="control-fila">
-        {fromEvent ? (
-          <div className="event-key">
-            <span className="transpose-title">Tono del culto</span>
-            <strong className="key-pill big">{displayKey(songKey(song), steps, settings.notation) || (steps ? `${steps > 0 ? '+' : ''}${steps}` : 'Original')}</strong>
-            <Link className="muted small" to={`/eventos/${fromEvent.id}`}>de "{fromEvent.name}"</Link>
-          </div>
-        ) : (
-          <TransposeControls songKey={songKey(song)} steps={steps} onChange={setSteps} notation={settings.notation} />
-        )}
-        </div>
-        <div className="control-fila">
-          <ElegirCapo capo={capo} onChange={setCapo} tono={songKey(song)} steps={steps} notation={settings.notation} />
-        </div>
-      </section>
-
-      <div className="cancion-acciones">
-        <Link className="btn primary" to={`/presentar/cancion/${song.id}?t=${steps}`}><Icon name="play" /> Presentar</Link>
-        {setMyNotes && (
-          <button className={`btn ${editNotes ? 'primary' : ''}`} onClick={() => setEditNotes(!editNotes)} aria-pressed={editNotes}>
-            {editNotes ? '✓ Listo' : <><Icon name="note" /> Notas</>}
+      <h1 className="cancion-titulo">
+        {song.title}{' '}
+        {toggleFavorite && (
+          <button
+            className={`fav-star ${favorites.includes(song.id) ? 'on' : ''}`}
+            onClick={() => toggleFavorite(song.id)}
+            aria-pressed={favorites.includes(song.id)}
+            title={favorites.includes(song.id) ? 'Quitar de mis favoritas' : 'Agregar a mis favoritas (solo tú las ves)'}
+          >
+            {favorites.includes(song.id) ? '★' : '☆'}
           </button>
         )}
-        {can.events && upcoming.length > 0 && (
-          <select value="" onChange={(e) => addToEvent(e.target.value)} aria-label="Agregar a un evento">
-            <option value="">+ Agregar a un evento…</option>
-            {upcoming.map((e) => (
-              <option key={e.id} value={e.id}>{e.name} · {formatLong(e.date)}</option>
-            ))}
-          </select>
-        )}
-      </div>
+      </h1>
+      <p className="cancion-meta">
+        {[song.author, song.bpm && `${song.bpm} BPM`, song.compas].filter(Boolean).join(' • ')}
+      </p>
+      {(fromEvent || capo > 0) && (
+        <p className="cancion-aviso muted small">
+          {fromEvent && <>Tono del culto <Link to={`/eventos/${fromEvent.id}`}>“{fromEvent.name}”</Link>. </>}
+          {capo > 0 && <>Capo {capo}{tono ? `: tocas como en ${displayKey(tono, steps - capo, settings.notation)}, suena en ${tonoActual}` : ''}.</>}
+        </p>
+      )}
       {added && <p className="ok cancion-agregada">✓ {added}</p>}
 
-      <div className={`song-layout ${editOrder ? '' : 'con-riel'}`}>
-        <div className="grow-col">
-          <DiagramasGuitarra
+      {editOrder ? (
+        <section className="order-panel">
+          <div className="row between">
+            <h3>Orden</h3>
+            <button className="btn small primary" onClick={() => setEditOrder(false)}>✓ Listo</button>
+          </div>
+          <p className="muted small">Arrastra ⠿ para mover · + repite</p>
+          <ArrangementEditor content={song.content} order={song.order} onChange={(order) => saveSong({ ...song, order })} />
+        </section>
+      ) : (
+        <nav className="orden-fila" aria-label="Orden de la canción">
+          <ArrangementEditor
             content={song.content}
-            steps={steps - capo}
-            opts={chordOptions(songKey(song) || guessKey(song.content), steps - capo, settings.notation)}
+            order={shownOrder}
+            readOnly
+            compact
+            onPick={(i) => document.getElementById(`seccion-${i}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
           />
-          {editNotes && <p className="muted small notas-ayuda">Toca “+ Nota” en una parte.</p>}
-          <SongView content={song.content} songKey={songKey(song)} steps={steps - capo} order={shownOrder} settings={settings}
-            notes={notasPorSeccion(directorNotes, misNotas)}
-            onAddNote={editNotes ? setNoteFor : undefined}
-            onRemoveNote={editNotes ? removeNote : undefined}
-            canEditDirector={can.edit}
-          />
-          {noteFor && (
-            <ElegirNota
-              section={noteFor}
-              canDirector={can.edit}
-              director={directorNotes}
-              mias={misNotas}
-              onDirector={saveDirector}
-              onMia={saveMias}
-              onClose={() => setNoteFor(null)}
-            />
+          {can.edit && (
+            <button className="orden-editar" onClick={() => setEditOrder(true)} title="Editar el orden" aria-label="Editar el orden">
+              <Icon name="edit" />
+            </button>
           )}
-        </div>
-        {editOrder ? (
-          <aside className="order-panel">
-            <div className="row between">
-              <h3>Orden</h3>
-              <button className="btn small primary" onClick={() => setEditOrder(false)}>✓ Listo</button>
-            </div>
-            <p className="muted small">Arrastra ⠿ para mover · + repite</p>
-            <ArrangementEditor
-              content={song.content}
-              order={song.order}
-              onChange={(order) => saveSong({ ...song, order })}
-            />
-          </aside>
-        ) : (
-          <aside className="order-rail" aria-label="Orden de la canción">
-            <ArrangementEditor
-              content={song.content}
-              order={shownOrder}
-              readOnly
-              compact
-              onPick={(i) => document.getElementById(`seccion-${i}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-            />
-            {can.edit && (
-              <button className="btn small ghost rail-edit" onClick={() => setEditOrder(true)} title="Editar el orden" aria-label="Editar el orden">
-                <Icon name="edit" />
-              </button>
-            )}
-          </aside>
-        )}
-      </div>
+        </nav>
+      )}
+
+      <DiagramasGuitarra
+        content={song.content}
+        steps={steps - capo}
+        opts={chordOptions(tono || guessKey(song.content), steps - capo, settings.notation)}
+      />
+      {editNotes && <p className="muted small notas-ayuda">Toca “+ Nota” en una parte.</p>}
+      <SongView content={song.content} songKey={tono} steps={steps - capo} order={shownOrder} settings={settings}
+        className="song-tarjetas"
+        notes={notasPorSeccion(directorNotes, misNotas)}
+        onAddNote={editNotes ? setNoteFor : undefined}
+        onRemoveNote={editNotes ? removeNote : undefined}
+        canEditDirector={can.edit}
+      />
+      {noteFor && (
+        <ElegirNota
+          section={noteFor}
+          canDirector={can.edit}
+          director={directorNotes}
+          mias={misNotas}
+          onDirector={saveDirector}
+          onMia={saveMias}
+          onClose={() => setNoteFor(null)}
+        />
+      )}
 
       <CompartirCancion song={song} />
 
       {can.delete && <ConfirmarEliminar text="Eliminar canción" question={`¿Eliminar "${song.title}"?`}
         onConfirm={() => deleteSong(song.id)} onDone={() => navigate('/canciones')} />}
+
+      {hoja === 'tono' && (
+        <CambiarTonalidad
+          tono={tono || guessKey(song.content)} steps={steps} capo={capo} notation={settings.notation}
+          fijo={fromEvent ? fromEvent.name : ''}
+          onGuardar={(nuevoSteps, nuevoCapo) => { if (!fromEvent) setSteps(nuevoSteps); setCapo(nuevoCapo); setHoja(null); }}
+          onCerrar={() => setHoja(null)}
+        />
+      )}
     </div>
   );
 }
@@ -209,40 +210,52 @@ function enTonos(semitonos) {
   return `${enteros}${medio ? '½' : ''} ${enteros === 1 && !medio ? 'tono' : 'tonos'}`;
 }
 
-/** Botón de capo: muestra cada traste con el tono en que se toca. */
-function ElegirCapo({ capo, onChange, tono, steps, notation }) {
-  const [abierto, setAbierto] = useState(false);
-  const forma = (n) => (tono ? displayKey(tono, steps - n, notation) : '');
-  return (
-    <>
-      <span className="transpose-title">Capo</span>
-      <button type="button" className={`btn capo-boton ${capo ? 'activo' : ''}`} onClick={() => setAbierto(true)}>
-        {capo ? `Traste ${capo}` : 'Sin capo'}{capo && tono ? <span className="capo-forma"> · {forma(capo)}</span> : null}
-      </button>
-      {capo > 0 && (
-        <span className="muted small capo-nota">
-          {tono ? `Tocas como en ${forma(capo)}, suena en ${forma(0)} · ` : ''}{enTonos(capo)} más abajo
-        </span>
-      )}
-      {abierto && createPortal(
-        <div className="modal-fondo" role="dialog" aria-modal="true" aria-label="Elegir capo" onClick={() => setAbierto(false)}>
-          <div className="modal capo-hoja" onClick={(e) => e.stopPropagation()}>
-            <h2>Capo</h2>
-            <div className="capo-lista">
-              {[0, 1, 2, 3, 4, 5, 6, 7].map((n) => (
-                <button key={n} type="button" className={`capo-opcion ${n === capo ? 'elegido' : ''}`}
-                  onClick={() => { onChange(n); setAbierto(false); }}>
-                  <span>{n ? `Traste ${n}` : 'Sin capo'}</span>
-                  {tono && <strong>{forma(n)}</strong>}
-                  {n > 0 && <span className="muted small">{enTonos(n)} ↓</span>}
+/** Hoja "Cambiar tonalidad": tocar la nota, ♭ / ♯ y el capo. Se aplica al tocar Guardar. */
+function CambiarTonalidad({ tono, steps, capo, notation, fijo, onGuardar, onCerrar }) {
+  const inicial = partesDeTono(transposeKey(tono, steps)) || { letra: 'C', alt: '' };
+  const [letra, setLetra] = useState(inicial.letra);
+  const [alt, setAlt] = useState(inicial.alt);
+  const [cejilla, setCejilla] = useState(capo);
+  const nuevos = tono && !fijo ? pasosHacia(tono, letra, alt) : steps;
+  const nombre = (k) => displayKey(tono, k, notation);
+  const cambio = nuevos !== steps || cejilla !== capo;
+  const alternar = (a) => setAlt((x) => (x === a ? '' : a));
+  return createPortal(
+    <div className="modal-fondo hoja-fondo" role="dialog" aria-modal="true" aria-label="Cambiar tonalidad" onClick={onCerrar}>
+      <div className="hoja-abajo" onClick={(e) => e.stopPropagation()}>
+        <div className="hoja-cabeza">
+          <button type="button" className="hoja-cerrar" onClick={onCerrar} aria-label="Cerrar">✕</button>
+          <h2>Cambiar tonalidad</h2>
+        </div>
+        {tono ? (
+          <>
+            <p className="hoja-original">Original {nombre(0)}{fijo ? ` · fijado por "${fijo}"` : ''}</p>
+            <div className={`notas-grilla ${fijo ? 'fijo' : ''}`} role="radiogroup" aria-label="Nota">
+              {LETRAS.map((l) => (
+                <button key={l} type="button" role="radio" aria-checked={l === letra} disabled={!!fijo}
+                  className={`nota-btn ${l === letra ? 'elegida' : ''}`} onClick={() => setLetra(l)}>
+                  {notation === 'latino' ? LATINO[l] : l}
                 </button>
               ))}
             </div>
-            <button type="button" className="btn ghost" onClick={() => setAbierto(false)}>Cerrar</button>
-          </div>
-        </div>,
-        document.body,
-      )}
-    </>
+            <div className="alteraciones">
+              <button type="button" disabled={!!fijo} className={alt === 'b' ? 'elegida' : ''} aria-pressed={alt === 'b'} onClick={() => alternar('b')}>♭</button>
+              <span aria-hidden="true" />
+              <button type="button" disabled={!!fijo} className={alt === '#' ? 'elegida' : ''} aria-pressed={alt === '#'} onClick={() => alternar('#')}>♯</button>
+            </div>
+            <p className="hoja-resultado">Tono: <strong>{nombre(nuevos)}</strong>{nuevos ? ` (${nuevos > 0 ? '+' : ''}${nuevos})` : ''}</p>
+          </>
+        ) : <p className="muted">Esta canción no tiene tono elegido.</p>}
+        <h3 className="hoja-sub">Capo</h3>
+        <div className="cejilla">
+          <button type="button" onClick={() => setCejilla((c) => Math.max(0, c - 1))} disabled={cejilla === 0} aria-label="Bajar capo">⌄</button>
+          <span className="cejilla-num">{cejilla}{tono && <small> ({nombre(nuevos - cejilla)})</small>}</span>
+          <button type="button" onClick={() => setCejilla((c) => Math.min(7, c + 1))} disabled={cejilla === 7} aria-label="Subir capo">⌃</button>
+          {cejilla > 0 && <span className="muted small">Tocas como en {tono ? nombre(nuevos - cejilla) : '…'} · {enTonos(cejilla)} más abajo</span>}
+        </div>
+        <button type="button" className="btn primary big hoja-guardar" disabled={!cambio} onClick={() => onGuardar(nuevos, cejilla)}>Guardar</button>
+      </div>
+    </div>,
+    document.body,
   );
 }

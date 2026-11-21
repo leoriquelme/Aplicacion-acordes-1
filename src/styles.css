@@ -1284,3 +1284,124 @@ img.logo-chip { background: #fff; }
   .song-layout.con-riel { grid-template-columns: minmax(0, 1fr) 3.3rem; gap: 0.5rem; }
   .song-layout.con-riel .order-rail { padding: 0.5rem 0; top: 4.6rem; }
 }
+
+/* ===== Canción estilo tarjetas con etiqueta (21-nov, 2ª versión) ===== */
+.cancion-barra { display: flex; align-items: center; gap: 0.5rem; margin: 0.2rem 0 1.1rem; }
+.cancion-barra .barra-grupo:last-child { margin-left: auto; }
+.barra-grupo {
+  display: flex; align-items: center; gap: 0.15rem; padding: 0.25rem;
+  background: var(--surface); border-radius: 999px; box-shadow: var(--shadow);
+}
+.barra-btn {
+  position: relative; display: inline-grid; place-items: center; min-width: 2.5rem; height: 2.5rem; padding: 0 0.55rem;
+  border: 0; border-radius: 999px; background: transparent; color: var(--text); font: inherit; font-weight: 700;
+  text-decoration: none; cursor: pointer; font-size: 1rem;
+}
+.barra-btn:hover { background: var(--bg); text-decoration: none; }
+.barra-btn.on { background: var(--lila-bg); color: var(--lila-fg); }
+.barra-btn.atras { font-size: 1.8rem; line-height: 1; min-width: 2.2rem; padding: 0 0 0.2rem; color: var(--text); }
+.barra-tono { color: var(--primary); min-width: 2.8rem; }
+.barra-badge {
+  position: absolute; top: -0.45rem; right: -0.2rem; font-size: 0.66rem; font-weight: 800; line-height: 1;
+  padding: 0.2rem 0.35rem; border-radius: 999px; background: var(--primary); color: #fff;
+}
+.barra-select { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+.cancion-titulo { font-size: 1.6rem; margin: 0 0 0.25rem; }
+.cancion-meta { color: var(--muted); margin: 0 0 1rem; font-size: 1rem; }
+.cancion-aviso { margin: -0.5rem 0 1rem; }
+.capo-hoja .transpose { justify-content: center; margin: 0.4rem 0 1rem; }
+
+/* Orden: círculos con contorno de color, en fila */
+.orden-fila { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin: 0 0 1.4rem; }
+.orden-fila .order-rail-list { flex-direction: row; flex-wrap: wrap; gap: 0.55rem; padding: 0.3rem 0.1rem; }
+.orden-fila .order-rail-list::before { display: none; }
+.orden-fila .rail-item button {
+  width: auto; min-width: 2.9rem; height: 2.9rem; padding: 0 0.4rem; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem;
+  background: var(--surface); color: var(--text);
+  box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--sec, var(--border)) 85%, var(--surface));
+  transform: none;
+}
+.orden-fila .rail-abbr { font-size: 0.95rem; font-weight: 700; }
+.orden-fila .rail-times {
+  position: static; background: transparent; color: inherit; font-size: 0.85rem; padding: 0 0.35rem 0 0;
+}
+.orden-fila .rail-item:has(.rail-times) button { background: color-mix(in srgb, var(--sec, var(--border)) 70%, var(--surface)); padding-left: 0.3rem; }
+.orden-fila .rail-item.actual button {
+  transform: none;
+  background: color-mix(in srgb, var(--sec, var(--border)) 55%, var(--surface));
+  box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--sec, var(--primary)) 85%, #000 8%);
+}
+.orden-editar { border: 0; background: transparent; color: var(--muted); padding: 0.4rem; cursor: pointer; border-radius: 999px; }
+:root[data-theme='oscuro'] .orden-fila .rail-item button { background: var(--surface); color: var(--text); }
+
+/* Cada parte: tarjeta blanca con etiqueta de color encima */
+.content .song.song-tarjetas .block {
+  position: relative; background: var(--surface); box-shadow: var(--shadow); border-radius: 20px;
+  margin: 2.1em 0 0; padding: 1.5em 1.1em 1em;
+}
+.content .song.song-tarjetas .block:first-child { margin-top: 1.1em; }
+.content .song-tarjetas .block-label { position: absolute; top: -0.95em; left: 0.8em; margin: 0; right: 0.8em; }
+.content .song-tarjetas .sec-chip {
+  display: inline-flex; align-items: center; gap: 0.5em;
+  padding: 0.22em 0.9em 0.22em 0.25em; border-radius: 999px;
+  background: color-mix(in srgb, var(--sec, var(--border)) 75%, var(--surface));
+  color: var(--text); font-size: 0.72em; font-weight: 700; letter-spacing: 0; text-transform: capitalize;
+}
+.content .song-tarjetas .block.k-verse .sec-chip { color: var(--text); }
+.sec-abrev {
+  display: inline-grid; place-items: center; min-width: 2em; height: 2em; padding: 0 0.3em; border-radius: 999px;
+  background: var(--surface); font-size: 0.78em; font-weight: 700;
+}
+.present .sec-abrev, .song:not(.song-tarjetas) .sec-abrev { display: none; }
+.content .song-tarjetas .chord { color: var(--text); font-weight: 800; }
+.content .song-tarjetas .lyric { color: color-mix(in srgb, var(--text) 85%, var(--muted)); }
+.content .song-tarjetas .line + .line { margin-top: 0.35em; }
+.content .song-tarjetas .block-label .times { background: var(--surface); border-radius: 999px; padding: 0.1em 0.5em; font-size: 0.7em; }
+:root[data-theme='oscuro'] .content .song.song-tarjetas .block { background: var(--surface); }
+:root[data-theme='oscuro'] .content .song-tarjetas .sec-chip { background: color-mix(in srgb, var(--sec, var(--border)) 35%, var(--surface)); color: var(--text); }
+:root[data-theme='oscuro'] .sec-abrev { background: var(--bg); }
+
+/* Hoja "Cambiar tonalidad" que sube desde abajo */
+.hoja-fondo { align-items: flex-end; padding: 0; }
+.hoja-abajo {
+  width: 100%; max-width: 34rem; margin: 0 auto; background: var(--bg); color: var(--text);
+  border-radius: 26px 26px 0 0; padding: 1rem 1.1rem calc(1.2rem + env(safe-area-inset-bottom));
+  max-height: 92vh; overflow: auto; animation: hoja-sube 0.22s ease-out;
+}
+@keyframes hoja-sube { from { transform: translateY(40px); opacity: 0.4; } to { transform: none; opacity: 1; } }
+.hoja-cabeza { display: grid; grid-template-columns: 2.8rem 1fr 2.8rem; align-items: center; margin-bottom: 1rem; }
+.hoja-cabeza h2 { margin: 0; text-align: center; font-size: 1.15rem; }
+.hoja-cerrar { width: 2.8rem; height: 2.8rem; border-radius: 50%; border: 0; background: var(--surface); box-shadow: var(--shadow); font-size: 1.1rem; cursor: pointer; color: var(--text); }
+.hoja-original { color: var(--primary); font-weight: 600; margin: 0 0 0.5rem; }
+.notas-grilla {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.3rem; padding: 0.3rem;
+  background: color-mix(in srgb, var(--border) 60%, var(--bg)); border-radius: 14px;
+}
+.nota-btn {
+  height: 3.4rem; border: 0; border-radius: 10px; background: var(--surface); color: var(--text);
+  font: inherit; font-size: 1.1rem; cursor: pointer;
+}
+.nota-btn.elegida { background: var(--lila-fg); color: #fff; font-weight: 700; }
+.notas-grilla.fijo .nota-btn { opacity: 0.6; cursor: default; }
+.alteraciones {
+  display: grid; grid-template-columns: 1fr 1px 1fr; align-items: center; margin-top: 0.6rem;
+  background: var(--surface); border-radius: 14px; overflow: hidden;
+}
+.alteraciones span { height: 1.6rem; background: var(--border); }
+.alteraciones button { height: 3rem; border: 0; background: transparent; font-size: 1.4rem; color: var(--text); cursor: pointer; }
+.alteraciones button.elegida { background: var(--lila-bg); color: var(--lila-fg); font-weight: 700; }
+.hoja-resultado { margin: 0.7rem 0 0; color: var(--muted); }
+.hoja-resultado strong { color: var(--text); }
+.hoja-sub { margin: 1.3rem 0 0.5rem; font-size: 1.05rem; font-weight: 600; }
+.cejilla { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; }
+.cejilla > button {
+  width: 3rem; height: 3rem; border-radius: 12px; border: 0; background: var(--surface); font-size: 1.4rem; line-height: 1; cursor: pointer; color: var(--text);
+}
+.cejilla > button:disabled { opacity: 0.35; }
+.cejilla-num { font-size: 1.6rem; font-weight: 700; min-width: 4.2rem; text-align: center; }
+.cejilla-num small { font-size: 0.6em; font-weight: 500; color: var(--muted); vertical-align: super; }
+.hoja-guardar { width: 100%; margin-top: 1.4rem; }
+.hoja-guardar:disabled { background: var(--border); color: var(--muted); border-color: transparent; }
+.orden-fila .order-rail-list { width: auto; }
+.orden-fila { gap: 0.35rem; } .orden-fila .order-rail-list { gap: 0.45rem; } .orden-fila .rail-item button { min-width: 2.75rem; height: 2.75rem; }
