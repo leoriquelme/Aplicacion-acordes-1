@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { cancionesConSpotify, linkAbrir, uriSpotify } from '../lib/spotify.js';
 import SpotifyLogo from './SpotifyLogo.jsx';
 import Icon from './Icon.jsx';
+import YouTubeLogo from './YouTubeLogo.jsx';
+import { cancionesConYouTube, embedLista, idYouTube, linkListaCompartir, linkVerYouTube } from '../lib/youtube.js';
+import { formatLong } from '../lib/dates.js';
 
 // Reproductor de Spotify dentro de la app: toca las canciones del culto una tras otra.
 // Usa el reproductor público de Spotify (sin cuenta de desarrollador ni servidor).
@@ -22,19 +25,21 @@ function cargarApi() {
   return apiPromesa;
 }
 
-/** Botones de Spotify del evento: abrir la playlist (si se pegó) y escuchar las canciones en orden. */
+/** Botones de multimedia del evento: Spotify (canciones en orden y playlist) y YouTube (videos en orden y lista para compartir). */
 export default function EscucharCulto({ event, lines }) {
   const canciones = cancionesConSpotify(lines);
   const reproducibles = canciones.filter((s) => uriSpotify(s.spotify));
   const playlist = linkAbrir(event.spotify);
-  const [abierto, setAbierto] = useState(false);
-  if (!playlist && canciones.length === 0) return null;
+  const videos = cancionesConYouTube(lines);
+  const [abierto, setAbierto] = useState(null); // 'spotify' | 'youtube' | null
+  if (!playlist && canciones.length === 0 && videos.length === 0) return null;
+  const alternar = (que) => setAbierto((a) => (a === que ? null : que));
   return (
     <>
       <div className="event-tools spotify-tools">
         {reproducibles.length > 0 && (
-          <button className={`btn small spotify-btn-grande ${abierto ? 'activo' : ''}`} onClick={() => setAbierto((a) => !a)} aria-expanded={abierto}>
-            <SpotifyLogo /> {abierto ? 'Cerrar reproductor' : `Escuchar las canciones (${reproducibles.length})`}
+          <button className={`btn small spotify-btn-grande ${abierto === 'spotify' ? 'activo' : ''}`} onClick={() => alternar('spotify')} aria-expanded={abierto === 'spotify'}>
+            <SpotifyLogo /> {abierto === 'spotify' ? 'Cerrar Spotify' : `Escuchar en Spotify (${reproducibles.length})`}
           </button>
         )}
         {playlist && (
@@ -42,9 +47,70 @@ export default function EscucharCulto({ event, lines }) {
             <SpotifyLogo /> Abrir playlist en Spotify
           </a>
         )}
+        {videos.length > 0 && (
+          <button className={`btn small youtube-btn-grande ${abierto === 'youtube' ? 'activo' : ''}`} onClick={() => alternar('youtube')} aria-expanded={abierto === 'youtube'}>
+            <YouTubeLogo /> {abierto === 'youtube' ? 'Cerrar videos' : `Ver videos (${videos.length})`}
+          </button>
+        )}
+        {videos.length > 0 && <CompartirVideos event={event} videos={videos} />}
       </div>
-      {abierto && <Reproductor canciones={canciones} />}
+      {abierto === 'spotify' && <Reproductor canciones={canciones} />}
+      {abierto === 'youtube' && <Videos videos={videos} />}
     </>
+  );
+}
+
+/** Comparte (p. ej. por WhatsApp) un link que abre en YouTube todos los videos del culto, en orden. */
+function CompartirVideos({ event, videos }) {
+  const [copiado, setCopiado] = useState(false);
+  const url = linkListaCompartir(videos.map((s) => idYouTube(s.youtube)));
+  const texto = `${event.name} · ${formatLong(event.date)}: videos de las canciones, en orden`;
+  const compartir = async () => {
+    if (navigator.share) {
+      try { await navigator.share({ title: event.name, text: texto, url }); return; } catch (e) { if (e?.name === 'AbortError') return; }
+    }
+    window.open(`https://wa.me/?text=${encodeURIComponent(`${texto}\n${url}`)}`, '_blank', 'noopener');
+  };
+  const copiar = async () => {
+    try { await navigator.clipboard.writeText(url); setCopiado(true); setTimeout(() => setCopiado(false), 2000); } catch { window.prompt('Copia este link:', url); }
+  };
+  return (
+    <>
+      <button className="btn small youtube-btn-grande" onClick={compartir} title="Manda por WhatsApp un link con todos los videos del culto">
+        <Icon name="upload" /> Compartir videos
+      </button>
+      <button className="btn small" onClick={copiar} title="Copiar el link de la lista de videos">{copiado ? '✓ Copiado' : 'Copiar link'}</button>
+    </>
+  );
+}
+
+function Videos({ videos }) {
+  const ids = videos.map((s) => idYouTube(s.youtube));
+  const [desde, setDesde] = useState({ i: 0, auto: false });
+  return (
+    <section className="card spotify-player youtube-player">
+      <div className="youtube-marco">
+        <iframe
+          key={`${desde.i}-${desde.auto}`}
+          src={embedLista(ids, desde.i, desde.auto)}
+          title="Videos del culto"
+          allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+          allowFullScreen
+        />
+      </div>
+      <ol className="spotify-lista youtube-lista">
+        {videos.map((s, i) => (
+          <li key={s.id} className={i === desde.i ? 'actual' : ''}>
+            <button className="spotify-item" onClick={() => setDesde({ i, auto: true })} aria-current={i === desde.i}>
+              <span className="spotify-num">{i === desde.i ? <Icon name="play" size={14} /> : i + 1}</span>
+              <span className="grow">{s.title}</span>
+            </button>
+            <a className="spotify-abrir" href={linkVerYouTube(s.youtube)} target="_blank" rel="noopener noreferrer" title="Abrir en YouTube">Abrir ↗</a>
+          </li>
+        ))}
+      </ol>
+      <p className="muted small">Los videos pasan solos, en el orden del culto. Toca una canción para empezar desde ahí.</p>
+    </section>
   );
 }
 

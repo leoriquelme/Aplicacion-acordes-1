@@ -11,6 +11,8 @@ import ArrangementEditor from '../components/ArrangementEditor.jsx';
 import Icon from '../components/Icon.jsx';
 import SpotifyLogo from '../components/SpotifyLogo.jsx';
 import { linkAbrir } from '../lib/spotify.js';
+import { linkVerYouTube } from '../lib/youtube.js';
+import YouTubeLogo from '../components/YouTubeLogo.jsx';
 import ConfirmarEliminar from '../components/ConfirmarEliminar.jsx';
 import { ElegirNota } from '../components/NotasCancion.jsx';
 import { alternarNota, notasPorSeccion } from '../lib/notas.js';
@@ -129,6 +131,11 @@ export default function Cancion() {
         {linkAbrir(song.spotify) && (
           <a className="spotify-btn" href={linkAbrir(song.spotify)} target="_blank" rel="noopener noreferrer" title="Abrir esta canción en Spotify">
             <SpotifyLogo /> Escuchar en Spotify
+          </a>
+        )}
+        {linkVerYouTube(song.youtube) && (
+          <a className="spotify-btn youtube-btn" href={linkVerYouTube(song.youtube)} target="_blank" rel="noopener noreferrer" title="Ver el video en YouTube">
+            <YouTubeLogo /> Ver en YouTube
           </a>
         )}
       </p>

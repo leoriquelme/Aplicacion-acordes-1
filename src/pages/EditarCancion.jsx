@@ -7,9 +7,12 @@ import { autodetect } from '../lib/importar.js';
 import SongView from '../components/SongView.jsx';
 import Icon from '../components/Icon.jsx';
 import { esLinkSpotify } from '../lib/spotify.js';
+import { esLinkYouTube } from '../lib/youtube.js';
+import SpotifyLogo from '../components/SpotifyLogo.jsx';
+import YouTubeLogo from '../components/YouTubeLogo.jsx';
 
 const BORRADOR = 'cancionero-borrador';
-const pick = (f) => ({ title: f.title, author: f.author, key: f.key, content: f.content, bpm: f.bpm || '', compas: f.compas || '', spotify: f.spotify || '' });
+const pick = (f) => ({ title: f.title, author: f.author, key: f.key, content: f.content, bpm: f.bpm || '', compas: f.compas || '', spotify: f.spotify || '', youtube: f.youtube || '' });
 function leerBorrador() {
   try {
     const b = JSON.parse(localStorage.getItem(BORRADOR));
@@ -46,6 +49,7 @@ export default function EditarCancion() {
   const [error, setError] = useState('');
   const [saved, setSaved] = useState('');
   const [detectMsg, setDetectMsg] = useState('');
+  const [verMultimedia, setVerMultimedia] = useState(false);
   const lastSaved = useRef(existing ? JSON.stringify(pick(existing)) : null);
 
   // Canción existente: los cambios se guardan solos, un momento después de dejar de escribir.
@@ -179,16 +183,43 @@ export default function EditarCancion() {
               </datalist>
             </label>
           </div>
-          <label>
-            Link de Spotify <span className="muted small">(opcional)</span>
-            <input
-              type="url" inputMode="url"
-              value={form.spotify || ''}
-              onChange={(e) => setForm((f) => ({ ...f, spotify: e.target.value.trim().slice(0, 300) }))}
-              placeholder="Pega aquí el link (Spotify → Compartir → Copiar enlace)"
-            />
-            {!esLinkSpotify(form.spotify) && <span className="error small">Ese link no parece de Spotify. Debe empezar con https://open.spotify.com/…</span>}
-          </label>
+          <div className="multimedia">
+            <button type="button" className={`btn small multimedia-btn ${verMultimedia ? 'activo' : ''}`} onClick={() => setVerMultimedia((v) => !v)} aria-expanded={verMultimedia}>
+              <Icon name="play" /> Multimedia
+              {(form.spotify || form.youtube) && (
+                <span className="multimedia-logos">
+                  {form.spotify && <SpotifyLogo size={16} />}
+                  {form.youtube && <YouTubeLogo size={16} />}
+                </span>
+              )}
+              <span className="multimedia-flecha" aria-hidden="true">{verMultimedia ? '▴' : '▾'}</span>
+            </button>
+            {verMultimedia && (
+              <div className="multimedia-panel">
+                <label>
+                  <span className="multimedia-label"><SpotifyLogo size={16} /> Link de Spotify</span>
+                  <input
+                    type="url" inputMode="url"
+                    value={form.spotify || ''}
+                    onChange={(e) => setForm((f) => ({ ...f, spotify: e.target.value.trim().slice(0, 300) }))}
+                    placeholder="Spotify → Compartir → Copiar enlace"
+                  />
+                  {!esLinkSpotify(form.spotify) && <span className="error small">Ese link no parece de Spotify. Debe empezar con https://open.spotify.com/…</span>}
+                </label>
+                <label>
+                  <span className="multimedia-label"><YouTubeLogo size={16} /> Link de YouTube</span>
+                  <input
+                    type="url" inputMode="url"
+                    value={form.youtube || ''}
+                    onChange={(e) => setForm((f) => ({ ...f, youtube: e.target.value.trim().slice(0, 300) }))}
+                    placeholder="YouTube → Compartir → Copiar enlace"
+                  />
+                  {!esLinkYouTube(form.youtube) && <span className="error small">Ese link no parece de un video de YouTube.</span>}
+                </label>
+                <p className="muted small">Los dos son opcionales. Aparecen como botones en la canción y en el servicio.</p>
+              </div>
+            )}
+          </div>
           <div className="field">
             <label htmlFor="letra" className="field-label">Letra y acordes</label>
             <div className="row gap wrap between">
