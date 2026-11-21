@@ -853,3 +853,9 @@ button.nota-chip { cursor: pointer; }
 .stack { display: grid; gap: 0.5rem; }
 .alerta-limite { margin-top: 0.8rem; padding: 0.8rem; border-radius: 10px; background: #fff3cd; color: #7a5a00; border: 1px solid #f0d68a; display: grid; gap: 0.4rem; }
 .alerta-limite .btn { justify-self: start; }
+
+/* Importar desde link */
+.import-link p { margin: 0.3rem 0 0.6rem; }
+.import-link input { min-width: 0; flex: 1 1 220px; }
+.import-steps summary { cursor: pointer; }
+.import-steps[open] summary { margin-bottom: 0.5rem; }
