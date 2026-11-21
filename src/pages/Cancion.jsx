@@ -10,6 +10,7 @@ import CompartirCancion from '../components/CompartirCancion.jsx';
 import ArrangementEditor from '../components/ArrangementEditor.jsx';
 import DiagramasGuitarra from '../components/DiagramasGuitarra.jsx';
 import Icon from '../components/Icon.jsx';
+import ConfirmarEliminar from '../components/ConfirmarEliminar.jsx';
 import { ElegirNota } from '../components/NotasCancion.jsx';
 import { alternarNota, notasPorSeccion } from '../lib/notas.js';
 
@@ -60,12 +61,6 @@ export default function Cancion() {
   // Solo los próximos eventos (nunca los pasados).
   const upcoming = sortEvents(events.filter((e) => e.date >= todayISO()));
 
-  const remove = () => {
-    if (window.confirm(`¿Eliminar "${song.title}"? Esta acción no se puede deshacer.`)) {
-      deleteSong(song.id);
-      navigate('/canciones');
-    }
-  };
 
   const addToEvent = (eventId) => {
     const ev = events.find((e) => e.id === eventId);
@@ -202,11 +197,8 @@ export default function Cancion() {
 
       <CompartirCancion song={song} />
 
-      {can.delete && (
-        <div className="danger-zone">
-          <button className="btn danger ghost" onClick={remove}>Eliminar canción</button>
-        </div>
-      )}
+      {can.delete && <ConfirmarEliminar text="Eliminar canción" question={`¿Eliminar "${song.title}"?`}
+        onConfirm={() => deleteSong(song.id)} onDone={() => navigate('/canciones')} />}
     </div>
   );
 }

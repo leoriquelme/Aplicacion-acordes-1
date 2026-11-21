@@ -14,6 +14,7 @@ import TransposeControls from '../components/TransposeControls.jsx';
 import ArrangementEditor from '../components/ArrangementEditor.jsx';
 import Participacion from '../components/Participacion.jsx';
 import ConfirmX from '../components/ConfirmX.jsx';
+import ConfirmarEliminar from '../components/ConfirmarEliminar.jsx';
 import Icon from '../components/Icon.jsx';
 
 export default function Evento() {
@@ -144,13 +145,6 @@ export default function Evento() {
     if (!l) return;
     setItems([...event.items, { type: 'text', label: l.slice(0, 40), detail: '' }]);
     setOtra('');
-  };
-
-  const remove = () => {
-    if (window.confirm(`¿Eliminar el evento "${event.name}"?`)) {
-      deleteEvent(event.id);
-      navigate('/eventos');
-    }
   };
 
   return (
@@ -319,9 +313,8 @@ export default function Evento() {
           </div>
         </div>
       ) : (
-        <div className="danger-zone">
-          <button className="btn danger ghost" onClick={remove}>Eliminar evento</button>
-        </div>
+        <ConfirmarEliminar text="Eliminar evento" question={`¿Eliminar el evento "${event.name}"?`}
+          onConfirm={() => deleteEvent(event.id)} onDone={() => navigate('/eventos')} />
       )}
     </div>
   );
