@@ -3,6 +3,7 @@ import { useStore } from '../lib/store.jsx';
 import { cleanCode, randomCode } from '../lib/cloud.jsx';
 import Icon from './Icon.jsx';
 import { descargar } from '../lib/descargar.js';
+import { FilaAbre } from './Comunicacion.jsx';
 
 /** Código de acceso para entrar a la iglesia (solo el Administrador lo ve y lo cambia). */
 export function CodigoAcceso() {
@@ -28,9 +29,8 @@ export function CodigoAcceso() {
   };
 
   return (
-    <section className="card">
-      <h2>Código de acceso</h2>
-      <p>Código actual: <strong className="codigo">{actual === null ? '…' : actual || 'sin código'}</strong></p>
+    <FilaAbre label={<><Icon name="key" /> Código de acceso</>} valor={actual ? <span className="codigo">{actual}</span> : null}>
+      <p style={{ marginTop: 0 }}>Código actual: <strong className="codigo">{actual === null ? '…' : actual || 'sin código'}</strong></p>
       <div className="row gap wrap">
         <input className="code-input" value={nuevo} onChange={(e) => { setNuevo(cleanCode(e.target.value)); setMsg(''); }} placeholder="Ej. KXMPRT" maxLength={12} style={{ width: '10rem' }} aria-label="Nuevo código" />
         <button className="btn" onClick={() => { setNuevo(randomCode()); setMsg(''); }}>Generar al azar</button>
@@ -39,7 +39,7 @@ export function CodigoAcceso() {
       </div>
       {nuevo && nuevo.length < 4 && <p className="muted small">Mínimo 4 letras o números.</p>}
       {msg && <p className="small">{msg}</p>}
-    </section>
+    </FilaAbre>
   );
 }
 
