@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildSong, importSong, isChordLine, mergeChordLine, mergeWithPrevious, parseHeader, removeSection, sectionNames, setSectionType, splitSection } from './importar.js';
+import { analyzeSong, buildSong, importSong, isChordLine, mergeChordLine, mergeWithPrevious, parseHeader, removeSection, sectionNames, setSectionType, splitSection } from './importar.js';
 import { parseSong } from './chordpro.js';
 
 describe('detectar acordes', () => {
@@ -151,5 +151,53 @@ describe('texto pegado con caracteres invisibles', () => {
     const r = detectar(text);
     expect(r.chords).toBe(2);
     expect(r.content).toContain('Cuán grande a[A]bismo entre no[Esus]sotros');
+  });
+});
+
+describe('coro escrito dos veces', () => {
+  const CORO_A = `G        D
+Cantaré de tu amor por siempre
+Em       C
+alabaré tu nombre Señor`;
+  const CORO_B = `G        D
+Cantaré de tu amor por siempre,
+Em       C
+alabaré tu nombre, Señor, oh`;
+  const VERSO1 = `C        G
+Primera estrofa de la canción
+D        G
+termina aquí la primera`;
+  const VERSO2 = `C        G
+Segunda estrofa muy distinta
+D        G
+con otras palabras nuevas`;
+
+  it('reconoce el coro aunque cambie la puntuación o una palabra', () => {
+    const r = analyzeSong([VERSO1, CORO_A, VERSO2, CORO_B].join('\n\n'));
+    expect(r.sections.map((s) => s.base)).toEqual(['VERSO', 'CORO', 'VERSO']);
+    expect(r.order).toEqual([0, 1, 2, 1]);
+  });
+
+  it('separa el coro pegado al verso sin línea en blanco', () => {
+    const r = analyzeSong([VERSO1, CORO_A, VERSO2 + '\n' + CORO_A].join('\n\n'));
+    expect(r.sections.map((s) => s.base)).toEqual(['VERSO', 'CORO', 'VERSO']);
+    expect(r.order).toEqual([0, 1, 2, 1]);
+  });
+
+  it('el coro dos veces seguidas en un mismo bloque', () => {
+    const r = analyzeSong([VERSO1, CORO_A + '\n' + CORO_A].join('\n\n'));
+    expect(r.sections.length).toBe(2);
+    expect(r.order).toEqual([0, 1, 1]);
+  });
+
+  it('con título "Coro" la segunda vez sin acordes', () => {
+    const r = analyzeSong(['Verso\n' + VERSO1, 'Coro\n' + CORO_A, 'Coro\nCantaré de tu amor por siempre\nalabaré tu nombre Señor'].join('\n\n'));
+    expect(r.sections.length).toBe(2);
+    expect(r.order).toEqual([0, 1, 1]);
+  });
+
+  it('dos versos distintos no se juntan', () => {
+    const r = analyzeSong([VERSO1, VERSO2].join('\n\n'));
+    expect(r.sections.length).toBe(2);
   });
 });
