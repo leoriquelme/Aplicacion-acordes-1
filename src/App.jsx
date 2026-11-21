@@ -30,7 +30,9 @@ const TABS = [
 ];
 
 export default function App() {
-  const { pathname } = useLocation();
+  const { pathname, state } = useLocation();
+  // Páginas abiertas desde Ajustes (ej. la página de la iglesia): la pestaña Ajustes sigue marcada.
+  const desdeAjustes = state?.from === 'ajustes';
   const presenting = pathname.startsWith('/presentar');
   const { mode, church, me, live, myUid, events = [] } = useStore();
   const liveEvent = enVivoActivo(live) ? events.find((e) => e.id === live.eventId) : null;
@@ -45,7 +47,12 @@ export default function App() {
           <div className="brand">Cancionero</div>
           <nav className="tabs">
             {tabs.map((t) => (
-              <NavLink key={t.to} to={t.to} end={t.end} className="tab">
+              <NavLink
+                key={t.to}
+                to={t.to}
+                end={t.end}
+                className={({ isActive }) => `tab${(desdeAjustes ? t.to === '/ajustes' : isActive) ? ' active' : ''}`}
+              >
                 <span className="tab-icon"><Icon name={t.icon} size="1.25em" /></span>
                 <span>{t.label}</span>
               </NavLink>
