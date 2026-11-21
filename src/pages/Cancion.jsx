@@ -1,5 +1,6 @@
 import { songKey } from '../lib/importar.js';
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { getCapo, getPersonalKey, setCapo as saveCapo, setPersonalKey, useStore } from '../lib/store.jsx';
 import { chordOptions, displayKey, guessKey } from '../lib/chordpro.js';
@@ -71,7 +72,10 @@ export default function Cancion() {
 
   return (
     <div className="page">
-      <Link to="/canciones" className="back">← Canciones</Link>
+      <div className="cancion-arriba">
+        <Link to="/canciones" className="back">← Canciones</Link>
+        {can.edit && <Link className="btn small ghost editar-discreto" to={`/canciones/${song.id}/editar`}><Icon name="edit" /> Editar</Link>}
+      </div>
       <div className="page-head">
         <div>
           <h1>
@@ -95,13 +99,10 @@ export default function Cancion() {
             </p>
           )}
         </div>
-        <div className="row gap wrap">
-          {can.edit && <Link className="btn" to={`/canciones/${song.id}/editar`}><Icon name="edit" /> Editar</Link>}
-          <Link className="btn primary" to={`/presentar/cancion/${song.id}?t=${steps}`}><Icon name="play" /> Presentar</Link>
-        </div>
       </div>
 
-      <div className="toolbar">
+      <section className="cancion-controles">
+        <div className="control-fila">
         {fromEvent ? (
           <div className="event-key">
             <span className="transpose-title">Tono del culto</span>
@@ -111,15 +112,18 @@ export default function Cancion() {
         ) : (
           <TransposeControls songKey={songKey(song)} steps={steps} onChange={setSteps} notation={settings.notation} />
         )}
-        <label className="capo">
-          <span className="transpose-title">Capo</span>
-          <select value={capo} onChange={(e) => setCapo(Number(e.target.value))} aria-label="Capo">
-            <option value={0}>Sin capo</option>
-            {[1, 2, 3, 4, 5, 6, 7].map((n) => <option key={n} value={n}>Traste {n}</option>)}
-          </select>
-        </label>
-        {capo > 0 && songKey(song) && (
-          <span className="muted small">Suena en {displayKey(songKey(song), steps, settings.notation)} · formas de {displayKey(songKey(song), steps - capo, settings.notation)}</span>
+        </div>
+        <div className="control-fila">
+          <ElegirCapo capo={capo} onChange={setCapo} tono={songKey(song)} steps={steps} notation={settings.notation} />
+        </div>
+      </section>
+
+      <div className="cancion-acciones">
+        <Link className="btn primary" to={`/presentar/cancion/${song.id}?t=${steps}`}><Icon name="play" /> Presentar</Link>
+        {setMyNotes && (
+          <button className={`btn ${editNotes ? 'primary' : ''}`} onClick={() => setEditNotes(!editNotes)} aria-pressed={editNotes}>
+            {editNotes ? '✓ Listo' : <><Icon name="note" /> Notas</>}
+          </button>
         )}
         {can.events && upcoming.length > 0 && (
           <select value="" onChange={(e) => addToEvent(e.target.value)} aria-label="Agregar a un evento">
@@ -129,13 +133,8 @@ export default function Cancion() {
             ))}
           </select>
         )}
-        {setMyNotes && (
-          <button className={`btn small ${editNotes ? 'primary' : ''}`} onClick={() => setEditNotes(!editNotes)} aria-pressed={editNotes}>
-            {editNotes ? '✓ Listo' : <><Icon name="note" /> Notas</>}
-          </button>
-        )}
-        {added && <span className="ok">✓ {added}</span>}
       </div>
+      {added && <p className="ok cancion-agregada">✓ {added}</p>}
 
       <div className={`song-layout ${editOrder ? '' : 'con-riel'}`}>
         <div className="grow-col">
@@ -199,5 +198,51 @@ export default function Cancion() {
       {can.delete && <ConfirmarEliminar text="Eliminar canción" question={`¿Eliminar "${song.title}"?`}
         onConfirm={() => deleteSong(song.id)} onDone={() => navigate('/canciones')} />}
     </div>
+  );
+}
+
+/** "½ tono", "1 tono", "1½ tonos"… a partir de semitonos. */
+function enTonos(semitonos) {
+  const enteros = Math.floor(semitonos / 2);
+  const medio = semitonos % 2 === 1;
+  if (!enteros) return '½ tono';
+  return `${enteros}${medio ? '½' : ''} ${enteros === 1 && !medio ? 'tono' : 'tonos'}`;
+}
+
+/** Botón de capo: muestra cada traste con el tono en que se toca. */
+function ElegirCapo({ capo, onChange, tono, steps, notation }) {
+  const [abierto, setAbierto] = useState(false);
+  const forma = (n) => (tono ? displayKey(tono, steps - n, notation) : '');
+  return (
+    <>
+      <span className="transpose-title">Capo</span>
+      <button type="button" className={`btn capo-boton ${capo ? 'activo' : ''}`} onClick={() => setAbierto(true)}>
+        {capo ? `Traste ${capo}` : 'Sin capo'}{capo && tono ? <span className="capo-forma"> · {forma(capo)}</span> : null}
+      </button>
+      {capo > 0 && (
+        <span className="muted small capo-nota">
+          {tono ? `Tocas como en ${forma(capo)}, suena en ${forma(0)} · ` : ''}{enTonos(capo)} más abajo
+        </span>
+      )}
+      {abierto && createPortal(
+        <div className="modal-fondo" role="dialog" aria-modal="true" aria-label="Elegir capo" onClick={() => setAbierto(false)}>
+          <div className="modal capo-hoja" onClick={(e) => e.stopPropagation()}>
+            <h2>Capo</h2>
+            <div className="capo-lista">
+              {[0, 1, 2, 3, 4, 5, 6, 7].map((n) => (
+                <button key={n} type="button" className={`capo-opcion ${n === capo ? 'elegido' : ''}`}
+                  onClick={() => { onChange(n); setAbierto(false); }}>
+                  <span>{n ? `Traste ${n}` : 'Sin capo'}</span>
+                  {tono && <strong>{forma(n)}</strong>}
+                  {n > 0 && <span className="muted small">{enTonos(n)} ↓</span>}
+                </button>
+              ))}
+            </div>
+            <button type="button" className="btn ghost" onClick={() => setAbierto(false)}>Cerrar</button>
+          </div>
+        </div>,
+        document.body,
+      )}
+    </>
   );
 }
