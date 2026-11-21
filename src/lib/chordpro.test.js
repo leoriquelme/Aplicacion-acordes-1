@@ -155,3 +155,22 @@ it('muestra la primera sección con número', () => {
   expect(sectionLabel('CORO 2')).toBe('CORO 2');
   expect(sectionLabel('Verso 1')).toBe('Verso 1');
 });
+
+import { detectKey, normalizeKey } from './chordpro.js';
+describe('detectKey', () => {
+  it('adivina tonos mayores y menores', () => {
+    expect(detectKey('[G]a [D]b [Em]c [C]d [G]e')).toBe('G');
+    expect(detectKey('[C]a [G]b [Am]c [F]d')).toBe('C');
+    expect(detectKey('[Em]a [C]b [G]c [B7]d [Em]e')).toBe('Em');
+    expect(detectKey('[Bb]a [F]b [Gm]c [Eb]d [Bb]e')).toBe('Bb');
+    expect(detectKey('[VERSO 1]\n[D]a [A]b [Bm]c [G]d')).toBe('D');
+    expect(detectKey('sin acordes')).toBe('');
+  });
+  it('normaliza nombres de tono', () => {
+    expect(normalizeKey('Sol')).toBe('G');
+    expect(normalizeKey('Mim')).toBe('Em');
+    expect(normalizeKey('A#')).toBe('Bb');
+    expect(normalizeKey('F#m')).toBe('F#m');
+    expect(normalizeKey('raro')).toBe('');
+  });
+});

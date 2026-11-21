@@ -407,3 +407,60 @@ export function cleanText(text = '') {
     .replace(/[\u200b-\u200d\u2060\ufeff\u00ad]/g, '')
     .replace(/[\u00a0\u1680\u2000-\u200a\u202f\u205f\u3000]/g, ' ');
 }
+
+/** "Sol", "sol m", "G" → nombre de tono como en KEYS ("G", "Gm"); '' si no se entiende. */
+export function normalizeKey(key = '') {
+  const s = key.trim();
+  const m = s.match(/^(Do|Re|Mi|Fa|Sol|La|Si|[A-G])\s*([#b]?)\s*(m|menor)?$/i);
+  if (!m) return '';
+  const note = m[1].length > 1 ? m[1][0].toUpperCase() + m[1].slice(1).toLowerCase() : m[1].toUpperCase();
+  const idx = noteToIndex(note + m[2]);
+  if (idx === null) return '';
+  const minor = !!m[3];
+  const flats = m[2] === 'b' || FLAT_KEYS.has(indexToNote(idx, true) + (minor ? 'm' : ''));
+  const name = indexToNote(idx, flats) + (minor ? 'm' : '');
+  if (KEYS.includes(name)) return name;
+  const alt = indexToNote(idx, !flats) + (minor ? 'm' : '');
+  return KEYS.includes(alt) ? alt : name;
+}
+
+// Acordes de cada grado en un tono mayor: [distancia desde la tónica, ¿menor?, peso].
+const MAJOR_DEGREES = [[0, false, 3], [2, true, 1], [4, true, 1], [5, false, 2], [7, false, 2], [9, true, 1.5]];
+
+/**
+ * Adivina el tono mirando todos los acordes: el tono en que más acordes "calzan",
+ * con un extra si la canción empieza o termina en ese acorde.
+ */
+export function detectKey(content = '') {
+  const chords = [];
+  const re = /\[([^\]]+)\]/g;
+  let m;
+  while ((m = re.exec(content))) {
+    if (sectionHeader(m[0])) continue;
+    const p = parseChord(m[1]);
+    if (p) chords.push({ root: p.root, minor: /^m(?!aj)/.test(p.suffix) || /^min/.test(p.suffix), flat: /^[A-G]b|^(Do|Re|Mi|Fa|Sol|La|Si)b/.test(m[1]) });
+  }
+  if (!chords.length) return '';
+  const first = chords[0];
+  const last = chords[chords.length - 1];
+  let best = null;
+  for (let tonic = 0; tonic < 12; tonic++) {
+    for (const minor of [false, true]) {
+      const rel = minor ? (tonic + 3) % 12 : tonic; // el mayor relativo
+      let score = 0;
+      for (const c of chords) {
+        const d = MAJOR_DEGREES.find(([off, min]) => (rel + off) % 12 === c.root && min === c.minor);
+        if (d) score += 1;
+        // En menor, el V suele ser mayor (ej. B en Em).
+        else if (minor && !c.minor && c.root === (tonic + 7) % 12) score += 0.8;
+      }
+      const isTonic = (c) => c.root === tonic && c.minor === minor;
+      if (isTonic(first)) score += chords.length * 0.15 + 1;
+      if (isTonic(last)) score += chords.length * 0.1 + 0.5;
+      if (!minor) score += 0.01; // empate: mayor
+      if (!best || score > best.score) best = { score, tonic, minor };
+    }
+  }
+  const useFlats = chords.some((c) => c.flat);
+  return normalizeKey(indexToNote(best.tonic, useFlats) + (best.minor ? 'm' : ''));
+}
