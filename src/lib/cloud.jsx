@@ -294,6 +294,29 @@ export async function actividadGeneral() {
   return { compartidas };
 }
 
+// ---------- Sugerencias de mejoras (le llegan solo al Super Admin) ----------
+
+/** Cualquier persona con cuenta envía una sugerencia sobre la app. Devuelve una promesa. */
+export async function enviarSugerencia({ text, name = '', churchId = '', churchName = '' }) {
+  const u = auth.currentUser;
+  if (!u) throw new Error('Sin sesión');
+  await addDoc(collection(db, 'feedback'), {
+    text: text.trim().slice(0, 1000), uid: u.uid, email: (u.email || '').slice(0, 120),
+    name: (name || u.displayName || '').slice(0, 60), churchId: churchId.slice(0, 100), churchName: churchName.slice(0, 80), at: Date.now(),
+  });
+}
+
+/** Super Admin: todas las sugerencias, las más nuevas primero. */
+export async function todasLasSugerencias() {
+  const snap = await getDocs(collection(db, 'feedback'));
+  return snap.docs.map((d) => ({ ...d.data(), id: d.id })).sort((a, b) => (b.at || 0) - (a.at || 0));
+}
+
+/** Super Admin: marcar como resuelta (se borra). */
+export async function resolverSugerencia(id) {
+  await deleteDoc(doc(db, 'feedback', id));
+}
+
 export async function cambiarEstadoIglesia(churchId, status) {
   await updateDoc(doc(db, 'churches', churchId), { status });
 }
@@ -335,7 +358,6 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
   const [myShares, setMyShares] = useState([]);
   const [favorites, setFavorites] = useState([]);
   const [myNotes, setMyNotesState] = useState({});
-  const [suggestions, setSuggestions] = useState([]);
   const [error, setError] = useState('');
   // Ya no puedo ver la iglesia: me sacaron, la borraron o la bloquearon.
   const [expired, setExpired] = useState(false);
@@ -409,15 +431,6 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
     if (!myKey) return undefined;
     return onSnapshot(doc(db, 'churches', churchId, 'favorites', myKey), (s) => { setFavorites(s.data()?.songs || []); setMyNotesState(s.data()?.notes || {}); }, () => setFavorites([]));
   }, [churchId, myKey]);
-
-  // Sugerencias de mejoras: solo el Administrador las lee.
-  const canReview = mySession?.role === 'admin';
-  useEffect(() => {
-    if (!myKey || !canReview) { setSuggestions([]); return undefined; }
-    return onSnapshot(collection(db, 'churches', churchId, 'suggestions'), (s) => setSuggestions(
-      s.docs.map((d) => ({ ...d.data(), id: d.id })).sort((a, b) => b.at - a.at),
-    ), () => setSuggestions([]));
-  }, [churchId, myKey, canReview]);
 
   const col = useCallback((name) => collection(db, 'churches', churchId, name), [churchId]);
   const report = useCallback((e) => setError(`No se pudo guardar: ${e.message}`), []);
@@ -500,16 +513,6 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
     setMyNotesState((n) => ({ ...n, [songId]: list }));
     setDoc(doc(col('favorites'), myKey), { notes: { [songId]: list.slice(0, 40) } }, { merge: true }).catch(report);
   }, [myKey, col, report]);
-
-  /** Sugerir una corrección o comentario. Devuelve una promesa. */
-  const sendSuggestion = useCallback(({ text, songId = '', songTitle = '' }) => addDoc(col('suggestions'), {
-    text: text.trim().slice(0, 1000), songId, songTitle: songTitle.slice(0, 120),
-    personKey: mySession?.key || '', name: mySession?.name || '', at: Date.now(),
-  }), [col, mySession?.key, mySession?.name]);
-
-  const resolveSuggestion = useCallback((id) => {
-    deleteDoc(doc(col('suggestions'), id)).catch(report);
-  }, [col, report]);
 
   /** El administrador cambia el perfil (Director o Colaborador). */
   const setPersonRole = useCallback(async (key, role) => {
@@ -633,8 +636,8 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
   }, [isTest, churchId, col, mySession?.key]); // eslint-disable-line react-hooks/exhaustive-deps
   const resetTestChurch = useCallback(async () => {
     if (!isTest) throw new Error('Solo en la iglesia de prueba.');
-    const [ps, ss, es, sg] = await Promise.all(['participations', 'songs', 'events', 'suggestions'].map((n) => getDocs(col(n))));
-    await commitAll([...ps.docs, ...ss.docs, ...es.docs, ...sg.docs].map((d) => (b) => b.delete(d.ref)));
+    const [ps, ss, es] = await Promise.all(['participations', 'songs', 'events'].map((n) => getDocs(col(n))));
+    await commitAll([...ps.docs, ...ss.docs, ...es.docs].map((d) => (b) => b.delete(d.ref)));
     await commitAll(people.filter((p) => p.key !== mySession?.key && p.role !== 'admin').map((p) => (b) => b.delete(personRef(churchId, p.key))));
   }, [isTest, churchId, col, people, mySession?.key]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -657,8 +660,8 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
   const value = useMemo(() => ({
     mode: 'cloud', churchId, church, me, role, can, people, songs, events, participations: participacionesVisibles, error,
     clearError: () => setError(''), saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples, myShares, shareSong, unshareSong, loadLibrary,
-    favorites, toggleFavorite, suggestions, sendSuggestion, resolveSuggestion, prayers, pray, updateMyName, setMyTeams, setMyPhoto, removePhoto, setChurchLogo, isTest, fillTestData, resetTestChurch, getAccessCode, setAccessCode, restoreBackup, myNotes, setMyNotes, live, publishLive, stopLive, myUid: user.uid,
-  }), [churchId, church.name, church.logo, me?.name, me?.key, me?.photo, setMyPhoto, removePhoto, setChurchLogo, expired, role, can, people, songs, events, participacionesVisibles, error, saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples, myShares, shareSong, unshareSong, loadLibrary, favorites, toggleFavorite, suggestions, sendSuggestion, resolveSuggestion, prayers, pray, updateMyName, setMyTeams, person?.teams?.join('|'), isTest, fillTestData, resetTestChurch, getAccessCode, setAccessCode, restoreBackup, myNotes, setMyNotes, live, publishLive, stopLive, user.uid]); // eslint-disable-line react-hooks/exhaustive-deps
+    favorites, toggleFavorite, prayers, pray, updateMyName, setMyTeams, setMyPhoto, removePhoto, setChurchLogo, isTest, fillTestData, resetTestChurch, getAccessCode, setAccessCode, restoreBackup, myNotes, setMyNotes, live, publishLive, stopLive, myUid: user.uid,
+  }), [churchId, church.name, church.logo, me?.name, me?.key, me?.photo, setMyPhoto, removePhoto, setChurchLogo, expired, role, can, people, songs, events, participacionesVisibles, error, saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples, myShares, shareSong, unshareSong, loadLibrary, favorites, toggleFavorite, prayers, pray, updateMyName, setMyTeams, person?.teams?.join('|'), isTest, fillTestData, resetTestChurch, getAccessCode, setAccessCode, restoreBackup, myNotes, setMyNotes, live, publishLive, stopLive, user.uid]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }
