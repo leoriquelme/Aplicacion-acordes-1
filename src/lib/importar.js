@@ -87,6 +87,75 @@ const lyricKey = (lines) =>
   lines.map((l) => l.replace(/\[[^\]]*\]/g, '')).join(' ')
     .normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-zñ0-9]+/g, ' ').trim();
 
+const words = (k) => (k ? k.split(' ') : []);
+
+/** Parecido entre dos letras (0 a 1), por palabras en el mismo orden. */
+export function lyricSimilarity(a, b) {
+  const x = words(a);
+  const y = words(b);
+  if (!x.length || !y.length) return 0;
+  // Largo de la subsecuencia común más larga (LCS).
+  let prev = new Array(y.length + 1).fill(0);
+  for (let i = 1; i <= x.length; i++) {
+    const row = [0];
+    for (let j = 1; j <= y.length; j++) {
+      row[j] = x[i - 1] === y[j - 1] ? prev[j - 1] + 1 : Math.max(prev[j], row[j - 1]);
+    }
+    prev = row;
+  }
+  return (2 * prev[y.length]) / (x.length + y.length);
+}
+
+// Dos bloques son "el mismo" (ej. el coro escrito dos veces) si se parecen al menos así.
+const SAME = 0.85;
+const isSame = (a, b) => a === b || (words(a).length >= 4 && words(b).length >= 4 && lyricSimilarity(a, b) >= SAME);
+const lyricLines = (lines) => lines.filter((l) => lyricKey([l]));
+const chordCount = (lines) => lines.join(' ').match(/\[[^\]]*\]/g)?.length || 0;
+
+/**
+ * Si un bloque trae pegado (sin línea en blanco) otro bloque que se repite en la canción,
+ * o el mismo coro dos veces seguidas, se separa en dos.
+ */
+function splitMerged(blocks) {
+  const out = [];
+  for (const b of blocks) out.push(b);
+  for (let guard = 0; guard < 20; guard++) {
+    let changed = false;
+    for (let i = 0; i < out.length && !changed; i++) {
+      const a = out[i];
+      const al = lyricLines(a.lines).length;
+      if (al < 4) continue;
+      // El mismo bloque dos veces seguidas: mitad y mitad.
+      if (a.lines.length % 2 === 0) {
+        const h = a.lines.length / 2;
+        const k1 = lyricKey(a.lines.slice(0, h));
+        if (lyricLines(a.lines.slice(0, h)).length >= 2 && isSame(k1, lyricKey(a.lines.slice(h)))) {
+          out.splice(i, 1, { ...a, lines: a.lines.slice(0, h) }, { ...a, lines: a.lines.slice(h), times: 1 });
+          changed = true;
+          continue;
+        }
+      }
+      for (const b of out) {
+        if (b === a || lyricLines(b.lines).length < 2 || b.lines.length >= a.lines.length) continue;
+        const n = b.lines.length;
+        const kb = lyricKey(b.lines);
+        if (isSame(lyricKey(a.lines.slice(-n)), kb)) {
+          out.splice(i, 1, { ...a, lines: a.lines.slice(0, -n) }, { base: b.base, lines: a.lines.slice(-n), times: 1 });
+          changed = true;
+          break;
+        }
+        if (isSame(lyricKey(a.lines.slice(0, n)), kb)) {
+          out.splice(i, 1, { base: b.base, lines: a.lines.slice(0, n), times: 1 }, { ...a, base: null, lines: a.lines.slice(n) });
+          changed = true;
+          break;
+        }
+      }
+    }
+    if (!changed) break;
+  }
+  return out;
+}
+
 /**
  * Analiza el texto pegado. Devuelve { sections: [{ base, lines }], order, key }.
  * - Los títulos como "Coro:" o "Estrofa 2" se convierten en [CORO], [VERSO 2]…
@@ -134,18 +203,15 @@ export function analyzeSong(raw) {
     (cur || newBlock(null)).lines.push(line.trim());
   }
 
-  // Cuántas veces aparece cada bloque (para adivinar el coro).
-  const counts = new Map();
-  for (const b of blocks) {
-    if (!b.lines.length) continue;
-    const k = lyricKey(b.lines);
-    counts.set(k, (counts.get(k) || 0) + 1);
-  }
+  const all = splitMerged(blocks);
+  // Cuántas veces aparece cada bloque, aunque esté escrito un poco distinto (para adivinar el coro).
+  const keys = all.map((b) => (b.lines.length ? lyricKey(b.lines) : ''));
+  const repeated = (k) => k && keys.filter((x) => x && isSame(x, k)).length > 1;
 
   const sections = []; // { base, lines, key }
   const order = []; // posiciones en "sections", en el orden en que se canta
   const countOf = (base) => sections.filter((x) => x.base === base).length;
-  for (const b of blocks) {
+  for (const b of all) {
     if (!b.lines.length) {
       // "Coro" solo, sin letra: repetir el último de ese tipo.
       const prev = sections.map((x, i) => i).reverse().find((i) => sections[i].base === b.base);
@@ -153,12 +219,15 @@ export function analyzeSong(raw) {
       continue;
     }
     const k = lyricKey(b.lines);
-    const same = k ? sections.findIndex((x) => x.key === k) : -1;
+    let same = k ? sections.findIndex((x) => x.key === k) : -1;
+    if (same < 0 && k) same = sections.findIndex((x) => isSame(x.key, k) && (!b.base || b.base === x.base));
     if (same >= 0) {
-      order.push(same);
+      // Se queda con la versión que tiene más acordes.
+      if (chordCount(b.lines) > chordCount(sections[same].lines)) sections[same].lines = b.lines;
+      for (let t = 0; t < b.times; t++) order.push(same);
       continue;
     }
-    const base = b.base || (k && counts.get(k) > 1 ? 'CORO' : 'VERSO');
+    const base = b.base || (repeated(k) ? 'CORO' : 'VERSO');
     if (countOf(base) >= MAX_SECTION_NUMBER && sections.length) {
       // Más de 5 del mismo tipo: se junta con la sección anterior.
       sections[sections.length - 1].lines.push(...b.lines);
