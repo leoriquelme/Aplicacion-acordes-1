@@ -19,6 +19,7 @@ import { useStore } from './lib/store.jsx';
 import Icon from './components/Icon.jsx';
 import { enVivoActivo } from './lib/envivo.js';
 import IglesiaLogo from './components/IglesiaLogo.jsx';
+import { EditarPerfil } from './components/Comunicacion.jsx';
 
 const TABS = [
   { to: '/', label: 'Inicio', icon: 'home', end: true },
@@ -87,6 +88,7 @@ export default function App() {
           <Route path="/mi-iglesia/miembros" element={<Miembros />} />
           <Route path="/sugerencias" element={<Sugerencias />} />
           <Route path="/ajustes" element={<Ajustes />} />
+          <Route path="/ajustes/perfil" element={<EditarPerfil />} />
           <Route path="/apoyo" element={<Apoyo />} />
           <Route path="/presentar/:tipo/:id" element={<Presentacion />} />
           <Route path="/imprimir/evento/:id" element={<Imprimir />} />

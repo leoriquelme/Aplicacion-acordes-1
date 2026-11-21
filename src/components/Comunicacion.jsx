@@ -5,7 +5,8 @@ import { salirDeIglesia, useAuth } from '../lib/cloud.jsx';
 import { cerrarSesion } from '../lib/acceso.js';
 import ConfirmX from './ConfirmX.jsx';
 import { APP_VERSION } from '../lib/version.js';
-import { Avatar } from './Avatares.jsx';
+import Avatares, { Avatar } from './Avatares.jsx';
+import IglesiaLogo from './IglesiaLogo.jsx';
 import ElegirFoto from './ElegirFoto.jsx';
 import { EquiposPerfil } from './MisEquipos.jsx';
 import Icon from './Icon.jsx';
@@ -49,16 +50,63 @@ export function FilaAbre({ label, valor, children }) {
   );
 }
 
-/** Arriba de Ajustes: mi foto (iniciales), nombre y perfil. Debajo, el grupo "Perfil". */
+/** Arriba de Ajustes: foto, nombre, perfil y botón "Editar perfil". */
 export function PerfilCard() {
-  const { mode, church, me, role, updateMyName, setMyPhoto } = useStore();
+  const { mode, me, role } = useStore();
+  const cloud = mode === 'cloud';
+  const personal = mode === 'personal';
+  const nombre = cloud || personal ? me?.name : 'Mi equipo';
+  return (
+    <header className="perfil-resumen">
+      <Avatar name={nombre || '?'} personKey={me?.key} size="xl" photo={me?.photo || ''} />
+      <div className="perfil-resumen-datos">
+        <h2 className="perfil-nombre">{nombre}</h2>
+        {cloud && <span className={`role-pill role-${role}`}>{ROLES[role]?.label || 'Colaborador'}</span>}
+        {(cloud || personal) && <Link className="btn perfil-editar" to="/ajustes/perfil">Editar perfil</Link>}
+      </div>
+    </header>
+  );
+}
+
+/** Debajo del perfil: mi iglesia con sus miembros. Al tocarla se entra a la iglesia. */
+export function IglesiaTarjeta() {
+  const { mode, church, people = [] } = useStore();
+  if (mode !== 'cloud' && mode !== 'personal') return null;
+  const cloud = mode === 'cloud';
+  return (
+    <section className="grupo">
+      <div className="grupo-titulo row between">
+        <span>Iglesia</span>
+        <Link to="/mi-iglesia" className="grupo-accion">Cambiar</Link>
+      </div>
+      {cloud ? (
+        <Link to="/mi-iglesia/miembros" state={{ from: 'ajustes' }} className="iglesia-tarjeta">
+          <IglesiaLogo className="logo-tarjeta" />
+          <span className="grow">
+            <strong>{church?.name}</strong>
+            <span className="muted">{people.length} {people.length === 1 ? 'miembro' : 'miembros'}</span>
+          </span>
+          <Avatares people={people} max={3} size="sm" />
+        </Link>
+      ) : (
+        <Link to="/mi-iglesia" className="iglesia-tarjeta">
+          <span className="grow"><strong>Sin iglesia</strong><span className="muted">Unirme o crear una</span></span>
+          <span className="fila-flecha" aria-hidden="true">›</span>
+        </Link>
+      )}
+    </section>
+  );
+}
+
+/** Pantalla "Editar perfil": foto, nombre, correo y mis equipos. */
+export function EditarPerfil() {
+  const { mode, me, role, updateMyName, setMyPhoto } = useStore();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState('');
   const [msg, setMsg] = useState('');
   const cloud = mode === 'cloud';
-  const personal = mode === 'personal';
   const { user } = useAuth() || {};
-  const nombre = cloud || personal ? me?.name : 'Mi equipo';
+  if (mode !== 'cloud' && mode !== 'personal') return <div className="page"><Link to="/ajustes" className="back">← Ajustes</Link></div>;
 
   const guardar = async () => {
     if (!name.trim()) return;
@@ -72,43 +120,37 @@ export function PerfilCard() {
   };
 
   return (
-    <>
+    <div className="page ajustes">
+      <Link to="/ajustes" className="back">← Ajustes</Link>
       <header className="perfil-cabeza">
         <div className="perfil-foto">
-          <Avatar name={nombre || '?'} personKey={me?.key} size="xl" photo={me?.photo || ''} />
+          <Avatar name={me?.name || '?'} personKey={me?.key} size="xl" photo={me?.photo || ''} />
           {setMyPhoto && (
             <ElegirFoto className="perfil-camara" label="Cambiar foto" onFoto={setMyPhoto}>
               <Icon name="camera" />
             </ElegirFoto>
           )}
         </div>
-        <h1 className="perfil-nombre">{nombre}</h1>
+        <h1 className="perfil-nombre">{me?.name}</h1>
         {cloud && <span className={`role-pill role-${role}`}>{ROLES[role]?.label || 'Colaborador'}</span>}
         {me?.photo && setMyPhoto && <button className="btn ghost small" onClick={() => setMyPhoto(null)}>Quitar foto</button>}
       </header>
 
-      {(cloud || personal) && (
-        <Grupo titulo="Perfil">
-          {editing ? (
-            <div className="fila">
-              <input className="grow" value={name} maxLength={60} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && guardar()} autoFocus aria-label="Tu nombre" />
-              <button className="btn primary small" disabled={!name.trim()} onClick={guardar}>Guardar</button>
-              <button className="btn ghost small" onClick={() => setEditing(false)}>Cancelar</button>
-            </div>
-          ) : (
-            <Fila label="Nombre" valor={me?.name} onClick={() => { setName(me?.name || ''); setEditing(true); }} />
-          )}
-          {msg && <p className="error small fila">{msg}</p>}
-          {user?.email && <Fila label="Correo" valor={user.email} />}
-          {cloud ? (
-            <Fila label="Iglesia" valor={church?.name} to="/mi-iglesia/miembros" state={{ from: 'ajustes' }} />
-          ) : (
-            <Fila label="Iglesia" valor="Ninguna" to="/mi-iglesia" />
-          )}
-          {cloud && <EquiposPerfil />}
-        </Grupo>
-      )}
-    </>
+      <Grupo titulo="Perfil">
+        {editing ? (
+          <div className="fila">
+            <input className="grow" value={name} maxLength={60} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && guardar()} autoFocus aria-label="Tu nombre" />
+            <button className="btn primary small" disabled={!name.trim()} onClick={guardar}>Guardar</button>
+            <button className="btn ghost small" onClick={() => setEditing(false)}>Cancelar</button>
+          </div>
+        ) : (
+          <Fila label="Nombre" valor={me?.name} onClick={() => { setName(me?.name || ''); setEditing(true); }} />
+        )}
+        {msg && <p className="error small fila">{msg}</p>}
+        {user?.email && <Fila label="Correo" valor={user.email} />}
+        {cloud && <EquiposPerfil />}
+      </Grupo>
+    </div>
   );
 }
 
