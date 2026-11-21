@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Icon from './Icon.jsx';
 
-/** Botón redondo "+" que despliega las formas de agregar una canción. */
+/** Botón "+ Nueva canción" (igual a "+ Nuevo evento") que despliega las formas de agregar una canción. */
 export default function AddMenu({ cloud }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -17,13 +17,12 @@ export default function AddMenu({ cloud }) {
   return (
     <div className="add-menu" ref={ref}>
       <button
-        className="btn primary square"
-        aria-label="Agregar canción"
+        className="btn primary"
+        aria-haspopup="menu"
         aria-expanded={open}
-        title="Agregar canción"
         onClick={() => setOpen(!open)}
       >
-        {open ? '✕' : '+'}
+        + Nueva canción
       </button>
       {open && (
         <div className="add-menu-panel" role="menu">

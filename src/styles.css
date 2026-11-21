@@ -518,7 +518,6 @@ textarea.mono { font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
 .present-menu-btn, .present-nav button { -webkit-tap-highlight-color: transparent; }
 
 /* Botón + de Canciones */
-.btn.square { width: 2.75rem; height: 2.75rem; padding: 0; font-size: 1.6rem; line-height: 1; border-radius: 50%; }
 .add-menu { position: relative; }
 .add-menu-panel {
   position: absolute; right: 0; top: calc(100% + 0.4rem); z-index: 40; width: 16rem;
@@ -637,7 +636,6 @@ textarea.mono { font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
 .canciones-head { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 0.8rem; }
 .canciones-head h1 { margin: 0; }
 .canciones-head .add-menu-panel { left: auto; right: 0; }
-.canciones-head .btn.square { width: 2.3rem; height: 2.3rem; font-size: 1.3rem; }
 .song-count { color: var(--primary); }
 .song-grid {
   list-style: none; padding: 0; margin: 0.6rem 0 0;
