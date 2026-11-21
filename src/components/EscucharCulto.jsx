@@ -76,7 +76,7 @@ function CompartirVideos({ event, videos }) {
   };
   return (
     <>
-      <button className="btn small youtube-btn-grande" onClick={compartir} title="Manda por WhatsApp un link con todos los videos del culto">
+      <button className="btn small youtube-btn-grande" onClick={compartir} title="Manda por WhatsApp un link con todos los videos del servicio">
         <Icon name="upload" /> Compartir videos
       </button>
       <button className="btn small" onClick={copiar} title="Copiar el link de la lista de videos">{copiado ? '✓ Copiado' : 'Copiar link'}</button>
@@ -93,7 +93,7 @@ function Videos({ videos }) {
         <iframe
           key={`${desde.i}-${desde.auto}`}
           src={embedLista(ids, desde.i, desde.auto)}
-          title="Videos del culto"
+          title="Videos del servicio"
           allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
           allowFullScreen
         />
@@ -109,7 +109,7 @@ function Videos({ videos }) {
           </li>
         ))}
       </ol>
-      <p className="muted small">Los videos pasan solos, en el orden del culto. Toca una canción para empezar desde ahí.</p>
+      <p className="muted small">Los videos pasan solos, en el orden del servicio. Toca una canción para empezar desde ahí.</p>
     </section>
   );
 }
@@ -194,7 +194,7 @@ function Reproductor({ canciones }) {
         })}
       </ol>
       <p className="muted small">
-        Las canciones pasan solas, en el orden del culto. Si no has iniciado sesión en Spotify en este navegador, solo se escucha un trozo de cada una:
+        Las canciones pasan solas, en el orden del servicio. Si no has iniciado sesión en Spotify en este navegador, solo se escucha un trozo de cada una:
         toca “Iniciar sesión” en el reproductor o usa “Abrir ↗”.
       </p>
     </section>

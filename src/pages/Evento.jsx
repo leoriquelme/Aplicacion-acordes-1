@@ -88,13 +88,13 @@ export default function Evento() {
           </div>
         </div>
         <div className="event-tools">
-          <Link className="btn small" to={`/imprimir/evento/${event.id}`}><Icon name="print" /> PDF del culto</Link>
+          <Link className="btn small" to={`/imprimir/evento/${event.id}`}><Icon name="print" /> PDF del servicio</Link>
           {MOSTRAR_RECORDATORIO && <button className="btn small" onClick={() => descargarRecordatorio(event)}><Icon name="bell" /> Recordarme</button>}
         </div>
         <EscucharCulto event={event} lines={lines} />
         {event.notes && <p className="card">{event.notes}</p>}
         <section className="card orden-culto">
-        <h2>Orden del culto</h2>
+        <h2>Orden del servicio</h2>
         {lines.length === 0 && <p className="muted">Vacío.</p>}
         <ol className="setlist">
           {lines.map(({ item, index, song }, n) => (
@@ -203,7 +203,7 @@ export default function Evento() {
       </div>
 
       <section className="card orden-culto">
-      <h2>Orden del culto</h2>
+      <h2>Orden del servicio</h2>
       {lines.length === 0 ? (
         <p className="muted">Vacío.</p>
       ) : (
@@ -290,7 +290,7 @@ export default function Evento() {
         )}
         {query && results.length === 0 && <p className="muted">No se encontraron canciones.</p>}
 
-        <div className="field-label" style={{ marginTop: '0.6rem' }}>Agregar parte del culto</div>
+        <div className="field-label" style={{ marginTop: '0.6rem' }}>Agregar parte del servicio</div>
         <div className="row gap wrap partes">
           {PARTES.map((p) => (
             <button key={p} className="btn small" onClick={() => addParte(p)}>+ {p}</button>

@@ -33,7 +33,7 @@ export default function Imprimir() {
         </header>
 
         <section>
-          <h2>Orden del culto</h2>
+          <h2>Orden del servicio</h2>
           {lines.length === 0 ? <p>—</p> : (
             <table className="hoja-tabla">
               <thead><tr><th>#</th><th>Parte / Canción</th><th>Tono</th><th>Detalle</th></tr></thead>
