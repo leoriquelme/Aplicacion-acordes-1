@@ -1109,3 +1109,126 @@ img.logo-chip { background: #fff; }
 .iglesia-cabeza h1 { margin: 0.3rem 0 0; }
 .logo-grande { width: 6rem; height: 6rem; border-radius: 24px; display: grid; place-items: center; background: var(--primary-soft); color: var(--primary); box-shadow: var(--shadow-float); }
 .iglesia-cabeza .btn.ghost { color: var(--muted); font-size: 0.85rem; }
+
+/* ===== Encuadrar foto (zoom y arrastre) ===== */
+.encuadrar { max-width: 340px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 0.6rem; }
+.encuadrar h2 { margin: 0; }
+.visor {
+  position: relative; overflow: hidden; touch-action: none; cursor: grab; user-select: none;
+  background: #111; box-shadow: 0 0 0 4px var(--surface), 0 0 0 6px var(--primary-soft);
+}
+.visor.circulo { border-radius: 50%; }
+.visor.cuadro { border-radius: 28px; background: #fff; }
+.visor:active { cursor: grabbing; }
+.visor img { position: absolute; left: 50%; top: 50%; max-width: none; pointer-events: none; }
+.zoom-barra { flex-direction: row; align-items: center; gap: 0.6rem; width: 100%; margin: 0.3rem 0 0; color: var(--muted); font-size: 1.2rem; }
+.zoom-barra input { flex: 1; accent-color: var(--primary); }
+.encuadrar p { margin: 0; }
+.encuadrar-botones { justify-content: center; width: 100%; }
+.encuadrar-botones .btn { flex: 1; }
+
+/* =====================================================================
+   Toques pastel: identidad propia del Cancionero (21-nov-2026)
+   Cada color pastel tiene su tono de fondo (-bg) y su tono de texto/ícono (-fg).
+   ===================================================================== */
+:root {
+  --lila-bg: #ece6fb;    --lila-fg: #6b4fc4;
+  --menta-bg: #dcf3e7;   --menta-fg: #2c8a5e;
+  --durazno-bg: #fde6d8; --durazno-fg: #c0602f;
+  --cielo-bg: #dcedfa;   --cielo-fg: #2d77ad;
+  --rosa-bg: #fbe1ea;    --rosa-fg: #bd4274;
+  --limon-bg: #faf1cc;   --limon-fg: #977610;
+  --bg: #f6f4fa;
+  --primary-soft: var(--lila-bg);
+}
+:root[data-theme='oscuro'] {
+  --lila-bg: rgba(160, 135, 240, 0.18);  --lila-fg: #c3b2ff;
+  --menta-bg: rgba(90, 200, 150, 0.16);  --menta-fg: #8fe0b8;
+  --durazno-bg: rgba(250, 160, 110, 0.16); --durazno-fg: #ffbf9a;
+  --cielo-bg: rgba(100, 170, 240, 0.16); --cielo-fg: #9fcdf5;
+  --rosa-bg: rgba(240, 120, 170, 0.16);  --rosa-fg: #f5a9c8;
+  --limon-bg: rgba(240, 210, 90, 0.14);  --limon-fg: #f0d77a;
+  --bg: #0f1218;
+  --primary-soft: var(--lila-bg);
+}
+
+/* Íconos de las filas en cuadritos pastel (el color va rotando) */
+.grupo-filas .fila-label > .icon {
+  width: 2rem; height: 2rem; padding: 0.42rem; border-radius: 10px; flex-shrink: 0;
+  background: var(--p-bg, var(--lila-bg)); color: var(--p-fg, var(--lila-fg));
+}
+.grupo-filas > :nth-child(6n+1) { --p-bg: var(--lila-bg); --p-fg: var(--lila-fg); }
+.grupo-filas > :nth-child(6n+2) { --p-bg: var(--menta-bg); --p-fg: var(--menta-fg); }
+.grupo-filas > :nth-child(6n+3) { --p-bg: var(--durazno-bg); --p-fg: var(--durazno-fg); }
+.grupo-filas > :nth-child(6n+4) { --p-bg: var(--cielo-bg); --p-fg: var(--cielo-fg); }
+.grupo-filas > :nth-child(6n+5) { --p-bg: var(--rosa-bg); --p-fg: var(--rosa-fg); }
+.grupo-filas > :nth-child(6n+6) { --p-bg: var(--limon-bg); --p-fg: var(--limon-fg); }
+.fila-abre > summary .fila-label > .icon { background: var(--p-bg); color: var(--p-fg); }
+
+/* Perfil arriba de Ajustes: tarjeta con degradado pastel */
+.perfil-resumen {
+  padding: 1.1rem; border-radius: 26px;
+  background: linear-gradient(135deg, var(--lila-bg), var(--durazno-bg));
+}
+.perfil-resumen .avatar-xl { border-color: var(--surface); }
+.perfil-resumen .role-pill { background: rgba(255, 255, 255, 0.7); border-color: transparent; color: var(--lila-fg); }
+:root[data-theme='oscuro'] .perfil-resumen .role-pill { background: rgba(0, 0, 0, 0.25); }
+
+/* Tarjeta de la iglesia en menta */
+.iglesia-tarjeta { background: var(--menta-bg); box-shadow: none; }
+.iglesia-tarjeta .muted { color: var(--menta-fg); }
+.logo-tarjeta:not(img) { background: var(--surface); color: var(--menta-fg); }
+
+/* Insignias y elementos activos en lila */
+.role-pill, .perfil-cabeza .role-pill { background: var(--lila-bg); color: var(--lila-fg); }
+.role-pill.role-admin { background: var(--lila-bg); color: var(--lila-fg); }
+.role-pill.role-director { background: var(--cielo-bg); color: var(--cielo-fg); }
+.tab.active { background: var(--lila-bg); color: var(--lila-fg); }
+.badge, .badge-dorado { background: var(--durazno-bg); color: var(--durazno-fg); }
+
+/* Inicio: el próximo culto con fondo durazno; el versículo en limón */
+.bloque-evento.proximo { background: var(--durazno-bg); box-shadow: none; }
+.bloque-evento.proximo .avatar { border-color: var(--durazno-bg); }
+.versiculo { background: var(--limon-bg); box-shadow: none; }
+.bloque-icono:not(img) { background: var(--lila-bg); color: var(--lila-fg); }
+
+/* Mi iglesia: los números, cada uno en su pastel */
+.datos-grid .dato { box-shadow: none; }
+.datos-grid .dato:nth-child(1) { background: var(--lila-bg); } .datos-grid .dato:nth-child(1) strong { color: var(--lila-fg); }
+.datos-grid .dato:nth-child(2) { background: var(--menta-bg); } .datos-grid .dato:nth-child(2) strong { color: var(--menta-fg); }
+.datos-grid .dato:nth-child(3) { background: var(--durazno-bg); } .datos-grid .dato:nth-child(3) strong { color: var(--durazno-fg); }
+.datos-grid .dato:nth-child(4) { background: var(--cielo-bg); } .datos-grid .dato:nth-child(4) strong { color: var(--cielo-fg); }
+.logo-grande:not(img) { background: var(--lila-bg); color: var(--lila-fg); }
+
+
+/* ===== Riel del orden: puntos pastel con la letra, sin números (21-nov) ===== */
+.order-rail { background: transparent; border: 0; box-shadow: none; padding: 0.3rem 0; gap: 0.5rem; position: sticky; }
+.order-rail-list { position: relative; align-items: center; gap: 0.55rem; }
+/* línea suave que une las partes */
+.order-rail-list::before {
+  content: ''; position: absolute; top: 0.8rem; bottom: 0.8rem; left: 50%; width: 2px; transform: translateX(-50%);
+  background: var(--border); border-radius: 2px;
+}
+.rail-item { position: relative; z-index: 1; }
+.rail-item button {
+  width: 2.3rem; height: 2.3rem; padding: 0; border-radius: 50%; border: 0; position: relative;
+  display: grid; place-items: center; cursor: pointer; font: inherit;
+  background: color-mix(in srgb, var(--sec, var(--border)) 55%, var(--surface));
+  color: color-mix(in srgb, var(--sec, var(--muted)) 35%, var(--sec-ink, #1a1c22));
+  box-shadow: 0 0 0 3px var(--bg); transition: transform 0.15s, box-shadow 0.15s;
+}
+.rail-item.k-verse button { background: var(--surface); color: var(--muted); box-shadow: 0 0 0 3px var(--bg), inset 0 0 0 1.5px var(--border); }
+.rail-item.actual button { transform: scale(1.15); box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px color-mix(in srgb, var(--sec, var(--primary)) 70%, var(--primary)); }
+.rail-abbr { font-size: 0.8rem; font-weight: 700; line-height: 1; }
+.rail-abbr sub { font-size: 0.65em; font-weight: 600; vertical-align: baseline; margin-left: 1px; opacity: 0.8; }
+.rail-times {
+  position: absolute; right: -0.45rem; top: -0.35rem; font-size: 0.58rem; font-weight: 700; line-height: 1;
+  padding: 0.15rem 0.25rem; border-radius: 999px; background: var(--text); color: var(--surface);
+}
+.rail-edit { color: var(--muted); }
+:root[data-theme='oscuro'] .rail-item button { background: color-mix(in srgb, var(--sec, var(--border)) 22%, var(--surface)); color: var(--sec, var(--text)); }
+@media (max-width: 800px) {
+  .song-layout.con-riel { grid-template-columns: minmax(0, 1fr) 2.9rem; }
+  .song-layout.con-riel .order-rail { padding: 0.3rem 0; }
+  .rail-item button { width: 2.1rem; height: 2.1rem; }
+}
