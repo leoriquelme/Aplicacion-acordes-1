@@ -3,12 +3,11 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { getCapo, getPersonalKey, setCapo as saveCapo, setPersonalKey, useStore } from '../lib/store.jsx';
-import { chordOptions, displayKey, guessKey, transposeKey } from '../lib/chordpro.js';
+import { displayKey, guessKey, transposeKey } from '../lib/chordpro.js';
 import { sortEvents, todayISO, formatLong } from '../lib/dates.js';
 import SongView from '../components/SongView.jsx';
 import CompartirCancion from '../components/CompartirCancion.jsx';
 import ArrangementEditor from '../components/ArrangementEditor.jsx';
-import DiagramasGuitarra from '../components/DiagramasGuitarra.jsx';
 import Icon from '../components/Icon.jsx';
 import ConfirmarEliminar from '../components/ConfirmarEliminar.jsx';
 import { ElegirNota } from '../components/NotasCancion.jsx';
@@ -81,7 +80,7 @@ export default function Cancion() {
       <div className="cancion-barra">
         <Link to="/canciones" className="barra-btn atras" aria-label="Volver a canciones" title="Canciones">‹</Link>
         <div className="barra-grupo">
-          <Link className="barra-btn" to={`/presentar/cancion/${song.id}?t=${steps}`} aria-label="Presentar" title="Presentar"><Icon name="play" /></Link>
+          <Link className="barra-btn barra-presentar" to={`/presentar/cancion/${song.id}?t=${steps}`} title="Presentar"><Icon name="play" /> Presentar</Link>
           {setMyNotes && (
             <button type="button" className={`barra-btn ${editNotes ? 'on' : ''}`} onClick={() => setEditNotes(!editNotes)} aria-pressed={editNotes} aria-label="Notas" title="Notas">
               <Icon name="note" />
@@ -160,11 +159,6 @@ export default function Cancion() {
         </nav>
       )}
 
-      <DiagramasGuitarra
-        content={song.content}
-        steps={steps - capo}
-        opts={chordOptions(tono || guessKey(song.content), steps - capo, settings.notation)}
-      />
       {editNotes && <p className="muted small notas-ayuda">Toca “+ Nota” en una parte.</p>}
       <SongView content={song.content} songKey={tono} steps={steps - capo} order={shownOrder} settings={settings}
         className="song-tarjetas"
