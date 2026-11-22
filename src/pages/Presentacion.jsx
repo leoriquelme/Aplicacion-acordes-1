@@ -156,12 +156,25 @@ export default function Presentacion() {
 
   // Teclado y pedalera Bluetooth (ver lib/pedal.js para las teclas de cada modo).
   const ultimaRepeticion = useRef(0);
+  const ultimaBajada = useRef(null);
+  // Señal chica en pantalla cada vez que llega un pedal (para saber que la pedalera se escucha).
+  const [pisada, setPisada] = useState(null);
+  const pisadaTimer = useRef(null);
   useEffect(() => {
     const onKey = (e) => {
       if (document.querySelector('.modal-notas')) return; // con la ventana de notas abierta, las teclas no mueven la presentación
       if (esCampoDeTexto(e.target)) return;
       if (followingRef.current && !['f', 'F', 'Escape'].includes(e.key)) return; // siguiendo al director: avanza solo
       const accion = accionPedal(e);
+      if (accion && e.type === 'keyup') {
+        // Algunos equipos (iPhone/iPad) a veces solo avisan cuando se suelta la tecla:
+        // si no llegó el "apretar" de esa tecla, se usa el "soltar".
+        const d = ultimaBajada.current;
+        e.preventDefault();
+        if (d && d.key === e.key && Date.now() - d.t < 1500) return;
+      } else if (accion) {
+        ultimaBajada.current = { key: e.key, t: Date.now() };
+      }
       if (accion) {
         // Que ningún botón con foco "se apriete" con Espacio/Enter, y que el navegador no deslice la página por su cuenta.
         e.preventDefault();
@@ -177,18 +190,26 @@ export default function Presentacion() {
           if (ahora - ultimaRepeticion.current < 450) return;
           ultimaRepeticion.current = ahora;
         }
+        setPisada(accion.endsWith('+') ? '▼' : '▲');
+        clearTimeout(pisadaTimer.current);
+        pisadaTimer.current = setTimeout(() => setPisada(null), 600);
         if (accion === 'seccion+') goSection(1);
         else if (accion === 'seccion-') goSection(-1);
         else if (accion === 'cancion+') go(1);
         else if (accion === 'cancion-') go(-1);
         return;
       }
+      if (e.type !== 'keydown') return;
       if (e.key.toLowerCase() === 'f') toggleFull();
       else if (e.key === 'Escape' && !document.fullscreenElement) exit();
     };
     // En la fase de captura, para que la tecla llegue aquí antes que a cualquier otro elemento.
     document.addEventListener('keydown', onKey, true);
-    return () => document.removeEventListener('keydown', onKey, true);
+    document.addEventListener('keyup', onKey, true);
+    return () => {
+      document.removeEventListener('keydown', onKey, true);
+      document.removeEventListener('keyup', onKey, true);
+    };
   }, [go, goSection, toggleFull, exit]);
 
   // La pantalla de presentación toma el foco al abrirse (así Safari en iPhone/iPad
@@ -369,6 +390,7 @@ export default function Presentacion() {
         if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.5) go(dx < 0 ? 1 : -1);
       }}
     >
+      {pisada && <div className="present-pisada" aria-hidden="true">{pisada}</div>}
       <header className="present-head">
         <h1>{current.song.title}</h1>
         {items.length > 1 && <span className="present-count">{index + 1} / {items.length}</span>}

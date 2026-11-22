@@ -5,6 +5,7 @@ import AgregarEjemplos from '../components/AgregarEjemplos.jsx';
 import { AjustesFinal, FilaAbre, Grupo, IglesiaTarjeta, PerfilCard } from '../components/Comunicacion.jsx';
 import InstalarCard from '../components/InstalarCard.jsx';
 import IglesiaPrueba from '../components/IglesiaPrueba.jsx';
+import ProbarPedalera from '../components/ProbarPedalera.jsx';
 import { Respaldo } from '../components/Administracion.jsx';
 import Icon from '../components/Icon.jsx';
 import { descargar } from '../lib/descargar.js';
@@ -121,6 +122,9 @@ export default function Ajustes() {
             </FilaAbre>
           )}
           {store.mode === 'cloud' && (store.can.users || store.can.edit) && <IglesiaPrueba />}
+        <FilaAbre label={<><Icon name="music" /> Probar pedalera</>}>
+          <ProbarPedalera />
+        </FilaAbre>
         <FilaAbre label={<><Icon name="phone" /> Instalar la app</>}>
           <InstalarCard bare />
         </FilaAbre>
