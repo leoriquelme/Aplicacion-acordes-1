@@ -25,6 +25,7 @@ export default function Evento() {
   const { events, songs, settings, saveEvent, deleteEvent, can, mode } = useStore();
   const [q, setQ] = useState('');
   const [openOrder, setOpenOrder] = useState(null);
+  const [abierta, setAbierta] = useState(null);
   const [mas, setMas] = useState(false);
   const [dragFrom, setDragFrom] = useState(null);
   const [dragOver, setDragOver] = useState(null);
@@ -161,6 +162,7 @@ export default function Evento() {
     items.splice(toIdx > fromIdx ? toIdx - 1 : toIdx, 0, item);
     setItems(items);
     setOpenOrder(null);
+    setAbierta(null);
   };
   const overIndex = (y) => {
     const els = [...(listRef.current?.querySelectorAll('.setlist-item') || [])];
@@ -267,25 +269,39 @@ export default function Evento() {
               <span className="grip" aria-hidden="true" title="Arrastra para mover">⠿</span>
               <span className="setlist-num">{n + 1}</span>
               {s ? (
+                <>
                 <div className="setlist-main">
                   <Link to={`/canciones/${s.id}`}><strong>{s.title}</strong></Link>
-                  <div className="setlist-controls">
-                    <TransposeControls
-                      compact
-                      songKey={songKey(s)}
-                      steps={item.transpose || 0}
-                      notation={settings.notation}
-                      onChange={(t) => setItem(i, { transpose: t })}
-                    />
-                    <button
-                      className={`btn small ${item.order?.length ? 'primary' : ''}`}
-                      onClick={() => setOpenOrder(openOrder === i ? null : i)}
-                      title="Elegir el orden de las secciones solo para este evento"
-                    >
-                      Orden{item.order?.length ? ' ✓' : ''}
-                    </button>
-                  </div>
+                  {abierta === i && dragFrom === null && (
+                    <div className="setlist-controls">
+                      <TransposeControls
+                        compact
+                        songKey={songKey(s)}
+                        steps={item.transpose || 0}
+                        notation={settings.notation}
+                        onChange={(t) => setItem(i, { transpose: t })}
+                      />
+                      <button
+                        className={`btn small ${item.order?.length ? 'primary' : ''}`}
+                        onClick={() => setOpenOrder(openOrder === i ? null : i)}
+                        title="Elegir el orden de las secciones solo para este evento"
+                      >
+                        Orden{item.order?.length ? ' ✓' : ''}
+                      </button>
+                    </div>
+                  )}
                 </div>
+                <button
+                  type="button"
+                  className={`key-pill key-toggle ${abierta === i ? 'abierta' : ''}`}
+                  onClick={() => { const cerrar = abierta === i; setAbierta(cerrar ? null : i); if (cerrar) setOpenOrder(null); }}
+                  aria-expanded={abierta === i}
+                  title="Cambiar tono u orden de secciones"
+                >
+                  {songKey(s) ? displayKey(songKey(s), item.transpose || 0, settings.notation) : 'Tono'}
+                  {item.order?.length ? ' ✓' : ''} <span aria-hidden="true">{abierta === i ? '▴' : '▾'}</span>
+                </button>
+                </>
               ) : (
                 <div className="setlist-main parte-edit">
                   <strong>{item.label}</strong>
@@ -297,7 +313,7 @@ export default function Evento() {
                 </div>
               )}
               <ConfirmX className="btn ghost small" label={`Quitar ${s ? s.title : item.label}`} onConfirm={() => { setItems(event.items.filter((_, k) => k !== i)); setOpenOrder(null); }} />
-              {s && openOrder === i && (
+              {s && abierta === i && openOrder === i && dragFrom === null && (
                 <div className="setlist-order">
                   <p className="muted small">
                     Orden de "{s.title}" solo para este servicio. En Canciones se sigue viendo normal.
