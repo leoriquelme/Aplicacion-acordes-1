@@ -12,7 +12,7 @@ import { CodigoAcceso } from '../components/Administracion.jsx';
 import { FilaAbre, Grupo, SalirIglesia } from '../components/Comunicacion.jsx';
 import IglesiaLogo from '../components/IglesiaLogo.jsx';
 
-/** Pestaña "Iglesia": datos de la iglesia, mis equipos, canciones más usadas e historial. */
+/** Pestaña "Iglesia": datos de la iglesia, mis equipos, top repertorio e historial. */
 export default function MiIglesia() {
   const { mode, church, people = [], songs, events, participations = [], can } = useStore();
   const today = todayISO();
@@ -52,7 +52,7 @@ export default function MiIglesia() {
         {mode === 'cloud' && <InvitarCard />}
         {mode === 'cloud' && <CodigoAcceso />}
         {mode === 'cloud' && <FilaAbre label={<><Icon name="users" /> Equipos</>}><ResumenEquipos /></FilaAbre>}
-        <FilaAbre label={<><Icon name="music" /> Más usadas</>}><SongRanking songs={songs} events={events} /></FilaAbre>
+        <FilaAbre label={<><Icon name="music" /> Top repertorio</>}><SongRanking songs={songs} events={events} /></FilaAbre>
         {can.events && mode === 'cloud' && (
           <FilaAbre label={<><Icon name="hand" /> Participación</>}><HistorialParticipacion participations={participations} events={events} /></FilaAbre>
         )}

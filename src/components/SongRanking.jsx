@@ -20,12 +20,12 @@ export default function SongRanking({ songs, events }) {
     <section className="card ranking">
       <div className="page-head">
         <div>
-          <h2>Ranking de canciones</h2>
+          <h2>Top repertorio</h2>
           <p className="muted small">Último año</p>
         </div>
-        <div className="segmented" role="group" aria-label="Orden del ranking">
-          <button className={mode === 'mas' ? 'active' : ''} onClick={() => setMode('mas')}>Más usadas</button>
-          <button className={mode === 'menos' ? 'active' : ''} onClick={() => setMode('menos')}>Menos usadas</button>
+        <div className="segmented" role="group" aria-label="Orden del repertorio">
+          <button className={mode === 'mas' ? 'active' : ''} onClick={() => setMode('mas')}>Más tocadas</button>
+          <button className={mode === 'menos' ? 'active' : ''} onClick={() => setMode('menos')}>Menos tocadas</button>
         </div>
       </div>
       <table className="rank-table">
