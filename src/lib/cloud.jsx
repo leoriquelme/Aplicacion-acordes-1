@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import {
-  addDoc, arrayRemove, collection, deleteDoc, getCountFromServer, increment, limit, orderBy, serverTimestamp, deleteField, doc, getDoc, getDocs, onSnapshot, query, setDoc, updateDoc, where, writeBatch,
+  addDoc, arrayRemove, collection, deleteDoc, getCountFromServer, increment, limit, orderBy, serverTimestamp, deleteField, doc, getDoc, getDocFromServer, getDocs, onSnapshot, query, setDoc, updateDoc, where, writeBatch,
 } from 'firebase/firestore';
 import { grupoDe, participationId } from './participacion.js';
 import { cancionesEjemplo } from '../data/ejemplos.js';
@@ -254,13 +254,26 @@ export async function reiniciarOraciones() {
   await setDoc(doc(db, 'stats', 'oracion'), { count: 0 });
 }
 
+/**
+ * Revisa si la cuenta es Super Admin preguntándole directo a Firebase (no a la copia guardada en el equipo).
+ * Devuelve { es: true|false } o { es: false, error: 'texto' } si no se pudo revisar.
+ */
 export async function soySuperAdmin() {
   const uid = auth.currentUser?.uid;
-  if (!uid) return false;
+  if (!uid) return { es: false, error: 'No hay una cuenta conectada.' };
+  const ref = doc(db, 'superadmins', uid);
   try {
-    return (await getDoc(doc(db, 'superadmins', uid))).exists();
-  } catch {
-    return false;
+    return { es: (await getDocFromServer(ref)).exists() };
+  } catch (e) {
+    if (e?.code === 'permission-denied') {
+      return { es: false, error: 'Firebase no dejó revisar (permiso denegado). Revisa que las reglas estén publicadas.' };
+    }
+    // Sin internet: usar la copia del equipo si la hay.
+    try {
+      const snap = await getDoc(ref);
+      if (snap.exists()) return { es: true };
+    } catch { /* nada */ }
+    return { es: false, error: `No se pudo revisar: ${e?.message || e}` };
   }
 }
 
