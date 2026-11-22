@@ -10,6 +10,7 @@ import { ElegirNota } from '../components/NotasCancion.jsx';
 import Icon from '../components/Icon.jsx';
 import { enVivoActivo, indiceCancion } from '../lib/envivo.js';
 import { accionPedal, esCampoDeTexto } from '../lib/pedal.js';
+import PedalCaptura, { esTactil, marcarPedalera, usaPedalera } from '../components/PedalCaptura.jsx';
 
 /** Número de la sección que está arriba de la pantalla (la que se está cantando). */
 function seccionActual(root) {
@@ -154,6 +155,19 @@ export default function Presentacion() {
     root.scrollTo({ top: nuevo, behavior: 'smooth' });
   }, [go, items.length]);
 
+  // Pedalera en iPhone/iPad: un campo invisible tiene que tener el foco (ver PedalCaptura).
+  const pedalRef = useRef(null);
+  const [usarCampo] = useState(esTactil);
+  const [pedalLista, setPedalLista] = useState(false);
+  const [avisoPedal] = useState(usaPedalera);
+  const activarPedal = useCallback(() => {
+    if (!usarCampo) return;
+    if (document.querySelector('.modal-notas')) return;
+    const a = document.activeElement;
+    if (esCampoDeTexto(a) && a !== pedalRef.current) return;
+    pedalRef.current?.focus({ preventScroll: true });
+  }, [usarCampo]);
+
   // Teclado y pedalera Bluetooth (ver lib/pedal.js para las teclas de cada modo).
   const ultimaRepeticion = useRef(0);
   const ultimaBajada = useRef(null);
@@ -163,7 +177,7 @@ export default function Presentacion() {
   useEffect(() => {
     const onKey = (e) => {
       if (document.querySelector('.modal-notas')) return; // con la ventana de notas abierta, las teclas no mueven la presentación
-      if (esCampoDeTexto(e.target)) return;
+      if (esCampoDeTexto(e.target) && e.target !== pedalRef.current) return;
       if (followingRef.current && !['f', 'F', 'Escape'].includes(e.key)) return; // siguiendo al director: avanza solo
       const accion = accionPedal(e);
       if (accion && e.type === 'keyup') {
@@ -180,10 +194,11 @@ export default function Presentacion() {
         e.preventDefault();
         e.stopPropagation();
         const activo = document.activeElement;
-        if (activo && activo !== rootRef.current && activo !== document.body) {
+        if (activo && activo !== rootRef.current && activo !== pedalRef.current && activo !== document.body) {
           activo.blur?.();
-          rootRef.current?.focus({ preventScroll: true });
+          (usarCampo ? pedalRef.current : rootRef.current)?.focus({ preventScroll: true });
         }
+        marcarPedalera();
         // Pedal mantenido apretado ("Continue Sending"): avanza de a poco, no todo de golpe.
         if (e.repeat) {
           const ahora = Date.now();
@@ -210,14 +225,14 @@ export default function Presentacion() {
       document.removeEventListener('keydown', onKey, true);
       document.removeEventListener('keyup', onKey, true);
     };
-  }, [go, goSection, toggleFull, exit]);
+  }, [go, goSection, toggleFull, exit, usarCampo]);
 
   // La pantalla de presentación toma el foco al abrirse (así Safari en iPhone/iPad
   // le entrega las teclas de la pedalera en vez de al botón que se tocó antes).
   useEffect(() => {
     const activo = document.activeElement;
     if (activo && activo !== document.body) activo.blur?.();
-    rootRef.current?.focus({ preventScroll: true });
+    (usarCampo ? pedalRef.current : rootRef.current)?.focus({ preventScroll: true });
   }, [current ? 1 : 0]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const followingRef = useRef(following);
@@ -382,7 +397,9 @@ export default function Presentacion() {
       tabIndex={-1}
       onMouseMove={poke}
       onTouchStart={(e) => { poke(); touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }}
+      onClick={activarPedal}
       onTouchEnd={(e) => {
+        activarPedal();
         const t = touch.current; touch.current = null;
         if (!t || menuOpen || following) return;
         const dx = e.changedTouches[0].clientX - t.x;
@@ -391,6 +408,10 @@ export default function Presentacion() {
       }}
     >
       {pisada && <div className="present-pisada" aria-hidden="true">{pisada}</div>}
+      {usarCampo && <PedalCaptura ref={pedalRef} onFoco={setPedalLista} />}
+      {usarCampo && avisoPedal && !pedalLista && !following && (
+        <div className="present-aviso-pedal">Toca la pantalla para usar la pedalera</div>
+      )}
       <header className="present-head">
         <h1>{current.song.title}</h1>
         {items.length > 1 && <span className="present-count">{index + 1} / {items.length}</span>}
