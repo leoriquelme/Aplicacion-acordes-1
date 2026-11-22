@@ -171,9 +171,6 @@ export default function Presentacion() {
   // Teclado y pedalera Bluetooth (ver lib/pedal.js para las teclas de cada modo).
   const ultimaRepeticion = useRef(0);
   const ultimaBajada = useRef(null);
-  // Señal chica en pantalla cada vez que llega un pedal (para saber que la pedalera se escucha).
-  const [pisada, setPisada] = useState(null);
-  const pisadaTimer = useRef(null);
   useEffect(() => {
     const onKey = (e) => {
       if (document.querySelector('.modal-notas')) return; // con la ventana de notas abierta, las teclas no mueven la presentación
@@ -205,9 +202,6 @@ export default function Presentacion() {
           if (ahora - ultimaRepeticion.current < 450) return;
           ultimaRepeticion.current = ahora;
         }
-        setPisada(accion.endsWith('+') ? '▼' : '▲');
-        clearTimeout(pisadaTimer.current);
-        pisadaTimer.current = setTimeout(() => setPisada(null), 600);
         if (accion === 'seccion+') goSection(1);
         else if (accion === 'seccion-') goSection(-1);
         else if (accion === 'cancion+') go(1);
@@ -407,7 +401,6 @@ export default function Presentacion() {
         if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.5) go(dx < 0 ? 1 : -1);
       }}
     >
-      {pisada && <div className="present-pisada" aria-hidden="true">{pisada}</div>}
       {usarCampo && <PedalCaptura ref={pedalRef} onFoco={setPedalLista} />}
       {usarCampo && avisoPedal && !pedalLista && !following && (
         <div className="present-aviso-pedal">Toca la pantalla para usar la pedalera</div>
