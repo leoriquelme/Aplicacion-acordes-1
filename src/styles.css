@@ -1534,3 +1534,32 @@ label.barra-btn { margin: 0; display: inline-grid; font-weight: 700; }
   background: rgba(140, 158, 255, 0.9); color: #000; border-radius: 999px; padding: 0.4rem 0.9rem; font-size: 0.85rem;
   pointer-events: none; white-space: nowrap;
 }
+
+/* Orden del servicio: arrastrar canciones con el dedo (como las secciones) */
+.setlist-drag .setlist-item { position: relative; user-select: none; }
+.setlist-drag .grip {
+  touch-action: none; cursor: grab; padding: 0.45rem 0.35rem; margin: -0.45rem -0.4rem -0.45rem -0.4rem;
+  font-size: 1.3rem; line-height: 1; opacity: 0.55;
+}
+.setlist-drag .setlist-item.dragging { opacity: 0.45; outline: 2px dashed var(--primary); }
+.setlist-drag .drop-before::before {
+  content: ''; position: absolute; left: 0; right: 0; top: -0.32rem; height: 3px; border-radius: 2px; background: var(--primary);
+}
+.setlist-end { position: relative; height: 0.4rem; list-style: none; }
+.setlist-drag.is-dragging, .setlist-drag.is-dragging * { user-select: none; cursor: grabbing; }
+@media (pointer: fine) { .setlist-drag .setlist-item { cursor: grab; } }
+.setlist-drag .setlist-item { flex-wrap: wrap; align-items: flex-start; gap: 0.6rem; }
+.setlist-drag .setlist-item > .grip, .setlist-drag .setlist-item > .setlist-num { margin-top: 0.15rem; }
+.setlist-drag .grip { margin: -0.3rem -0.4rem; padding: 0.45rem 0.35rem; }
+.setlist-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+.setlist-main.parte-edit { flex-direction: row; align-items: center; flex-wrap: wrap; }
+.setlist-controls { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+
+/* Evento: PDF y multimedia dentro de "Más" */
+.flecha-mas { display: inline-block; transition: transform 0.15s; font-size: 0.85em; }
+.flecha-mas.abierta { transform: rotate(180deg); }
+.btn.activo { background: var(--surface-2); }
+.event-mas { margin: 0.8rem 0 1rem; }
+.event-mas .event-tools { margin: 0 0 0.6rem; }
+.editar-lapiz { margin-left: auto; }
+.page-head .head-actions:has(.editar-lapiz) { flex: 1 1 100%; align-items: center; }

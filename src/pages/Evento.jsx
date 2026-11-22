@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { MAX_FUTUROS, cabeOtroFuturo, esFuturo, sePuedeEditar } from '../lib/limitesEventos.js';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useStore } from '../lib/store.jsx';
@@ -25,6 +25,11 @@ export default function Evento() {
   const { events, songs, settings, saveEvent, deleteEvent, can, mode } = useStore();
   const [q, setQ] = useState('');
   const [openOrder, setOpenOrder] = useState(null);
+  const [mas, setMas] = useState(false);
+  const [dragFrom, setDragFrom] = useState(null);
+  const [dragOver, setDragOver] = useState(null);
+  const listRef = useRef(null);
+  const drag = useRef(null);
   const [otra, setOtra] = useState('');
   // Evento nuevo: se arma aquí y solo se guarda al pulsar "Crear evento".
   const isNew = id === 'nuevo';
@@ -78,20 +83,31 @@ export default function Evento() {
             <p className="muted">{when}</p>
           </div>
           <div className="head-actions">
-            {can.events && editable && <button className="btn" onClick={() => setEditing(true)}><Icon name="edit" /> Editar</button>}
             {hasSongs && <Link className="btn primary" to={`/presentar/evento/${event.id}`}><Icon name="play" /> Presentar</Link>}
-            {hasSongs && mode === 'cloud' && can.edit && (
-              <Link className="btn en-vivo-btn" to={`/presentar/evento/${event.id}?envivo=1`} title="Tú avanzas la letra y todos la ven en su teléfono">
-                <Icon name="live" /> En vivo
-              </Link>
+            <button
+              className={`btn ${mas ? 'activo' : ''}`}
+              onClick={() => setMas((m) => !m)}
+              aria-expanded={mas}
+              title="PDF del servicio, Spotify y videos"
+            >
+              Más <span className={`flecha-mas ${mas ? 'abierta' : ''}`} aria-hidden="true">▾</span>
+            </button>
+            {can.events && editable && (
+              <button className="btn round editar-lapiz" onClick={() => setEditing(true)} aria-label="Editar" title="Editar">
+                <Icon name="edit" />
+              </button>
             )}
           </div>
         </div>
-        <div className="event-tools">
-          <Link className="btn small" to={`/imprimir/evento/${event.id}`}><Icon name="print" /> PDF del servicio</Link>
-          {MOSTRAR_RECORDATORIO && <button className="btn small" onClick={() => descargarRecordatorio(event)}><Icon name="bell" /> Recordarme</button>}
-        </div>
-        <EscucharCulto event={event} lines={lines} />
+        {mas && (
+          <div className="event-mas">
+            <div className="event-tools">
+              <Link className="btn small" to={`/imprimir/evento/${event.id}`}><Icon name="print" /> PDF del servicio</Link>
+              {MOSTRAR_RECORDATORIO && <button className="btn small" onClick={() => descargarRecordatorio(event)}><Icon name="bell" /> Recordarme</button>}
+            </div>
+            <EscucharCulto event={event} lines={lines} />
+          </div>
+        )}
         {event.notes && <p className="card">{event.notes}</p>}
         <section className="card orden-culto">
         <h2>Orden del servicio</h2>
@@ -134,14 +150,48 @@ export default function Evento() {
   const setItems = (items) => update({ items });
   const setItem = (i, patch) => setItems(event.items.map((x, k) => (k === i ? { ...x, ...patch } : x)));
 
-  const move = (i, dir) => {
+  // Mover arrastrando (mouse o dedo), igual que las secciones de una canción.
+  // `from` y `over` son posiciones en la lista que se ve; se pasan a índices de event.items.
+  const move = (from, over) => {
+    if (from === null || over === null || from === over || from + 1 === over) return;
     const items = [...event.items];
-    const j = i + dir;
-    if (j < 0 || j >= items.length) return;
-    [items[i], items[j]] = [items[j], items[i]];
+    const fromIdx = lines[from].index;
+    const toIdx = over < lines.length ? lines[over].index : items.length;
+    const [item] = items.splice(fromIdx, 1);
+    items.splice(toIdx > fromIdx ? toIdx - 1 : toIdx, 0, item);
     setItems(items);
     setOpenOrder(null);
   };
+  const overIndex = (y) => {
+    const els = [...(listRef.current?.querySelectorAll('.setlist-item') || [])];
+    const k = els.findIndex((el) => { const r = el.getBoundingClientRect(); return y < r.top + r.height / 2; });
+    return k === -1 ? els.length : k;
+  };
+  const endDrag = () => { drag.current = null; setDragFrom(null); setDragOver(null); };
+  const dragProps = (n) => ({
+    onPointerDown: (e) => {
+      if (e.button > 0 || e.target.closest('button, input, select, a, .setlist-order')) return;
+      if (e.pointerType !== 'mouse' && !e.target.closest('.grip')) return;
+      e.preventDefault();
+      e.currentTarget.setPointerCapture?.(e.pointerId);
+      drag.current = { from: n, over: n };
+      setDragFrom(n);
+      setDragOver(n);
+    },
+    onPointerMove: (e) => {
+      if (!drag.current) return;
+      const over = overIndex(e.clientY);
+      if (over !== drag.current.over) { drag.current.over = over; setDragOver(over); }
+    },
+    onPointerUp: () => {
+      if (!drag.current) return;
+      const { from, over } = drag.current;
+      endDrag();
+      move(from, over);
+    },
+    onPointerCancel: endDrag,
+  });
+  const marca = (n) => (dragOver === n && dragFrom !== null && dragFrom !== n && dragFrom + 1 !== n ? 'drop-before' : '');
 
   const query = normalize(q.trim());
   const results = query
@@ -166,7 +216,7 @@ export default function Evento() {
           </p>
         </div>
         {!isNew && (
-          <button className="btn primary" onClick={() => { setEditing(false); setOpenOrder(null); }}>✓ Listo</button>
+          <button className="btn primary" onClick={() => { setEditing(false); }}>✓ Listo</button>
         )}
       </div>
 
@@ -207,47 +257,50 @@ export default function Evento() {
       {lines.length === 0 ? (
         <p className="muted">Vacío.</p>
       ) : (
-        <ol className="setlist">
+        <ol className={`setlist setlist-drag ${dragFrom !== null ? 'is-dragging' : ''}`} ref={listRef}>
           {lines.map(({ item, index: i, song: s }, n) => (
-            <li key={i} className={`setlist-item ${s ? '' : 'parte'}`}>
+            <li
+              key={i}
+              className={`setlist-item ${s ? '' : 'parte'} ${dragFrom === n ? 'dragging' : ''} ${marca(n)}`}
+              {...dragProps(n)}
+            >
+              <span className="grip" aria-hidden="true" title="Arrastra para mover">⠿</span>
               <span className="setlist-num">{n + 1}</span>
               {s ? (
-                <>
-                  <Link className="grow" to={`/canciones/${s.id}`}><strong>{s.title}</strong></Link>
-                  <TransposeControls
-                    compact
-                    songKey={songKey(s)}
-                    steps={item.transpose || 0}
-                    notation={settings.notation}
-                    onChange={(t) => setItem(i, { transpose: t })}
-                  />
-                  <button
-                    className={`btn small ${item.order?.length ? 'primary' : ''}`}
-                    onClick={() => setOpenOrder(openOrder === i ? null : i)}
-                    title="Elegir el orden de las secciones para este evento"
-                  >
-                    Orden{item.order?.length ? ' ✓' : ''}
-                  </button>
-                </>
+                <div className="setlist-main">
+                  <Link to={`/canciones/${s.id}`}><strong>{s.title}</strong></Link>
+                  <div className="setlist-controls">
+                    <TransposeControls
+                      compact
+                      songKey={songKey(s)}
+                      steps={item.transpose || 0}
+                      notation={settings.notation}
+                      onChange={(t) => setItem(i, { transpose: t })}
+                    />
+                    <button
+                      className={`btn small ${item.order?.length ? 'primary' : ''}`}
+                      onClick={() => setOpenOrder(openOrder === i ? null : i)}
+                      title="Elegir el orden de las secciones solo para este evento"
+                    >
+                      Orden{item.order?.length ? ' ✓' : ''}
+                    </button>
+                  </div>
+                </div>
               ) : (
-                <span className="grow parte-edit">
+                <div className="setlist-main parte-edit">
                   <strong>{item.label}</strong>
                   <input
                     value={item.detail || ''}
                     placeholder={item.label === 'Predicación' ? 'Ej. Juan Pérez · Juan 3:16' : item.label === 'Lectura bíblica' ? 'Ej. Salmo 23' : 'Detalle (opcional)'}
                     onChange={(e) => setItem(i, { detail: e.target.value.slice(0, 80) })}
                   />
-                </span>
+                </div>
               )}
-              <div className="row">
-                <button className="btn ghost small" onClick={() => move(i, -1)} disabled={i === 0} aria-label="Subir">↑</button>
-                <button className="btn ghost small" onClick={() => move(i, 1)} disabled={i === event.items.length - 1} aria-label="Bajar">↓</button>
-                <ConfirmX className="btn ghost small" label={`Quitar ${s ? s.title : item.label}`} onConfirm={() => { setItems(event.items.filter((_, k) => k !== i)); setOpenOrder(null); }} />
-              </div>
+              <ConfirmX className="btn ghost small" label={`Quitar ${s ? s.title : item.label}`} onConfirm={() => { setItems(event.items.filter((_, k) => k !== i)); setOpenOrder(null); }} />
               {s && openOrder === i && (
                 <div className="setlist-order">
                   <p className="muted small">
-                    Orden de "{s.title}" solo para este evento.
+                    Orden de "{s.title}" solo para este servicio. En Canciones se sigue viendo normal.
                     {!item.order?.length && ' Ahora usa el orden de la canción.'}
                   </p>
                   <ArrangementEditor
@@ -261,6 +314,7 @@ export default function Evento() {
               )}
             </li>
           ))}
+          <li className={`setlist-end ${marca(lines.length)}`} />
         </ol>
       )}
       </section>
