@@ -1515,3 +1515,6 @@ label.barra-btn { margin: 0; display: inline-grid; font-weight: 700; }
 @media (max-width: 640px) {
   .present .en-vivo-pill { font-size: 0.8rem; }
 }
+
+/* La presentación recibe el foco para escuchar la pedalera: sin borde de foco. */
+.present:focus { outline: none; }

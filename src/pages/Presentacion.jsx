@@ -9,6 +9,7 @@ import { alternarNota, notasPorSeccion } from '../lib/notas.js';
 import { ElegirNota } from '../components/NotasCancion.jsx';
 import Icon from '../components/Icon.jsx';
 import { enVivoActivo, indiceCancion } from '../lib/envivo.js';
+import { accionPedal, esCampoDeTexto } from '../lib/pedal.js';
 
 /** Número de la sección que está arriba de la pantalla (la que se está cantando). */
 function seccionActual(root) {
@@ -88,7 +89,12 @@ export default function Presentacion() {
   useEffect(() => { if (songId) setCapoState(getCapo(songId)); }, [songId]);
   const setCapo = (n) => { setCapoState(n); if (songId) saveCapo(songId, n); };
 
+  // Sección a la que se está yendo (mientras la pantalla todavía se desliza),
+  // para que dos pisadas rápidas de la pedalera avancen dos secciones.
+  const destino = useRef(null);
+
   const go = useCallback((dir) => {
+    destino.current = null;
     setSection(0);
     setIndex((i) => Math.min(Math.max(i + dir, 0), Math.max(items.length - 1, 0)));
     rootRef.current?.scrollTo({ top: 0 });
@@ -110,43 +116,88 @@ export default function Presentacion() {
     return () => document.removeEventListener('fullscreenchange', onFs);
   }, []);
 
-  // Flecha abajo / arriba: pasa a la sección siguiente o anterior de la canción.
-  // En la última sección, la flecha abajo pasa a la próxima canción.
+  // Pedal / flecha abajo: baja hasta la sección siguiente (o una pantalla, si la letra
+  // está en columnas). Abajo del todo, pasa a la próxima canción.
+  // Pedal / flecha arriba: lo mismo hacia atrás; arriba del todo, vuelve a la canción anterior.
+  const indexRef = useRef(0);
+  indexRef.current = index;
   const goSection = useCallback((dir) => {
     const root = rootRef.current;
     if (!root) return;
-    const blocks = [...root.querySelectorAll('.song .block')];
-    if (!blocks.length) return;
-    const top = root.getBoundingClientRect().top;
-    const pos = blocks.map((b) => b.getBoundingClientRect().top - top);
-    // Sección actual: la última cuyo inicio ya llegó arriba de la pantalla.
-    let cur = 0;
-    pos.forEach((p, i) => { if (p <= 24) cur = i; });
-    if (root.scrollTop < 8) cur = dir > 0 ? -1 : 0;
-    // Abajo del todo: la sección actual es la última que se ve.
-    else if (root.scrollTop + root.clientHeight >= root.scrollHeight - 4) {
-      pos.forEach((p, i) => { if (p < root.clientHeight - 40) cur = i; });
+    const ahora = Date.now();
+    const d = destino.current;
+    // Si la pantalla todavía se está deslizando, se cuenta desde donde va a quedar.
+    const vt = d && ahora < d.hasta ? d.top : root.scrollTop;
+    const maxTop = Math.max(root.scrollHeight - root.clientHeight, 0);
+    const rootTop = root.getBoundingClientRect().top;
+    const inicios = [...root.querySelectorAll('.song .block')]
+      .map((b) => Math.max(b.getBoundingClientRect().top - rootTop + root.scrollTop - 16, 0));
+    let nuevo = null;
+    if (dir > 0) {
+      const sig = inicios.find((t) => t > vt + 8);
+      if (sig !== undefined) nuevo = Math.min(sig, maxTop);
+      else if (vt < maxTop - 4) nuevo = Math.min(vt + root.clientHeight * 0.85, maxTop);
+      if (nuevo === null || nuevo <= vt + 4) {
+        if (indexRef.current < items.length - 1) go(1);
+        return;
+      }
+    } else {
+      const ant = [...inicios].reverse().find((t) => t < vt - 8);
+      if (ant !== undefined) nuevo = ant;
+      else if (vt > 4) nuevo = 0;
+      else {
+        if (indexRef.current > 0) go(-1);
+        return;
+      }
     }
-    const next = cur + dir;
-    if (next >= blocks.length) { go(1); return; }
-    if (next < 0) { root.scrollTo({ top: 0, behavior: 'smooth' }); return; }
-    root.scrollTo({ top: root.scrollTop + pos[next] - 16, behavior: 'smooth' });
-  }, [go]);
+    destino.current = { top: nuevo, hasta: ahora + 700 };
+    root.scrollTo({ top: nuevo, behavior: 'smooth' });
+  }, [go, items.length]);
 
+  // Teclado y pedalera Bluetooth (ver lib/pedal.js para las teclas de cada modo).
+  const ultimaRepeticion = useRef(0);
   useEffect(() => {
     const onKey = (e) => {
       if (document.querySelector('.modal-notas')) return; // con la ventana de notas abierta, las teclas no mueven la presentación
+      if (esCampoDeTexto(e.target)) return;
       if (followingRef.current && !['f', 'F', 'Escape'].includes(e.key)) return; // siguiendo al director: avanza solo
-      if (e.key === 'ArrowDown') { e.preventDefault(); goSection(1); }
-      else if (e.key === 'ArrowUp') { e.preventDefault(); goSection(-1); }
-      else if (['ArrowRight', 'PageDown'].includes(e.key)) { e.preventDefault(); go(1); }
-      else if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); go(-1); }
-      else if (e.key.toLowerCase() === 'f') toggleFull();
+      const accion = accionPedal(e);
+      if (accion) {
+        // Que ningún botón con foco "se apriete" con Espacio/Enter, y que el navegador no deslice la página por su cuenta.
+        e.preventDefault();
+        e.stopPropagation();
+        const activo = document.activeElement;
+        if (activo && activo !== rootRef.current && activo !== document.body) {
+          activo.blur?.();
+          rootRef.current?.focus({ preventScroll: true });
+        }
+        // Pedal mantenido apretado ("Continue Sending"): avanza de a poco, no todo de golpe.
+        if (e.repeat) {
+          const ahora = Date.now();
+          if (ahora - ultimaRepeticion.current < 450) return;
+          ultimaRepeticion.current = ahora;
+        }
+        if (accion === 'seccion+') goSection(1);
+        else if (accion === 'seccion-') goSection(-1);
+        else if (accion === 'cancion+') go(1);
+        else if (accion === 'cancion-') go(-1);
+        return;
+      }
+      if (e.key.toLowerCase() === 'f') toggleFull();
       else if (e.key === 'Escape' && !document.fullscreenElement) exit();
     };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    // En la fase de captura, para que la tecla llegue aquí antes que a cualquier otro elemento.
+    document.addEventListener('keydown', onKey, true);
+    return () => document.removeEventListener('keydown', onKey, true);
   }, [go, goSection, toggleFull, exit]);
+
+  // La pantalla de presentación toma el foco al abrirse (así Safari en iPhone/iPad
+  // le entrega las teclas de la pedalera en vez de al botón que se tocó antes).
+  useEffect(() => {
+    const activo = document.activeElement;
+    if (activo && activo !== document.body) activo.blur?.();
+    rootRef.current?.focus({ preventScroll: true });
+  }, [current ? 1 : 0]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const followingRef = useRef(following);
   followingRef.current = following;
@@ -307,6 +358,7 @@ export default function Presentacion() {
     <div
       className={`present ${controlsVisible || menuOpen ? '' : 'sin-cursor'}`}
       ref={rootRef}
+      tabIndex={-1}
       onMouseMove={poke}
       onTouchStart={(e) => { poke(); touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }}
       onTouchEnd={(e) => {
