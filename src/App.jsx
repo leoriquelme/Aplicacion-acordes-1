@@ -24,8 +24,8 @@ import { EditarPerfil } from './components/Comunicacion.jsx';
 const TABS = [
   { to: '/', label: 'Inicio', icon: 'home', end: true },
   { to: '/canciones', label: 'Canciones', icon: 'music' },
-  { to: '/mi-iglesia', label: 'Iglesia', icon: 'church' },
   { to: '/eventos', label: 'Eventos', icon: 'calendar' },
+  { to: '/mi-iglesia', label: 'Iglesia', icon: 'church' },
   { to: '/ajustes', label: 'Ajustes', icon: 'settings' },
 ];
 
