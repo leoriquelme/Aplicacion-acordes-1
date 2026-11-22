@@ -12,6 +12,12 @@ import { enVivoActivo, indiceCancion } from '../lib/envivo.js';
 import { accionPedal, esCampoDeTexto } from '../lib/pedal.js';
 import PedalCaptura, { esTactil, marcarPedalera, usaPedalera } from '../components/PedalCaptura.jsx';
 
+/** Alto de la barra fija de arriba (secciones), más un poco de aire: lo que no se debe tapar. */
+function margenArriba(root) {
+  const barra = root.querySelector('.present-arriba');
+  return (barra ? barra.getBoundingClientRect().height : 0) + 16;
+}
+
 /** Número de la sección que está arriba de la pantalla (la que se está cantando). */
 function seccionActual(root) {
   const blocks = [...root.querySelectorAll('.song .block')];
@@ -19,7 +25,8 @@ function seccionActual(root) {
   const top = root.getBoundingClientRect().top;
   const pos = blocks.map((b) => b.getBoundingClientRect().top - top);
   let cur = 0;
-  pos.forEach((p, i) => { if (p <= 24) cur = i; });
+  const m = margenArriba(root);
+  pos.forEach((p, i) => { if (p <= m + 8) cur = i; });
   if (root.scrollTop + root.clientHeight >= root.scrollHeight - 4) {
     pos.forEach((p, i) => { if (p < root.clientHeight - 40) cur = i; });
   }
@@ -131,8 +138,9 @@ export default function Presentacion() {
     const vt = d && ahora < d.hasta ? d.top : root.scrollTop;
     const maxTop = Math.max(root.scrollHeight - root.clientHeight, 0);
     const rootTop = root.getBoundingClientRect().top;
+    const margen = margenArriba(root);
     const inicios = [...root.querySelectorAll('.song .block')]
-      .map((b) => Math.max(b.getBoundingClientRect().top - rootTop + root.scrollTop - 16, 0));
+      .map((b) => Math.max(b.getBoundingClientRect().top - rootTop + root.scrollTop - margen, 0));
     let nuevo = null;
     if (dir > 0) {
       const sig = inicios.find((t) => t > vt + 8);
@@ -292,7 +300,7 @@ export default function Presentacion() {
       if (!root || !blocks.length) return;
       if (liveSection <= 0) { root.scrollTo({ top: 0, behavior: 'smooth' }); return; }
       const b = blocks[Math.min(liveSection, blocks.length - 1)];
-      root.scrollTo({ top: root.scrollTop + b.getBoundingClientRect().top - root.getBoundingClientRect().top - 16, behavior: 'smooth' });
+      root.scrollTo({ top: root.scrollTop + b.getBoundingClientRect().top - root.getBoundingClientRect().top - margenArriba(root), behavior: 'smooth' });
     });
     return () => cancelAnimationFrame(r);
   }, [liveSection, index]);
@@ -439,7 +447,7 @@ export default function Presentacion() {
         onPick={following ? undefined : (i) => {
           const root = rootRef.current;
           const b = root ? [...root.querySelectorAll('.song .block')][i] : null;
-          if (b) root.scrollTo({ top: root.scrollTop + b.getBoundingClientRect().top - root.getBoundingClientRect().top - 70, behavior: 'smooth' });
+          if (b) root.scrollTo({ top: root.scrollTop + b.getBoundingClientRect().top - root.getBoundingClientRect().top - margenArriba(root), behavior: 'smooth' });
         }}
       />
       </div>
