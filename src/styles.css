@@ -1518,3 +1518,14 @@ label.barra-btn { margin: 0; display: inline-grid; font-weight: 700; }
 
 /* La presentación recibe el foco para escuchar la pedalera: sin borde de foco. */
 .present:focus { outline: none; }
+.probar-pedalera { display: grid; gap: 0.6rem; }
+.probar-pedalera-caja {
+  min-height: 9rem; padding: 0.75rem; border: 2px dashed var(--border); border-radius: 12px;
+  font-family: ui-monospace, monospace; font-size: 0.85rem; line-height: 1.6;
+}
+.probar-pedalera-caja:focus { outline: none; border-color: var(--primary); }
+.present-pisada {
+  position: fixed; right: 1rem; top: calc(1rem + env(safe-area-inset-top)); z-index: 60;
+  width: 2.4rem; height: 2.4rem; border-radius: 50%; display: grid; place-items: center;
+  background: rgba(140, 158, 255, 0.85); color: #000; font-size: 1.1rem; pointer-events: none;
+}
