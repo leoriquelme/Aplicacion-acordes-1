@@ -33,8 +33,22 @@ export default function SuperAdmin() {
   const { user } = useAuth();
   const email = user.email || '';
   const [esSuper, setEsSuper] = useState(undefined);
+  const [revisando, setRevisando] = useState(false);
+  const [aviso, setAviso] = useState('');
 
-  useEffect(() => { soySuperAdmin().then(setEsSuper); }, [user.uid]);
+  const revisar = useCallback(async (manual) => {
+    setRevisando(true);
+    setAviso('');
+    const r = await soySuperAdmin();
+    setRevisando(false);
+    setEsSuper(r.es);
+    if (r.error) setAviso(r.error);
+    else if (!r.es && manual) {
+      setAviso(`Revisé recién (${new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}) y Firebase todavía no tiene un documento con este código en "superadmins".`);
+    }
+  }, []);
+
+  useEffect(() => { revisar(false); }, [user.uid, revisar]);
 
   if (esSuper === undefined) return <div className="loading">Revisando permisos…</div>;
   if (!esSuper) {
@@ -47,9 +61,10 @@ export default function SuperAdmin() {
           <div className="uid-box">{user.uid}</div>
           <div className="row gap wrap" style={{ marginTop: '0.6rem' }}>
             <button className="btn" onClick={() => navigator.clipboard?.writeText(user.uid)}>Copiar código</button>
-            <button className="btn" onClick={() => soySuperAdmin().then(setEsSuper)}>Ya lo creé, revisar otra vez</button>
+            <button className="btn" disabled={revisando} onClick={() => revisar(true)}>{revisando ? 'Revisando…' : 'Ya lo creé, revisar otra vez'}</button>
             <Link className="btn ghost" to="/">Volver</Link>
           </div>
+          {aviso && <p className="small" role="status" style={{ marginTop: '0.6rem' }}>{aviso}</p>}
         </div>
       </div>
     );
