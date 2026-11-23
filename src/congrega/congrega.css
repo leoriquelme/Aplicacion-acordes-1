@@ -111,3 +111,4 @@ a.cg-item:hover { background: var(--surface-2); text-decoration: none; }
 .cg-contador { margin-left: auto; }
 .cg label.cg-item { display: flex; flex-direction: row; text-align: left; margin: 0; }
 .cg label.cg-item .cg-quien { align-items: flex-start; }
+.cg .cg-unir { width: auto; max-width: 48%; flex: none; }
