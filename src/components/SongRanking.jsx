@@ -28,26 +28,20 @@ export default function SongRanking({ songs, events }) {
           <button className={mode === 'menos' ? 'active' : ''} onClick={() => setMode('menos')}>Menos tocadas</button>
         </div>
       </div>
-      <table className="rank-table">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Canción</th>
-            <th className="num">Veces</th>
-            <th>Último uso</th>
-          </tr>
-        </thead>
-        <tbody>
-          {visible.map((u, i) => (
-            <tr key={u.song.id}>
-              <td className="muted">{i + 1}</td>
-              <td><Link to={`/canciones/${u.song.id}`}>{u.song.title}</Link></td>
-              <td className="num"><strong>{u.count}</strong></td>
-              <td className={u.lastUsed ? '' : 'muted'}>{u.lastUsed ? shortDate(u.lastUsed) : 'Nunca'}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <ol className="lista-tarjetas">
+        {visible.map((u, i) => (
+          <li key={u.song.id}>
+            <Link to={`/canciones/${u.song.id}`} className="tarjeta-fila tf-cabeza">
+              <span className="tf-puesto">{i + 1}</span>
+              <span className="grow">
+                <strong>{u.song.title}</strong>
+                <span className="muted small">{u.lastUsed ? `Última vez ${shortDate(u.lastUsed)}` : 'Nunca se ha tocado'}</span>
+              </span>
+              <span className="tf-numero"><strong>{u.count}</strong><span className="muted small">{u.count === 1 ? 'vez' : 'veces'}</span></span>
+            </Link>
+          </li>
+        ))}
+      </ol>
       {list.length > 10 && (
         <button className="btn ghost small" onClick={() => setShowAll(!showAll)}>
           {showAll ? 'Ver menos' : `Ver las ${list.length} canciones`}

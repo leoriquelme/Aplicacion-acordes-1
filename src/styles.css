@@ -1668,3 +1668,25 @@ h1 .beta-pill { font-size: 0.4em; }
 .menu-confirmar { padding: 0.8rem 1rem; display: grid; gap: 0.6rem; font-size: 0.92rem; }
 .menu-persona .error { margin: 0; padding: 0 1rem 0.8rem; }
 .role-pill.role-colaborador { background: var(--surface-2); color: var(--muted); }
+
+/* Listas como tarjetas: Participación y Top repertorio (23-nov) */
+.lista-tarjetas { list-style: none; margin: 0.6rem 0 0.8rem; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.5rem; }
+.tarjeta-fila { background: var(--surface-2); border-radius: 14px; overflow: hidden; }
+.tf-cabeza {
+  display: flex; align-items: center; gap: 0.75rem; width: 100%; padding: 0.7rem 0.85rem; border: 0; background: transparent;
+  font: inherit; color: var(--text); text-align: left; cursor: pointer; text-decoration: none;
+}
+a.tf-cabeza:hover { text-decoration: none; background: color-mix(in srgb, var(--primary) 6%, var(--surface-2)); }
+.tf-cabeza .grow { min-width: 0; display: flex; flex-direction: column; gap: 0.15rem; }
+.tf-cabeza .grow strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tf-roles { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.2rem; }
+.tf-numero { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; min-width: 2.6rem; line-height: 1.1; }
+.tf-numero strong { font-size: 1.3rem; color: var(--primary); }
+.tf-puesto {
+  flex-shrink: 0; width: 1.9rem; height: 1.9rem; border-radius: 50%; display: grid; place-items: center;
+  background: var(--surface); font-weight: 700; font-size: 0.9rem; color: var(--muted);
+}
+.tf-flecha { flex-shrink: 0; color: var(--muted); font-size: 1.3rem; transition: transform 0.15s; }
+.tf-flecha.abierta { transform: rotate(90deg); }
+.tf-detalle { list-style: none; margin: 0; padding: 0 0.9rem 0.8rem 3.6rem; line-height: 1.6; }
+.tf-detalle li { padding: 0.15rem 0; }
