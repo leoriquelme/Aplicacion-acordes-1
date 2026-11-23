@@ -4,6 +4,11 @@
 
 export const NOVEDADES = [
   {
+    id: 'n-2026-11-23-editar-guardar', fecha: '2026-11-23', icono: 'music', to: '/canciones', boton: 'Ver canciones',
+    titulo: 'Editar canciones sin miedo',
+    texto: 'Al editar una canción, los cambios solo se guardan cuando tocas Listo. Si vuelves atrás, la app te pregunta si quieres descartarlos y la canción queda como estaba.',
+  },
+  {
     id: 'n-2026-11-23-cumple', fecha: '2026-11-23', icono: 'user', to: '/ajustes/perfil', boton: 'Poner mi fecha',
     titulo: 'Cumpleaños de los hermanos',
     texto: 'Ahora puedes poner tu fecha de nacimiento en tu perfil, y en Inicio aparece quién está de cumpleaños esta semana.',

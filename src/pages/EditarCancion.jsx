@@ -6,6 +6,7 @@ import SectionButtons from '../components/SectionButtons.jsx';
 import { autodetect } from '../lib/importar.js';
 import SongView from '../components/SongView.jsx';
 import Icon from '../components/Icon.jsx';
+import ConfirmX from '../components/ConfirmX.jsx';
 import { esLinkSpotify } from '../lib/spotify.js';
 import { esLinkYouTube } from '../lib/youtube.js';
 import SpotifyLogo from '../components/SpotifyLogo.jsx';
@@ -28,6 +29,9 @@ function borrarBorrador() {
   try { localStorage.removeItem(BORRADOR); } catch { /* nada */ }
 }
 
+// Solo compases (métrica). El estilo (balada, rock…) ya no se escribe aquí.
+const COMPASES = ['4/4', '3/4', '6/8', '2/4', '12/8'];
+
 const PLANTILLA = `[VERSO]
 [G]Escribe aquí la [C]letra con los [G]acordes
 [D]entre corchetes, justo antes de la [G]sílaba.
@@ -47,33 +51,34 @@ export default function EditarCancion() {
     () => existing || location.state?.imported || (!id && leerBorrador()) || { title: '', author: '', key: 'G', content: PLANTILLA }
   );
   const [error, setError] = useState('');
-  const [saved, setSaved] = useState('');
   const [detectMsg, setDetectMsg] = useState('');
   const [verMultimedia, setVerMultimedia] = useState(false);
-  const lastSaved = useRef(existing ? JSON.stringify(pick(existing)) : null);
+  const [preguntarSalir, setPreguntarSalir] = useState(false);
+  // Canción existente: los cambios NO se guardan solos. Solo se guardan al tocar "Listo".
+  // Si sales con la flecha y hay cambios, se pregunta si quieres descartarlos.
+  // Canción nueva: se guarda un borrador en este equipo hasta pulsar "Crear".
+  const original = useRef(existing ? JSON.stringify(pick(existing)) : null);
+  const hayCambios = !!existing && JSON.stringify(pick(form)) !== original.current;
 
-  // Canción existente: los cambios se guardan solos, un momento después de dejar de escribir.
-  // Canción nueva: se guarda un borrador en este equipo hasta pulsar "Guardar".
   useEffect(() => {
-    if (!can.edit) return undefined;
-    if (!existing) {
-      if (!id) guardarBorrador(form);
-      return undefined;
-    }
-    const now = JSON.stringify(pick(form));
-    if (now === lastSaved.current) return undefined;
-    setSaved('Cambios sin guardar…');
-    const t = setTimeout(() => {
-      if (!form.title.trim()) {
-        setSaved('Escribe un título para guardar.');
-        return;
-      }
-      saveSong({ ...existing, ...pick(form), order: syncOrder(existing.order, existing.content, form.content), title: form.title.trim(), author: form.author.trim() });
-      lastSaved.current = now;
-      setSaved('✓ Guardado');
-    }, 900);
-    return () => clearTimeout(t);
+    if (!can.edit || existing || id) return;
+    guardarBorrador(form);
   }, [form]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Si se cierra la pestaña o se recarga con cambios sin guardar, el navegador avisa.
+  useEffect(() => {
+    if (!hayCambios) return undefined;
+    const avisar = (e) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', avisar);
+    return () => window.removeEventListener('beforeunload', avisar);
+  }, [hayCambios]);
+
+  const volverA = existing ? `/canciones/${existing.id}` : '/canciones';
+  const deshacerTodo = () => {
+    setForm(existing);
+    setDetectMsg('');
+    setError('');
+  };
 
   const set = (field) => (e) => setForm({ ...form, [field]: e.target.value });
 
@@ -137,6 +142,10 @@ export default function EditarCancion() {
       setError('La canción necesita un título.');
       return;
     }
+    if (form.compas && !COMPASES.includes(form.compas)) {
+      setError('Elige un compás de la lista (por ejemplo 4/4 o 6/8).');
+      return;
+    }
     const newId = saveSong({ ...(existing || {}), ...form, ...(existing ? { order: syncOrder(existing.order, existing.content, form.content) } : {}), title: form.title.trim(), author: form.author.trim() });
     if (!existing) borrarBorrador();
     navigate(`/canciones/${newId}`);
@@ -145,7 +154,17 @@ export default function EditarCancion() {
   return (
     <div className="page wide">
       <div className="editor-barra">
-        <Link to={existing ? `/canciones/${existing.id}` : '/canciones'} className="barra-btn atras" aria-label="Volver">‹</Link>
+        <Link
+          to={volverA}
+          className="barra-btn atras"
+          aria-label="Volver"
+          onClick={(e) => {
+            if (hayCambios) {
+              e.preventDefault();
+              setPreguntarSalir(true);
+            }
+          }}
+        >‹</Link>
         <div className="editor-barra-titulo">
           <span className="muted small">{existing ? 'Editar canción' : 'Nueva canción'}</span>
           <strong>{form.title.trim() || 'Sin título'}</strong>
@@ -181,12 +200,14 @@ export default function EditarCancion() {
                 placeholder="Ej. 72"
               />
             </label>
-            <label className="grow">
-              Compás / estilo
-              <input list="compases" value={form.compas || ''} onChange={(e) => setForm((f) => ({ ...f, compas: e.target.value.slice(0, 30) }))} placeholder="Ej. 4/4 balada" />
-              <datalist id="compases">
-                {['4/4', '3/4', '6/8', '2/4', '4/4 balada', '4/4 rápido', '6/8 vals', 'Rock', 'Pop', 'Ranchera', 'Cumbia'].map((c) => <option key={c} value={c} />)}
-              </datalist>
+            <label>
+              Compás
+              <select value={form.compas || ''} onChange={(e) => setForm((f) => ({ ...f, compas: e.target.value }))}>
+                <option value="">—</option>
+                {COMPASES.map((c) => <option key={c} value={c}>{c}</option>)}
+                {form.compas && !COMPASES.includes(form.compas) && <option value={form.compas}>{form.compas} (elige otro)</option>}
+              </select>
+              {form.compas && !COMPASES.includes(form.compas) && <span className="error small">Elige un compás de la lista.</span>}
             </label>
           </div>
           <div className="multimedia">
@@ -265,10 +286,21 @@ export default function EditarCancion() {
             </ul>
           </details>
           {error && <p className="error">{error}</p>}
-          {(!existing || saved) && (
+          {!existing && (
             <div className="row gap">
-              {!existing && <Link className="btn" to="/canciones" onClick={borrarBorrador}>Cancelar</Link>}
-              {saved && <span className={`small ${saved.startsWith('✓') ? 'ok' : 'muted'}`}>{saved}</span>}
+              <Link className="btn" to="/canciones" onClick={borrarBorrador}>Cancelar</Link>
+            </div>
+          )}
+          {hayCambios && (
+            <div className="row gap wrap editor-sin-guardar">
+              <span className="small muted">Cambios sin guardar. Toca <strong>Listo</strong> para guardarlos.</span>
+              <ConfirmX
+                label="Volver a como estaba"
+                className="btn small"
+                text="↺ Volver a como estaba"
+                armedText="¿Borrar tus cambios? Toca otra vez"
+                onConfirm={deshacerTodo}
+              />
             </div>
           )}
         </div>
@@ -278,6 +310,18 @@ export default function EditarCancion() {
           <SongView content={form.content} songKey={form.key} settings={settings} fontSize={18} />
         </div>
       </form>
+      {preguntarSalir && (
+        <div className="modal-fondo" role="dialog" aria-modal="true" aria-label="¿Descartar cambios?" onClick={() => setPreguntarSalir(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h2>¿Descartar cambios?</h2>
+            <p className="muted">Hiciste cambios en esta canción y no los guardaste. Si sales, la canción queda como estaba.</p>
+            <div className="modal-botones">
+              <button type="button" className="btn primary" onClick={() => setPreguntarSalir(false)}>Seguir editando</button>
+              <button type="button" className="btn danger" onClick={() => navigate(volverA)}>Descartar cambios</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
