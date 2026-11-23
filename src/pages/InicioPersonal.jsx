@@ -1,6 +1,7 @@
 import { useAuth } from '../lib/cloud.jsx';
 import Icon from '../components/Icon.jsx';
 import VersiculoDelDia from '../components/VersiculoDelDia.jsx';
+import Consejos from '../components/Consejos.jsx';
 
 /** Inicio sin iglesia abierta. */
 export default function InicioPersonal() {
@@ -13,6 +14,7 @@ export default function InicioPersonal() {
         <h1>Hola{name ? `, ${name.split(' ')[0]}` : ''}</h1>
       </section>
       <VersiculoDelDia />
+      <Consejos />
     </div>
   );
 }
