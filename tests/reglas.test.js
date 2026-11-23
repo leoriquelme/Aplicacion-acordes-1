@@ -349,3 +349,56 @@ describe('sugerencias de mejoras (solo el Super Admin)', () => {
     await assertFails(setDoc(doc(cuenta('ana'), 'churches', C, 'suggestions', 'x'), { text: 'a' }));
   });
 });
+
+describe('Congrega: familias, fichas privadas y asistencia', () => {
+  const ana = () => cuenta('ana');
+  const evento = () => env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), 'churches', C, 'events', 'ev1'), { name: 'Culto', date: '2026-11-29', items: [] }));
+  const marca = (db, por, personKey = 'juan') => setDoc(doc(db, 'churches', C, 'asistencia', `ev1__${personKey}`), { eventId: 'ev1', personKey, date: '2026-11-29', at: 1, por });
+
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'churches', C, 'members', 'juan'), { key: 'juan', name: 'Juan', role: 'colaborador', joinedAt: 1 });
+      await setDoc(doc(db, 'churches', C, 'people', 'juan'), { name: 'Juan', uid: 'juan', role: 'colaborador', firstSeen: 1, lastSeen: 1 });
+    });
+    await evento();
+  });
+
+  it('el Administrador guarda fichas privadas y un miembro no las ve', async () => {
+    await assertSucceeds(setDoc(doc(ana(), 'churches', C, 'fichas', 'juan'), { telefono: '9 1234 5678', notasMedicas: 'x' }));
+    await assertFails(getDoc(doc(cuenta('juan'), 'churches', C, 'fichas', 'juan')));
+    await assertFails(setDoc(doc(cuenta('juan'), 'churches', C, 'fichas', 'juan'), { telefono: '1' }));
+  });
+  it('familias: los miembros leen, solo el Administrador escribe', async () => {
+    await assertSucceeds(setDoc(doc(ana(), 'churches', C, 'families', 'f1'), { name: 'Rojas Muñoz' }));
+    await assertSucceeds(getDoc(doc(cuenta('juan'), 'churches', C, 'families', 'f1')));
+    await assertFails(setDoc(doc(cuenta('juan'), 'churches', C, 'families', 'f2'), { name: 'Otra' }));
+  });
+  it('un colaborador no marca asistencia hasta que el Administrador lo habilita', async () => {
+    await assertFails(marca(cuenta('juan'), 'juan'));
+    await assertFails(getDocs(collection(cuenta('juan'), 'churches', C, 'asistencia')));
+    await assertSucceeds(updateDoc(doc(ana(), 'churches', C, 'members', 'juan'), { asistencia: true }));
+    await assertSucceeds(marca(cuenta('juan'), 'juan', 'ana'));
+    await assertSucceeds(getDocs(collection(cuenta('juan'), 'churches', C, 'asistencia')));
+    await assertSucceeds(deleteDoc(doc(cuenta('juan'), 'churches', C, 'asistencia', 'ev1__ana')));
+  });
+  it('un colaborador no se habilita solo ni cambia su perfil', async () => {
+    await assertFails(updateDoc(doc(cuenta('juan'), 'churches', C, 'members', 'juan'), { asistencia: true }));
+  });
+  it('el Administrador se habilita a sí mismo sin cambiar su perfil', async () => {
+    await assertSucceeds(updateDoc(doc(ana(), 'churches', C, 'members', 'ana'), { asistencia: true }));
+    await assertFails(updateDoc(doc(ana(), 'churches', C, 'members', 'ana'), { role: 'colaborador' }));
+  });
+  it('la asistencia queda firmada por quien marca y apunta a un evento y persona reales', async () => {
+    await assertSucceeds(marca(ana(), 'ana'));
+    await assertFails(marca(ana(), 'otro', 'ana'));
+    await assertFails(setDoc(doc(ana(), 'churches', C, 'asistencia', 'ev9__juan'), { eventId: 'ev9', personKey: 'juan', at: 1, por: 'ana' }));
+    await assertFails(marca(ana(), 'ana', 'nadie'));
+  });
+  it('quien marca asistencia registra una visita nueva, pero sin datos privados', async () => {
+    await updateDoc(doc(ana(), 'churches', C, 'members', 'juan'), { asistencia: true });
+    await assertSucceeds(setDoc(doc(cuenta('juan'), 'churches', C, 'people', 'v1'), { name: 'Pedro Soto', nombre: 'Pedro', apellido: 'Soto', uid: '', role: 'colaborador', tipo: 'Visita', creadoEn: 1 }));
+    await assertFails(setDoc(doc(cuenta('juan'), 'churches', C, 'people', 'v2'), { name: 'Pedro', uid: '', telefono: '9' }));
+    await assertFails(setDoc(doc(cuenta('juan'), 'churches', C, 'people', 'v3'), { name: 'Pedro', uid: '', role: 'admin' }));
+  });
+});

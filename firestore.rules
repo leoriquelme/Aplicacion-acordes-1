@@ -20,6 +20,13 @@ rules_version = '2';
 // superadmins/{uid}                  ← lo crea Leonardo a mano en la consola
 // library/{iglesia__cancion}         ← biblioteca compartida entre iglesias
 // stats/oracion { count }
+//
+// Congrega (personas y asistencia), en la misma iglesia:
+// churches/{iglesia}/people/{key}      ← la misma ficha visible; Congrega agrega apellido, familia, tipo, etc.
+// churches/{iglesia}/families/{id}     { name }  ← familias (hogares)
+// churches/{iglesia}/fichas/{key}      ← datos privados: contacto, nacimiento, notas pastorales y médicas. Solo el Administrador.
+// churches/{iglesia}/asistencia/{evento__persona} { eventId, personKey, date, at, por }
+//   ← la marcan el Administrador, el Director y los miembros con members.asistencia == true
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -50,6 +57,8 @@ service cloud.firestore {
     function isAdmin(c) { return isMember(c) && me(c).role == 'admin'; }
     function isDirector(c) { return isMember(c) && me(c).role == 'director'; }
     function canEdit(c) { return isMember(c) && me(c).role in ['admin', 'director']; }
+    // Congrega: quién marca asistencia (Administrador, Director o un voluntario habilitado por el Administrador).
+    function canCheckin(c) { return canEdit(c) || (isMember(c) && me(c).get('asistencia', false) == true); }
     function validName(n) { return n is string && n.size() > 0 && n.size() <= 60; }
     function shortText(t, max) { return t is string && t.size() <= max; }
     function validCode(x) { return x is string && x.matches('^[A-Z0-9]{4,12}$'); }
@@ -219,10 +228,14 @@ service cloud.firestore {
       match /members/{uid} {
         allow read: if isMember(c) || (signedIn() && request.auth.uid == uid);
         allow create: if validJoin(c, uid);
-        // El Administrador cambia el perfil de otros (Director o Colaborador).
-        allow update: if isAdmin(c) && uid != request.auth.uid
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role'])
-          && request.resource.data.role in ['director', 'colaborador'];
+        // El Administrador cambia el perfil de otros (Director o Colaborador) y habilita
+        // a quién marca asistencia en Congrega (asistencia: true/false; también a sí mismo).
+        allow update: if isAdmin(c)
+          && (uid != request.auth.uid || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['asistencia']))
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role', 'asistencia'])
+          && request.resource.data.role in ['admin', 'director', 'colaborador']
+          && (uid == request.auth.uid || request.resource.data.role in ['director', 'colaborador'])
+          && request.resource.data.get('asistencia', false) is bool;
         // Uno sale de la iglesia (menos quien la creó), o el Administrador saca a alguien.
         allow delete: if (signedIn() && request.auth.uid == uid && church(c).get('ownerUid', '') != uid)
           || (isAdmin(c) && uid != request.auth.uid);
@@ -238,8 +251,12 @@ service cloud.firestore {
           && request.resource.data.role == getAfter(memberPath(c, key)).data.role
           && request.resource.data.keys().hasOnly(['name', 'uid', 'role', 'teams', 'firstSeen', 'lastSeen'])
           && validName(request.resource.data.name)
-          // El Administrador puede agregar fichas sin cuenta (p. ej. datos de prueba).
+          // El Administrador puede agregar fichas sin cuenta (p. ej. datos de prueba o importadas).
           || (isAdmin(c) && request.resource.data.get('uid', '') == '' && validName(request.resource.data.name));
+        // Congrega: quien marca asistencia registra una visita nueva (sin cuenta, solo datos básicos).
+        allow create: if canCheckin(c) && request.resource.data.get('uid', '') == ''
+          && request.resource.data.keys().hasOnly(['name', 'nombre', 'apellido', 'uid', 'role', 'tipo', 'estado', 'miembro', 'creadoEn', 'creadoPor', 'primeraVisita'])
+          && validName(request.resource.data.name) && request.resource.data.get('role', 'colaborador') == 'colaborador';
         // El Administrador puede cambiar cualquier ficha (por ejemplo, quitar una foto inapropiada).
         allow update: if (isAdmin(c) && photoOk(request.resource.data))
           // Cada uno actualiza su "última vez", su nombre, sus equipos y su foto.
@@ -249,6 +266,27 @@ service cloud.firestore {
               && validName(request.resource.data.name)
               && (!('teams' in request.resource.data) || (request.resource.data.teams is list && request.resource.data.teams.size() <= 12)));
         allow delete: if isAdmin(c);
+      }
+
+      // ---------- Congrega ----------
+      match /families/{fam} {
+        allow read: if isMember(c);
+        allow write: if isAdmin(c) && (request.resource == null || validName(request.resource.data.name));
+      }
+      // Datos sensibles (Ley 21.719): solo el Administrador los ve y los cambia.
+      match /fichas/{key} {
+        allow read, write: if isAdmin(c);
+      }
+      match /asistencia/{aid} {
+        allow read, delete: if canCheckin(c);
+        allow create, update: if canCheckin(c)
+          && request.resource.data.keys().hasOnly(['eventId', 'personKey', 'date', 'at', 'por'])
+          && aid == request.resource.data.eventId + '__' + request.resource.data.personKey
+          && exists(/databases/$(database)/documents/churches/$(c)/events/$(request.resource.data.eventId))
+          && exists(personPath(c, request.resource.data.personKey))
+          && request.resource.data.por == request.auth.uid
+          && request.resource.data.at is int
+          && shortText(request.resource.data.get('date', ''), 10);
       }
 
       match /private/{doc} {
