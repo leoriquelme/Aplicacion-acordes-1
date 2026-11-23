@@ -1607,3 +1607,29 @@ h1 .beta-pill { font-size: 0.4em; }
 .welcome-adora { display: block; margin: 0 auto 0.6rem; width: 96px; height: 96px; border-radius: 22px; box-shadow: var(--shadow); }
 .en-letra { font-style: italic; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .song-block-text { min-width: 0; }
+
+/* Propuestas del líder para servir (23-nov) */
+.tu-propuesta {
+  margin: 0.8rem 0; padding: 0.8rem 1rem; border-radius: 14px;
+  background: var(--lila-bg, #ece8ff); color: var(--text);
+}
+.tu-propuesta p { margin: 0 0 0.6rem; }
+.bloque-propuestas h2 { margin: 0 0 0.4rem; font-size: 1.1rem; }
+.bloque-propuestas .tu-propuesta { margin-top: 0.3rem; }
+.proponer-btn { margin: 0.6rem 0 0.2rem; }
+.por-confirmar h3 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 1rem 0 0.4rem; }
+.por-confirmar ul { list-style: none; margin: 0; padding: 0; }
+.por-confirmar li { display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0; border-bottom: 1px solid var(--border); }
+.por-confirmar li .grow { min-width: 0; }
+.por-confirmar li.rechazada { opacity: 0.65; }
+.estado-pill { font-size: 0.75rem; font-weight: 700; padding: 0.15rem 0.55rem; border-radius: 999px; background: #fff3d6; color: #8a5a00; white-space: nowrap; }
+.estado-pill.rechazada { background: #fde4e4; color: #a33; }
+:root[data-theme='oscuro'] .estado-pill { background: #3b3018; color: #f3d98c; }
+:root[data-theme='oscuro'] .estado-pill.rechazada { background: #3d1f22; color: #f2a7a7; }
+.elegir-persona { list-style: none; margin: 0.4rem 0 0; padding: 0; max-height: 60vh; overflow: auto; }
+.fila-persona {
+  width: 100%; display: flex; align-items: center; gap: 0.7rem; padding: 0.6rem 0.4rem; border: 0; border-bottom: 1px solid var(--border);
+  background: none; font: inherit; color: var(--text); text-align: left; cursor: pointer;
+}
+.fila-persona:hover { background: var(--surface-2); }
+.fila-persona .grow { min-width: 0; }

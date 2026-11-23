@@ -437,6 +437,10 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
       .filter((p) => nombre[p.personKey] !== undefined || (p.date || '') < hoy)
       .map((p) => (nombre[p.personKey] && nombre[p.personKey] !== p.name ? { ...p, name: nombre[p.personKey] } : p));
   }, [participations, people]);
+  // Propuestas del líder ("te proponemos servir en…") que la persona todavía no acepta, o que rechazó.
+  // No cuentan como voluntarios hasta que la persona acepta.
+  const confirmadas = useMemo(() => participacionesVisibles.filter((p) => !p.estado), [participacionesVisibles]);
+  const propuestas = useMemo(() => participacionesVisibles.filter((p) => p.estado), [participacionesVisibles]);
 
   // Favoritas: un documento por persona que solo esa persona puede leer.
   const myKey = mySession?.key;
@@ -478,6 +482,22 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
   const joinEvent = useCallback((event, role, person) => {
     setDoc(doc(col('participations'), participationId(event.id, person.key)), {
       eventId: event.id, personKey: person.key, name: person.name, role, group: grupoDe(role), date: event.date, at: Date.now(),
+    }).catch(report);
+  }, [col, report]);
+
+  /** El líder propone a alguien para servir; la persona después acepta o dice que no puede. */
+  const proponer = useCallback((event, role, person, porNombre) => {
+    setDoc(doc(col('participations'), participationId(event.id, person.key)), {
+      eventId: event.id, personKey: person.key, name: person.name, role, group: grupoDe(role), date: event.date, at: Date.now(),
+      estado: 'propuesta', por: porNombre || '',
+    }).catch(report);
+  }, [col, report]);
+
+  /** La persona no puede servir: queda marcado para que el líder lo vea (no cuenta como voluntario). */
+  const rechazarPropuesta = useCallback((p) => {
+    setDoc(doc(col('participations'), p.id), {
+      eventId: p.eventId, personKey: p.personKey, name: p.name, role: p.role, group: p.group || grupoDe(p.role), date: p.date || '', at: Date.now(),
+      estado: 'rechazada', por: p.por || '',
     }).catch(report);
   }, [col, report]);
 
@@ -671,10 +691,10 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
   const church = { id: churchId, name: churchDoc?.name || churchName, ownerUid: churchDoc?.ownerUid, logo: churchDoc?.logo || '' };
 
   const value = useMemo(() => ({
-    mode: 'cloud', churchId, church, me, role, can, people, songs, events, participations: participacionesVisibles, error,
+    mode: 'cloud', churchId, church, me, role, can, people, songs, events, participations: confirmadas, propuestas, proponer, rechazarPropuesta, error,
     clearError: () => setError(''), saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples, myShares, shareSong, unshareSong, loadLibrary,
     favorites, toggleFavorite, prayers, pray, updateMyName, setMyTeams, setMyPhoto, removePhoto, setChurchLogo, isTest, fillTestData, resetTestChurch, getAccessCode, setAccessCode, restoreBackup, myNotes, setMyNotes, live, publishLive, stopLive, myUid: user.uid,
-  }), [churchId, church.name, church.logo, me?.name, me?.key, me?.photo, setMyPhoto, removePhoto, setChurchLogo, expired, role, can, people, songs, events, participacionesVisibles, error, saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples, myShares, shareSong, unshareSong, loadLibrary, favorites, toggleFavorite, prayers, pray, updateMyName, setMyTeams, person?.teams?.join('|'), isTest, fillTestData, resetTestChurch, getAccessCode, setAccessCode, restoreBackup, myNotes, setMyNotes, live, publishLive, stopLive, user.uid]); // eslint-disable-line react-hooks/exhaustive-deps
+  }), [churchId, church.name, church.logo, me?.name, me?.key, me?.photo, setMyPhoto, removePhoto, setChurchLogo, expired, role, can, people, songs, events, confirmadas, propuestas, proponer, rechazarPropuesta, error, saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples, myShares, shareSong, unshareSong, loadLibrary, favorites, toggleFavorite, prayers, pray, updateMyName, setMyTeams, person?.teams?.join('|'), isTest, fillTestData, resetTestChurch, getAccessCode, setAccessCode, restoreBackup, myNotes, setMyNotes, live, publishLive, stopLive, user.uid]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }

@@ -266,7 +266,8 @@ service cloud.firestore {
       }
 
       // Inscripción para servir en un evento: un registro por persona y evento ("evento__persona").
-      // Cada uno se inscribe o se quita a sí mismo; Administrador y Director pueden hacerlo por otros.
+      // Cada uno se inscribe o se quita a sí mismo; Administrador y Director pueden hacerlo por otros
+      // y proponer a alguien (estado 'propuesta'); esa persona acepta (queda sin estado) o rechaza.
       match /participations/{pid} {
         allow read: if isMember(c);
         allow create, update: if isMember(c)
@@ -275,8 +276,12 @@ service cloud.firestore {
           && pid == request.resource.data.eventId + '__' + request.resource.data.personKey
           && validName(request.resource.data.name)
           && request.resource.data.role is string && request.resource.data.role.size() <= 40
-          && request.resource.data.keys().hasOnly(['eventId', 'personKey', 'name', 'role', 'group', 'date', 'at', 'prueba'])
+          && request.resource.data.keys().hasOnly(['eventId', 'personKey', 'name', 'role', 'group', 'date', 'at', 'prueba', 'estado', 'por'])
           && shortText(request.resource.data.get('group', ''), 40) && shortText(request.resource.data.get('date', ''), 10)
+          // Propuesta del líder (la persona acepta o dice que no puede): estado 'propuesta' o 'rechazada'.
+          && request.resource.data.get('estado', '') in ['', 'propuesta', 'rechazada']
+          && shortText(request.resource.data.get('por', ''), 60)
+          && (request.resource.data.get('estado', '') != 'propuesta' || canEdit(c))
           && (canEdit(c) || request.resource.data.personKey == request.auth.uid);
         allow delete: if canEdit(c) || (isMember(c) && resource.data.personKey == request.auth.uid);
       }

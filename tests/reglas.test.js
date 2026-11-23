@@ -222,6 +222,19 @@ describe('perfiles', () => {
     await assertFails(setDoc(doc(cuenta('juan'), 'churches', C, 'participations', 'e1__ana'), ins('ana')));
     await assertSucceeds(setDoc(doc(cuenta('ana'), 'churches', C, 'participations', 'e1__juan'), ins('juan')));
   });
+  it('propuestas: el líder propone, la persona acepta o dice que no puede', async () => {
+    await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), 'churches', C, 'events', 'e2'), { name: 'Servicio' }));
+    const ins = (pk, extra = {}) => ({ eventId: 'e2', personKey: pk, name: 'X', role: 'Bajo', group: 'instrumentos', date: '2026-12-01', ...extra });
+    // Un Colaborador no propone (ni a sí mismo ni a otros)
+    await assertFails(setDoc(doc(cuenta('juan'), 'churches', C, 'participations', 'e2__juan'), ins('juan', { estado: 'propuesta' })));
+    // El Administrador propone a Juan
+    await assertSucceeds(setDoc(doc(cuenta('ana'), 'churches', C, 'participations', 'e2__juan'), ins('juan', { estado: 'propuesta', por: 'Ana' })));
+    // Juan dice que no puede, y después sí acepta
+    await assertSucceeds(setDoc(doc(cuenta('juan'), 'churches', C, 'participations', 'e2__juan'), ins('juan', { estado: 'rechazada', por: 'Ana' })));
+    await assertSucceeds(setDoc(doc(cuenta('juan'), 'churches', C, 'participations', 'e2__juan'), ins('juan')));
+    // Estados inventados no
+    await assertFails(setDoc(doc(cuenta('ana'), 'churches', C, 'participations', 'e2__juan'), ins('juan', { estado: 'obligado' })));
+  });
 });
 
 describe('en vivo', () => {
