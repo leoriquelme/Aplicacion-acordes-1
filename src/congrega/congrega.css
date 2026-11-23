@@ -14,9 +14,6 @@
 .cg input:not([type='checkbox']), .cg select, .cg textarea { width: 100%; min-height: 2.75rem; padding: 0.55rem 0.7rem; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); font: inherit; }
 .cg-row > input, .cg-row > select { width: auto; }
 
-.cg-subtabs { display: flex; gap: 0.25rem; overflow-x: auto; margin-bottom: 1rem; border-bottom: 1px solid var(--border); }
-.cg-subtabs a { padding: 0.6rem 0.8rem; font-weight: 600; color: var(--muted); border-bottom: 3px solid transparent; white-space: nowrap; text-decoration: none; }
-.cg-subtabs a.activo { color: var(--text); border-bottom-color: var(--primary); }
 
 .cg-aviso { padding: 0.6rem 0.9rem; border-radius: 10px; background: var(--cg-warn-soft); }
 .cg-aviso.info { background: var(--primary-soft); }
@@ -111,4 +108,11 @@ a.cg-item:hover { background: var(--surface-2); text-decoration: none; }
 .cg-contador { margin-left: auto; }
 .cg label.cg-item { display: flex; flex-direction: row; text-align: left; margin: 0; }
 .cg label.cg-item .cg-quien { align-items: flex-start; }
-.cg .cg-unir { width: auto; max-width: 48%; flex: none; }
+.cg-item:has(.cg-unir) { flex-wrap: wrap; }
+.cg .cg-unir { width: auto; flex: 1 1 13rem; }
+
+/* Misma apariencia que Adora: títulos de página y tarjetas de datos de colores. */
+.cg .page-head h1 { margin: 0.2rem 0 0; }
+.cg .page-head p { margin: 0.2rem 0 0; }
+.cg .datos-grid { margin: 0; }
+.cg .dato .cg-delta { font-size: 0.85rem; font-weight: 600; }

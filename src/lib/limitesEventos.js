@@ -17,7 +17,7 @@ export function limitePasados(ahora = new Date()) {
 /** Eventos pasados que todavía se muestran (últimos 3 meses). */
 export const pasadosVisibles = (events, ahora = new Date()) => {
   const hoy = iso(ahora), desde = limitePasados(ahora);
-  return events.filter((e) => e.date < hoy && e.date >= desde);
+  return events.filter((e) => !e.soloAsistencia && e.date < hoy && e.date >= desde); // los de solo asistencia son de Congrega
 };
 
 /** ¿Se puede editar? Los próximos sí; los pasados solo hasta 72 h después de su fecha y hora. */

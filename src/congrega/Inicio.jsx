@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { todayISO } from '../lib/dates.js';
 import { RANGOS, TIPOS, activo, esMiembro, nombreDe, useCongrega } from './datos.jsx';
 
@@ -108,12 +108,13 @@ export default function Inicio() {
 
   return (
     <div className="cg-stack">
-      <div className="cg-cards">
-        <div className="card cg-stat"><b>{ult ? nUlt : '—'}</b><span>{ult ? `Asistencia ${corto(ult.date)}` : marca ? 'Sin asistencia registrada' : 'Asistencia (solo quienes la marcan)'}</span>
+      <div className="page-head"><div><h1>Congrega</h1><p className="muted">Personas y asistencia de la iglesia</p></div></div>
+      <div className="datos-grid">
+        <div className="card dato"><strong>{ult ? nUlt : '—'}</strong><span>{ult ? `Asistencia ${corto(ult.date)}` : marca ? 'Sin asistencia registrada' : 'Asistencia (solo quienes la marcan)'}</span>
           {delta != null && <span className={`cg-delta ${delta >= 0 ? 'sube' : 'baja'}`}>{delta > 0 ? `▲ ${delta} más` : delta < 0 ? `▼ ${-delta} menos` : 'Igual'} que la vez anterior</span>}</div>
-        <div className="card cg-stat"><b>{prom}</b><span>Promedio últimos {recientes.length} eventos</span></div>
-        <div className="card cg-stat"><b>{activos.length}</b><span>Personas activas · {activos.filter(esMiembro).length} miembros</span></div>
-        <div className="card cg-stat"><b>{visitasMes}</b><span>Visitas nuevas este mes</span></div>
+        <div className="card dato"><strong>{prom}</strong><span>Promedio últimos {recientes.length} eventos</span></div>
+        <Link className="card dato" to="/congrega/personas"><strong>{activos.length}</strong><span>Personas activas · {activos.filter(esMiembro).length} miembros ›</span></Link>
+        <div className="card dato"><strong>{visitasMes}</strong><span>Visitas nuevas este mes</span></div>
       </div>
       <div className="cg-dash">
         <section className="card cg-panel"><h3>Cumpleaños próximos</h3><p className="muted">Próximos 30 días</p>

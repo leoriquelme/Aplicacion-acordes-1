@@ -63,10 +63,11 @@ export default function Personas() {
 
   return (
     <div className="cg-stack">
-      <div className="cg-row">
-        <input className="cg-grow" type="search" value={buscar} onChange={(e) => setBuscar(e.target.value)} placeholder="Buscar persona, familia o ministerio…" aria-label="Buscar persona" />
+      <div className="page-head">
+        <h1>Personas</h1>
         {isAdmin && <Link className="btn primary" to="/congrega/personas/nueva">+ Nueva persona</Link>}
       </div>
+      <input type="search" value={buscar} onChange={(e) => setBuscar(e.target.value)} placeholder="Buscar persona, familia o ministerio…" aria-label="Buscar persona" />
       <div className="cg-tags" role="group" aria-label="Filtrar">
         {FILTROS.map(([k, l]) => <button key={k} type="button" className="cg-tag" aria-pressed={filtro === k} onClick={() => setFiltro(k)}>{l}</button>)}
       </div>

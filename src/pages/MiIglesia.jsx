@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useStore } from '../lib/store.jsx';
-import { sortEvents, todayISO } from '../lib/dates.js';
+import { todayISO } from '../lib/dates.js';
 import Avatares from '../components/Avatares.jsx';
 import ResumenEquipos from '../components/MisEquipos.jsx';
 import SongRanking from '../components/SongRanking.jsx';
@@ -17,7 +17,7 @@ export default function MiIglesia() {
   const { mode, church, people = [], songs, events, participations = [], can } = useStore();
   const today = todayISO();
   const proximos = events.filter((e) => e.date >= today).length;
-  const pasados = sortEvents(events.filter((e) => e.date < today)).length;
+  const pasados = events.filter((e) => !e.soloAsistencia && e.date < today).length;
   // Sin iglesia abierta: elegir una, unirse con código o crear una.
   if (mode === 'personal') {
     return (

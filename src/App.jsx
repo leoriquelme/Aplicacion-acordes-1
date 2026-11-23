@@ -66,13 +66,20 @@ const TABS = [
   { to: '/mi-iglesia', label: 'Iglesia', icon: 'church' },
   { to: '/ajustes', label: 'Ajustes', icon: 'settings' },
 ];
+// Congrega usa el mismo menú de Adora (arriba en computador, abajo en el teléfono).
+const TABS_CONGREGA = [
+  { to: '/congrega', label: 'Inicio', icon: 'home', end: true },
+  { to: '/congrega/asistencia', label: 'Asistencia', icon: 'hand' },
+  { to: '/congrega/personas', label: 'Personas', icon: 'users' },
+  { to: '/congrega/ajustes', label: 'Ajustes', icon: 'settings', admin: true },
+];
 
 export default function App() {
   const { pathname, state } = useLocation();
   // Páginas abiertas desde Ajustes (ej. la página de la iglesia): la pestaña Ajustes sigue marcada.
   const desdeAjustes = state?.from === 'ajustes';
   const presenting = pathname.startsWith('/presentar');
-  const { mode, church, me, live, myUid, events = [] } = useStore();
+  const { mode, church, me, live, myUid, role, events = [] } = useStore();
   const liveEvent = enVivoActivo(live) ? events.find((e) => e.id === live.eventId) : null;
   const personal = mode === 'personal';
   usePrecargarPaginas();
@@ -90,20 +97,21 @@ export default function App() {
   const enCongrega = pathname.startsWith('/congrega');
   const enApps = pathname === '/apps';
   // Sin iglesia abierta: solo Inicio, Canciones y Ajustes (a la iglesia se entra desde Ajustes o con un link).
-  const tabs = personal ? TABS.filter((t) => ['/', '/canciones', '/ajustes'].includes(t.to)) : TABS;
+  const tabs = enCongrega ? TABS_CONGREGA.filter((t) => !t.admin || role === 'admin')
+    : personal ? TABS.filter((t) => ['/', '/canciones', '/ajustes'].includes(t.to)) : TABS;
 
   return (
     <div className="app">
       {!presenting && (
         <header className="topbar">
           <Link className="brand" to="/apps" title="Cambiar de app">{enCongrega ? 'Congrega' : enApps ? 'Apps' : APP_NOMBRE} <span className="beta-pill">{APP_ETAPA}</span> <span className="brand-cambiar" aria-hidden="true">▾</span></Link>
-          {!enCongrega && !enApps && <nav className="tabs">
+          {!enApps && (!enCongrega || (mode === 'cloud' && church)) && <nav className="tabs">
             {tabs.map((t) => (
               <NavLink
                 key={t.to}
                 to={t.to}
                 end={t.end}
-                className={({ isActive }) => `tab${(desdeAjustes ? t.to === '/ajustes' : isActive) ? ' active' : ''}`}
+                className={({ isActive }) => `tab${(desdeAjustes && !enCongrega ? t.to === '/ajustes' : isActive) ? ' active' : ''}`}
               >
                 <span className="tab-icon"><Icon name={t.icon} size="1.25em" /></span>
                 <span>{t.label}</span>

@@ -38,6 +38,7 @@ export default function Asistencia() {
 
   return (
     <div className="cg-stack">
+      <div className="page-head"><h1>Asistencia</h1></div>
       {!events.some((e) => e.date === hoy) && can?.events && (
         <button type="button" className="btn primary" onClick={() => setEventId(saveEvent({ name: 'Culto dominical', date: hoy, time: '', items: [] }))}>
           Abrir registro de hoy
