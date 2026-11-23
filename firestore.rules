@@ -280,7 +280,8 @@ service cloud.firestore {
       match /asistencia/{aid} {
         allow read, delete: if canCheckin(c);
         allow create, update: if canCheckin(c)
-          && request.resource.data.keys().hasOnly(['eventId', 'personKey', 'date', 'at', 'por'])
+          && request.resource.data.keys().hasOnly(['eventId', 'personKey', 'date', 'at', 'por', 'tipo'])
+          && request.resource.data.get('tipo', '') in ['', 'regular', 'visita', 'colaborador']
           && aid == request.resource.data.eventId + '__' + request.resource.data.personKey
           && exists(/databases/$(database)/documents/churches/$(c)/events/$(request.resource.data.eventId))
           && exists(personPath(c, request.resource.data.personKey))

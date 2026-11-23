@@ -389,6 +389,12 @@ describe('Congrega: familias, fichas privadas y asistencia', () => {
     await assertSucceeds(updateDoc(doc(ana(), 'churches', C, 'members', 'ana'), { asistencia: true }));
     await assertFails(updateDoc(doc(ana(), 'churches', C, 'members', 'ana'), { role: 'colaborador' }));
   });
+  it('la asistencia guarda si vino como regular, visita o colaborador', async () => {
+    const r = (tipo) => setDoc(doc(ana(), 'churches', C, 'asistencia', 'ev1__juan'), { eventId: 'ev1', personKey: 'juan', date: '2026-11-29', at: 1, por: 'ana', tipo });
+    await assertSucceeds(r('colaborador'));
+    await assertSucceeds(r('visita'));
+    await assertFails(r('pastor'));
+  });
   it('el Administrador importa el historial: evento solo de asistencia, visita nueva y su asistencia', async () => {
     const db = ana();
     const b = writeBatch(db);

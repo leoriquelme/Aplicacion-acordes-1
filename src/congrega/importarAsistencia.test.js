@@ -29,6 +29,9 @@ describe('importar asistencia desde Excel', () => {
     expect(porNombre.Juan).toMatchObject({ match: null, visita: true });
     expect(keyNueva(porNombre.Juan)).toBe('pcoa-juan-nuevo');
     expect(plan.registros).toHaveLength(4); // Ana marcada dos veces en el culto cuenta una
+    expect(plan.registros.find((r) => r.eventId === 'culto' && r.clave === 'ana perez soto').tipo).toBe('colaborador');
+    expect(plan.registros.find((r) => r.clave === 'juan nuevo').tipo).toBe('visita');
+    expect(planAsistencia(c, [{ key: 'j', name: 'Juan Neira', otrosNombres: ['Juan Nuevo'] }]).personas.find((p) => p.nombre === 'Juan').match).toEqual({ key: 'j', motivo: 'mismo nombre' });
   });
 
   it('no adivina si hay dos personas con el mismo nombre', () => {

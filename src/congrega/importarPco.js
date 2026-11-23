@@ -105,6 +105,8 @@ export function clavesNombre(p) {
 export function buscarCoincidencias(filas, people, fichas = new Map()) {
   const porPco = new Map(); const porCorreo = new Map(); const porTel = new Map(); const porNombre = new Map();
   // Las fichas que vienen del mismo Planning Center (pco-…) no cuentan como "otra persona".
+  // Quien ya juntó registros de Planning Center (unido a mano) se reconoce por esos ids, aunque su ficha sea pco-….
+  for (const p of people) (p.otrosPcoIds || []).forEach((id) => porPco.set(String(id), p.key));
   for (const p of people.filter((x) => !String(x.key).startsWith('pco-'))) {
     if (p.pcoId) porPco.set(String(p.pcoId), p.key);
     const f = fichas.get(p.key) || {};

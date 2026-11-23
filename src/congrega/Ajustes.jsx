@@ -3,15 +3,14 @@ import { collection, doc, onSnapshot, setDoc, writeBatch } from 'firebase/firest
 import { db } from '../lib/firebase.js';
 import { ROLES } from '../lib/store.jsx';
 import { buscarCoincidencias, esExportPco, filaPco, fusionarDatos, parseCsv } from './importarPco.js';
-import { activo, asistenciaId, nombreDe as nombreP, norm, useCongrega } from './datos.jsx';
-import { todayISO } from '../lib/dates.js';
+import { asistenciaId, nombreDe as nombreP, norm, useCongrega } from './datos.jsx';
 import { fechaExcel, leerXlsx } from './xlsx.js';
 import { hojaCheckins, keyNueva, planAsistencia } from './importarAsistencia.js';
 
 export default function Ajustes() {
   const { isAdmin } = useCongrega();
   if (!isAdmin) return <div className="card">Solo el Administrador de la iglesia ve los ajustes de Congrega.</div>;
-  return <div className="cg-stack"><div className="page-head"><h1>Ajustes</h1></div><Voluntarios /><Consentimiento /><Importar /><ImportarAsistencia /></div>;
+  return <div className="cg-stack"><div className="page-head"><h1>Ajustes</h1></div><Voluntarios /><Importar /><ImportarAsistencia /></div>;
 }
 
 function Voluntarios() {
@@ -222,7 +221,8 @@ function ImportarAsistencia() {
   const importar = async () => {
     const ref = (...x) => doc(db, 'churches', churchId, ...x);
     const keyDe = new Map(plan.personas.map((p) => { const d = destinoDe(p); return [p.clave, d === 'nueva' ? keyNueva(p) : d]; }));
-    const regs = plan.registros.filter((r) => keyDe.get(r.clave) && !asistencia.has(asistenciaId(r.eventId, keyDe.get(r.clave))));
+    // Se cargan las que faltan y se completa el tipo (regular, visita, colaborador) en las que ya estaban.
+    const regs = plan.registros.filter((r) => keyDe.get(r.clave) && asistencia.get(asistenciaId(r.eventId, keyDe.get(r.clave)))?.tipo !== r.tipo);
     setEstado({ corriendo: true, hechos: 0, total: regs.length, error: '', listo: false });
     try {
       const ops = [];
@@ -243,14 +243,15 @@ function ImportarAsistencia() {
       for (let i = 0; i < regs.length; i += 20) {
         await Promise.all(regs.slice(i, i + 20).map((r) => {
           const k = keyDe.get(r.clave);
-          return setDoc(ref('asistencia', asistenciaId(r.eventId, k)), { eventId: r.eventId, personKey: k, date: r.date, at: Date.parse(`${r.date}T12:00:00`), por: myUid });
+          const prev = asistencia.get(asistenciaId(r.eventId, k));
+          return setDoc(ref('asistencia', asistenciaId(r.eventId, k)), { eventId: r.eventId, personKey: k, date: r.date, at: prev?.at || Date.parse(`${r.date}T12:00:00`), por: myUid, tipo: r.tipo });
         }));
         hechos = Math.min(regs.length, i + 20);
         setEstado((s) => ({ ...s, hechos }));
       }
       setEstado({ corriendo: false, hechos, total: regs.length, error: '', listo: true });
     } catch (e) {
-      setEstado((s) => ({ ...s, corriendo: false, error: `La importación se detuvo: ${e.message}. Puedes intentarlo de nuevo; lo ya cargado no se duplica.` }));
+      setEstado((s) => ({ ...s, corriendo: false, error: e?.code === 'permission-denied' ? 'Firebase no aceptó el tipo de asistencia: publica primero las reglas nuevas (Firestore → Reglas) y vuelve a intentarlo. Lo ya cargado no se duplica.' : `La importación se detuvo: ${e.message}. Puedes intentarlo de nuevo; lo ya cargado no se duplica.` }));
     }
   };
 
@@ -289,51 +290,3 @@ function ImportarAsistencia() {
   );
 }
 
-/** Ley 21.719: registrar de una vez el consentimiento de quienes entregaron sus datos o fueron informados. */
-function Consentimiento() {
-  const { churchId, people, fichas, myUid, me } = useCongrega();
-  const [inactivas, setInactivas] = useState(false);
-  const [confirmo, setConfirmo] = useState(false);
-  const [estado, setEstado] = useState({ corriendo: false, listo: 0, error: '' });
-  const hoy = todayISO();
-  const faltan = people.filter((p) => !fichas.get(p.key)?.consentimiento && (inactivas || activo(p)));
-  const marcar = async () => {
-    setEstado({ corriendo: true, listo: 0, error: '' });
-    try {
-      const ahora = Date.now();
-      const nota = `Datos entregados por la persona o informada antes del ${hoy}. Marcado en bloque por ${me?.name || 'el Administrador'}.`;
-      for (let i = 0; i < faltan.length; i += 400) {
-        const b = writeBatch(db);
-        faltan.slice(i, i + 400).forEach((p) => {
-          const prev = fichas.get(p.key) || {};
-          b.set(doc(db, 'churches', churchId, 'fichas', p.key), {
-            consentimiento: true, fechaConsentimiento: hoy, medioConsentimiento: 'Entregados por la persona', notaConsentimiento: nota,
-            consentimientoPor: myUid, consentimientoEn: ahora, actualizadoEn: ahora, actualizadoPor: myUid,
-            cambios: [...(prev.cambios || []), { at: ahora, by: myUid, campos: ['consentimiento (marca en bloque)'] }].slice(-50),
-          }, { merge: true });
-        });
-        await b.commit();
-      }
-      setEstado({ corriendo: false, listo: faltan.length, error: '' });
-      setConfirmo(false);
-    } catch (e) {
-      setEstado({ corriendo: false, listo: 0, error: `No se pudo guardar: ${e.message}. Puedes intentarlo de nuevo.` });
-    }
-  };
-  return (
-    <section className="card cg-stack">
-      <h2>Consentimiento de datos</h2>
-      <p className="muted">La Ley 21.719 pide registrar que cada persona autorizó guardar sus datos. Si todos te los entregaron ellos mismos o fueron informados, puedes registrarlo de una vez. Cada ficha guarda la fecha, quién lo marcó y una nota de que fue en bloque.</p>
-      {estado.listo > 0 && <div className="cg-aviso info" aria-live="polite">Listo: consentimiento registrado para {estado.listo} {estado.listo === 1 ? 'persona' : 'personas'}.</div>}
-      {faltan.length ? (
-        <>
-          <span><strong>{faltan.length}</strong> {faltan.length === 1 ? 'persona no tiene' : 'personas no tienen'} el consentimiento registrado.</span>
-          <label className="cg-row"><input type="checkbox" className="cg-checkbox" checked={inactivas} disabled={estado.corriendo} onChange={(e) => setInactivas(e.target.checked)} /><span className="cg-grow">Incluir también a las personas inactivas</span></label>
-          <label className="cg-row"><input type="checkbox" className="cg-checkbox" checked={confirmo} disabled={estado.corriendo} onChange={(e) => setConfirmo(e.target.checked)} /><span className="cg-grow">Confirmo que estas personas entregaron sus datos o fueron informadas de que la iglesia los guarda.</span></label>
-          <button type="button" className="btn primary cg-izq" disabled={!confirmo || estado.corriendo} onClick={marcar}>{estado.corriendo ? 'Guardando…' : `Registrar consentimiento de ${faltan.length} ${faltan.length === 1 ? 'persona' : 'personas'}`}</button>
-        </>
-      ) : <span className="muted">Todas las personas{inactivas ? '' : ' activas'} tienen el consentimiento registrado.</span>}
-      {estado.error && <div className="cg-aviso" role="alert">{estado.error}</div>}
-    </section>
-  );
-}

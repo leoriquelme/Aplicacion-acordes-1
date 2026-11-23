@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { CIVIL, RANGOS, ROLES_FAMILIA, TIPOS, activo, esMiembro, nombreDe, useCongrega } from './datos.jsx';
+import { CIVIL, RANGOS, ROLES_FAMILIA, TIPOS, activo, esMiembro, nombreDe, norm, useCongrega } from './datos.jsx';
 
 const fmt = (s) => (s ? new Date(`${s}T12:00:00`).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' }) : '');
 function edad(s) {
@@ -45,6 +45,7 @@ export default function Ficha() {
         <h2 className="cg-grow">{nombreDe(p)}</h2>
         {isAdmin && <button type="button" className="btn primary" onClick={() => setEditar(true)}>Editar</button>}
       </div>
+      {isAdmin && !nueva && <UnirCon p={p} />}
       {isAdmin && !d.consentimiento && <div className="cg-aviso">Falta registrar el consentimiento de esta persona para guardar sus datos (Ley 21.719).</div>}
       {c.marca && (
         <fieldset className="card cg-grid"><legend>Asistencia</legend>
@@ -232,3 +233,29 @@ function Editar({ p, k, onListo }) {
 }
 
 export { esMiembro };
+
+/** Unir a mano con otra ficha que es la misma persona (por ejemplo, con otro nombre o apodo). */
+function UnirCon({ p }) {
+  const { people, unirPersonas } = useCongrega();
+  const navigate = useNavigate();
+  const [otra, setOtra] = useState('');
+  const [estado, setEstado] = useState('');
+  const opciones = people.filter((x) => x.key !== p.key && !(x.uid && p.uid)).sort((a, b) => norm(nombreDe(a)).localeCompare(norm(nombreDe(b))));
+  return (
+    <details className="card">
+      <summary>Unir con otra ficha de la misma persona</summary>
+      <div className="cg-stack" style={{ marginTop: '0.7rem' }}>
+        <p className="muted">Se juntan los datos, la familia, los ministerios y toda la asistencia en una sola ficha. Si una de las dos entró con su cuenta, queda esa.</p>
+        <select value={otra} onChange={(e) => setOtra(e.target.value)} aria-label="Con quién unir" disabled={estado === 'uniendo'}>
+          <option value="">Elige a la otra persona…</option>
+          {opciones.map((x) => <option key={x.key} value={x.key}>{nombreDe(x)}</option>)}
+        </select>
+        {estado && estado !== 'uniendo' && <div className="cg-aviso" role="alert">{estado}</div>}
+        <button type="button" className="btn primary cg-izq" disabled={!otra || estado === 'uniendo'} onClick={async () => {
+          setEstado('uniendo');
+          try { const k = await unirPersonas(p.key, otra); setEstado(''); setOtra(''); navigate(`/congrega/personas/${k}`, { replace: true }); } catch (e) { setEstado(`No se pudo unir: ${e.message}`); }
+        }}>{estado === 'uniendo' ? 'Uniendo…' : 'Unir en una'}</button>
+      </div>
+    </details>
+  );
+}

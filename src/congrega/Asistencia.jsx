@@ -2,9 +2,10 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { todayISO, formatLong, sortEvents } from '../lib/dates.js';
 import { activo, asistenciaId, nombreDe, norm, useCongrega } from './datos.jsx';
+import { TIPOS_ASISTENCIA, tipoPorDefecto } from './unir.js';
 
 export default function Asistencia() {
-  const { events = [], people, familias, asistencia, marca, can, saveEvent, marcar, registrarVisita, listo } = useCongrega();
+  const { events = [], people, familias, asistencia, marca, can, saveEvent, marcar, registrarVisita, listo, participations = [], sinTipo } = useCongrega();
   const navigate = useNavigate();
   const hoy = todayISO();
   const lista = useMemo(() => sortEvents(events.filter((e) => e.date && e.date <= hoy), -1).slice(0, 30), [events, hoy]);
@@ -32,9 +33,21 @@ export default function Asistencia() {
     return true;
   }).sort((a, b) => (filtro === 'presentes' ? (presentes.get(b.key).at - presentes.get(a.key).at) : norm(nombreDe(a)).localeCompare(norm(nombreDe(b)))));
 
-  const toggle = (p) => marcar(ev, p.key, !presentes.has(p.key)).catch(() => setError('No se pudo guardar. Revisa la conexión.'));
-  const marcarFamilia = async (ids) => { for (const k of ids) await marcar(ev, k, true).catch(() => setError('No se pudo guardar.')); };
-  const visitas = [...presentes.keys()].filter((k) => people.find((p) => p.key === k)?.tipo === 'Visita').length;
+  // Tipo por defecto: colaborador si sirve en este evento; visita sus 3 primeras veces; después, regular.
+  const tipoDe = (p) => {
+    const a = presentes.get(p.key);
+    if (a?.tipo) return a.tipo;
+    const sirve = participations.some((x) => x.eventId === ev.id && x.personKey === p.key && !x.estado);
+    let anteriores = 0; asistencia.forEach((x) => { if (x.personKey === p.key && x.date && x.date < ev.date) anteriores++; });
+    return tipoPorDefecto(p, { sirve, anteriores });
+  };
+  const persona = (k) => people.find((p) => p.key === k);
+  const toggle = (p) => marcar(ev, p.key, !presentes.has(p.key), tipoDe(p)).catch(() => setError('No se pudo guardar. Revisa la conexión.'));
+  const cambiarTipo = (p, tipo) => marcar(ev, p.key, true, tipo, presentes.get(p.key)?.at).catch(() => setError('No se pudo guardar. Revisa la conexión.'));
+  const marcarFamilia = async (ids) => { for (const k of ids) await marcar(ev, k, true, tipoDe(persona(k))).catch(() => setError('No se pudo guardar.')); };
+  const cuenta = { regular: 0, visita: 0, colaborador: 0 };
+  presentes.forEach((a, k) => { const p = persona(k); if (p) cuenta[tipoDe(p)]++; });
+  const visitas = cuenta.visita;
 
   return (
     <div className="cg-stack">
@@ -54,7 +67,7 @@ export default function Asistencia() {
                 <h2>{ev.name || 'Evento'}</h2>
                 <div className="muted">{formatLong(ev.date)}</div>
               </div>
-              <div className="cg-contador" aria-live="polite">{presentes.size}<small>{presentes.size === 1 ? 'presente' : 'presentes'}{visitas ? ` · ${visitas} ${visitas === 1 ? 'visita' : 'visitas'}` : ''}</small></div>
+              <div className="cg-contador" aria-live="polite">{presentes.size}<small>{presentes.size === 1 ? 'presente' : 'presentes'}{cuenta.colaborador ? ` · ${cuenta.colaborador} ${cuenta.colaborador === 1 ? 'colaborador' : 'colaboradores'}` : ''}{visitas ? ` · ${visitas} ${visitas === 1 ? 'visita' : 'visitas'}` : ''}</small></div>
             </div>
             <select value={ev.id} onChange={(e) => setEventId(e.target.value)} aria-label="Evento">
               {(lista.some((e) => e.id === ev.id) ? lista : [ev, ...lista]).map((e) => <option key={e.id} value={e.id}>{e.date} · {e.name || 'Evento'}</option>)}
@@ -69,6 +82,7 @@ export default function Asistencia() {
             </div>
           </div>
           {error && <div className="cg-aviso" role="alert">{error}</div>}
+          {sinTipo && <div className="cg-aviso">La asistencia se guarda, pero falta publicar las reglas nuevas en Firebase para guardar si vino como regular, visita o colaborador.</div>}
           {visita ? (
             <form className="card cg-stack" onSubmit={async (e) => {
               e.preventDefault();
@@ -101,11 +115,16 @@ export default function Asistencia() {
                     <button type="button" className="cg-quien" onClick={() => navigate(`/congrega/personas/${p.key}`)}>
                       <span className="cg-nombre">{nombreDe(p)}</span>
                       <span className="cg-meta">
-                        {p.tipo === 'Visita' && <span className="cg-chip visita">Visita</span>}
+                        {!a && p.tipo === 'Visita' && <span className="cg-chip visita">Visita</span>}
                         {fam && <span>{fam.name}</span>}
                         {a && <span>{String(t.getHours()).padStart(2, '0')}:{String(t.getMinutes()).padStart(2, '0')} · por {quien(a.por)}</span>}
                       </span>
                     </button>
+                    {a && (
+                      <div className="cg-seg cg-tipo" role="group" aria-label={`Cómo vino ${nombreDe(p)}`}>
+                        {TIPOS_ASISTENCIA.map(([k, l]) => <button key={k} type="button" aria-pressed={tipoDe(p) === k} disabled={sinTipo} onClick={() => cambiarTipo(p, k)}>{l}</button>)}
+                      </div>
+                    )}
                     {a && faltanFam.length > 0 && <button type="button" className="btn small" onClick={() => marcarFamilia(faltanFam)}>+ familia ({faltanFam.length})</button>}
                     <button type="button" className="cg-check" aria-pressed={Boolean(a)} aria-label={`${a ? 'Quitar' : 'Marcar'} asistencia de ${nombreDe(p)}`} onClick={() => toggle(p)}>
                       <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>

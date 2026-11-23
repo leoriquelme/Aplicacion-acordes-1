@@ -2,6 +2,9 @@
 // Cada fila: fecha, evento, nombre, apellido, tipo de registro, clasificación, visita sin perfil.
 // Las ids son estables: importar de nuevo no duplica eventos, personas ni asistencias.
 import { clavesNombre } from './importarPco.js';
+import { tipoDePco } from './unir.js';
+
+const PESO = { colaborador: 3, visita: 2, regular: 1 };
 
 const sinTildes = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
 const slug = (s) => sinTildes(s).replace(/ /g, '-').slice(0, 40);
@@ -36,7 +39,7 @@ const OTRO = /escuela|\boracion\b/; // ojo: "adoración" contiene "oración"
  * Arma lo que hay que escribir:
  * - eventos: { id, name, date, nuevo } (usa el evento que ya existe ese día con ese nombre, o el culto de ese domingo)
  * - personas: { clave, nombre, apellido, n, visita, nino, match: { key, motivo } | null, candidatos: [key] }
- * - registros: { eventId, clave, date }
+ * - registros: { eventId, clave, date, tipo: 'regular' | 'visita' | 'colaborador' }
  */
 export function planAsistencia(checkins, people = [], events = []) {
   // Eventos
@@ -61,6 +64,7 @@ export function planAsistencia(checkins, people = [], events = []) {
   const add = (m, k, key) => { if (!m.has(k)) m.set(k, new Set()); m.get(k).add(key); };
   for (const p of people) {
     add(exacto, sinTildes(p.nombre || p.apellido ? `${p.nombre || ''} ${p.apellido || ''}` : p.name), p.key);
+    (p.otrosNombres || []).forEach((n) => add(exacto, sinTildes(n), p.key));
     clavesNombre(p).forEach((k) => add(parecido, k, p.key));
   }
   const personas = new Map();
@@ -81,7 +85,9 @@ export function planAsistencia(checkins, people = [], events = []) {
   for (const c of checkins) {
     const eventId = evDe.get(`${c.fecha}|${sinTildes(c.evento)}`);
     const clave = sinTildes(`${c.nombre} ${c.apellido}`);
-    registros.set(`${eventId}|${clave}`, { eventId, clave, date: c.fecha });
+    const tipo = tipoDePco(c);
+    const prev = registros.get(`${eventId}|${clave}`);
+    registros.set(`${eventId}|${clave}`, { eventId, clave, date: c.fecha, tipo: prev && PESO[prev.tipo] > PESO[tipo] ? prev.tipo : tipo });
   }
   personas.forEach((p) => { p.n = 0; });
   registros.forEach((r) => { personas.get(r.clave).n++; });
