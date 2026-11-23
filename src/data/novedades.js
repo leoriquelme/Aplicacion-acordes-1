@@ -4,6 +4,11 @@
 
 export const NOVEDADES = [
   {
+    id: 'n-2026-11-23-inicio', fecha: '2026-11-23', icono: 'home',
+    titulo: 'Inicio ordenado',
+    texto: 'Ahora en Inicio ves primero los próximos eventos. Más abajo están los cumpleaños, los consejos y el versículo del día.',
+  },
+  {
     id: 'n-2026-11-23-cumple', fecha: '2026-11-23', icono: 'user', to: '/ajustes/perfil', boton: 'Poner mi fecha',
     titulo: 'Cumpleaños de los hermanos',
     texto: 'Ahora puedes poner tu fecha de nacimiento en tu perfil, y en Inicio aparece quién está de cumpleaños esta semana.',

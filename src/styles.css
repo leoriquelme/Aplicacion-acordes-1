@@ -1722,3 +1722,5 @@ a.tf-cabeza:hover { text-decoration: none; background: color-mix(in srgb, var(--
 .es-novedad .consejo-etiqueta, .es-novedad .consejo-icono, .es-novedad .consejo-botones .btn.ghost { color: var(--menta-fg); }
 .es-novedad .consejo-cuerpo p { color: color-mix(in srgb, var(--menta-fg) 35%, var(--text)); }
 .consejo-botones:empty { display: none; }
+/* Inicio: eventos arriba; después cumpleaños, consejo y versículo */
+.inicio .bloques-eventos, .inicio > .empty { margin-bottom: 1rem; }

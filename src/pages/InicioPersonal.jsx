@@ -13,8 +13,8 @@ export default function InicioPersonal() {
         <div className="bloque-icono"><Icon name="user" /></div>
         <h1>Hola{name ? `, ${name.split(' ')[0]}` : ''}</h1>
       </section>
-      <VersiculoDelDia />
       <Consejos />
+      <VersiculoDelDia />
     </div>
   );
 }

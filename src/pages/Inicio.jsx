@@ -50,12 +50,6 @@ export default function Inicio() {
         </section>
       )}
 
-      <Cumpleanos />
-
-      <VersiculoDelDia />
-
-      <Consejos />
-
       {/* Bloque 2: próximos eventos */}
       <h2 className="bloque-titulo">Próximos eventos</h2>
       {upcoming.length === 0 ? (
@@ -86,6 +80,12 @@ export default function Inicio() {
           })}
         </div>
       )}
+
+      <Cumpleanos />
+
+      <Consejos />
+
+      <VersiculoDelDia />
     </div>
   );
 }
