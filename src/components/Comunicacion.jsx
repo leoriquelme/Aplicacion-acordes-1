@@ -77,10 +77,8 @@ export function IglesiaTarjeta() {
   const cloud = mode === 'cloud';
   return (
     <section className="grupo">
-      <div className="grupo-titulo row between">
-        <span>Iglesia</span>
-        {cloud && <Link to="/mi-iglesia" className="grupo-accion">Cambiar</Link>}
-      </div>
+      {/* Para cambiar de iglesia: pestaña Iglesia → Mis iglesias. */}
+      <h2 className="grupo-titulo">Iglesia</h2>
       {cloud ? (
         <Link to="/mi-iglesia/miembros" state={{ from: 'ajustes' }} className="iglesia-tarjeta">
           <IglesiaLogo className="logo-tarjeta" />
