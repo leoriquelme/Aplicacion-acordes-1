@@ -70,11 +70,11 @@ export default function InstalarCard({ bare = false }) {
                 <>
                   <p className="small"><strong>Para instalarla en iPhone, abre esta página en Safari</strong> (la brújula azul):</p>
                   <ol className="pasos">
-                    <li>Toca <strong>Copiar el link</strong> aquí abajo.</li>
+                    <li>Toca <strong>Copiar link</strong> aquí abajo.</li>
                     <li>Abre <strong>Safari</strong>, pega el link arriba y ábrelo.</li>
                     <li>Toca <strong>Compartir</strong> <span className="tecla">⬆︎</span> → <strong>“Agregar a inicio”</strong> → <strong>Agregar</strong>.</li>
                   </ol>
-                  <button className="btn small" onClick={copiarLink}>{copiado ? '✓ Link copiado' : 'Copiar el link'}</button>
+                  <button className="btn small" onClick={copiarLink}>{copiado ? '✓ Link copiado' : 'Copiar link'}</button>
                   <p className="muted small">Si estás en WhatsApp, también puedes tocar <span className="tecla">⋯</span> o la brújula y elegir “Abrir en Safari”.</p>
                 </>
               )}

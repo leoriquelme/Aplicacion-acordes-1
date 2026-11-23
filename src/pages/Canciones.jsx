@@ -23,13 +23,13 @@ export default function Canciones() {
   const tonos = [...new Set(songs.map((s) => songKey(s)).filter(Boolean))].sort();
   const titulo = (s) => s.title.replace(/^[¡¿]/, '');
   const ORDENES = {
-    az: (a, b) => titulo(a).localeCompare(titulo(b), 'es'),
-    za: (a, b) => titulo(b).localeCompare(titulo(a), 'es'),
-    autor: (a, b) => (a.author || '~').localeCompare(b.author || '~', 'es') || titulo(a).localeCompare(titulo(b), 'es'),
-    tono: (a, b) => (songKey(a) || '~').localeCompare(songKey(b) || '~') || titulo(a).localeCompare(titulo(b), 'es'),
+    az: (a, b) => titulo(a).localeCompare(titulo(b), 'es', { numeric: true }),
+    za: (a, b) => titulo(b).localeCompare(titulo(a), 'es', { numeric: true }),
+    autor: (a, b) => (a.author || '~').localeCompare(b.author || '~', 'es') || titulo(a).localeCompare(titulo(b), 'es', { numeric: true }),
+    tono: (a, b) => (songKey(a) || '~').localeCompare(songKey(b) || '~') || titulo(a).localeCompare(titulo(b), 'es', { numeric: true }),
     recientes: (a, b) => (b.updatedAt || 0) - (a.updatedAt || 0),
     // Las canciones antiguas no tienen fecha de creación: van al final, por título.
-    nuevas: (a, b) => (b.createdAt || 0) - (a.createdAt || 0) || titulo(a).localeCompare(titulo(b), 'es'),
+    nuevas: (a, b) => (b.createdAt || 0) - (a.createdAt || 0) || titulo(a).localeCompare(titulo(b), 'es', { numeric: true }),
   };
   const list = songs
     .filter((s) => !onlyFav || favorites.includes(s.id))

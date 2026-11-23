@@ -28,7 +28,7 @@ export default function Imprimir() {
         <header className="hoja-head">
           {church?.name && <div className="hoja-iglesia">{church.name}</div>}
           <h1>{event.name}</h1>
-          <div>{formatLong(event.date)}{event.time ? ` · ${event.time} hrs` : ''}</div>
+          <div>{formatLong(event.date)}{event.time ? ` · ${event.time}` : ''}</div>
           {event.notes && <p className="hoja-notas">{event.notes}</p>}
         </header>
 

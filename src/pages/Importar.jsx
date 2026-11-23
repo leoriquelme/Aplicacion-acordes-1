@@ -89,7 +89,7 @@ export default function Importar() {
   return (
     <div className="page wide">
       <Link to="/canciones/nueva" className="back">← Volver</Link>
-      <h1>Importar alabanza</h1>
+      <h1>Importar canción</h1>
       <div className="card import-link">
         <strong>Link de LaCuerda</strong>
         <div className="row gap wrap">
@@ -123,7 +123,7 @@ export default function Importar() {
           <div className="row gap wrap">
             <label className="grow">
               Título
-              <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Nombre de la alabanza" />
+              <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Nombre de la canción" />
             </label>
             <label className="grow">
               Autor
