@@ -35,7 +35,7 @@ export default function Participacion({ event }) {
           <h2>Participación</h2>
           <Avatares people={todos} max={8} />
           <p className="muted small">
-            {total === 0 ? 'Todavía no hay nadie inscrito.' : `${total} ${total === 1 ? 'persona inscrita' : 'personas inscritas'}.`}
+            {total === 0 ? 'Todavía no hay nadie inscrito.' : `${total} ${total === 1 ? 'voluntario' : 'voluntarios'}`}
           </p>
         </div>
         {me && !past && (

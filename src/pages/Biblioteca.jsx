@@ -6,7 +6,7 @@ import { songKey } from '../lib/importar.js';
 import SongView from '../components/SongView.jsx';
 import Icon from '../components/Icon.jsx';
 
-/** Buscar alabanzas que compartieron otras iglesias y copiarlas a la propia. */
+/** Buscar canciones que compartieron otras iglesias y copiarlas a la propia. */
 export default function Biblioteca() {
   const { loadLibrary, songs, saveSong, settings, can } = useStore();
   const [items, setItems] = useState(null);
@@ -33,7 +33,7 @@ export default function Biblioteca() {
   const query = normalize(q.trim());
   const list = (items || [])
     .filter((x) => !query || normalize(x.title).includes(query) || normalize(x.author).includes(query) || normalize(x.churchName).includes(query))
-    .sort((a, b) => a.title.localeCompare(b.title, 'es'));
+    .sort((a, b) => a.title.localeCompare(b.title, 'es', { numeric: true }));
 
   const copy = (x) => {
     const id = saveSong({
@@ -51,9 +51,9 @@ export default function Biblioteca() {
       <input type="search" className="search" placeholder="Buscar por título, autor o iglesia…" value={q} onChange={(e) => setQ(e.target.value)} />
       {error && <p className="error">No se pudo cargar: {error}</p>}
       {items === null && !error && <p className="muted">Cargando…</p>}
-      {items && <p className="muted small">{list.length} de {items.length}</p>}
+      {items?.length > 0 && <p className="muted small">{list.length === items.length ? `${items.length} ${items.length === 1 ? 'canción' : 'canciones'}` : `${list.length} de ${items.length}`}</p>}
       {items && items.length === 0 && (
-        <div className="empty card"><p>Aún no hay alabanzas compartidas.</p></div>
+        <div className="empty card"><p>Aún no hay canciones compartidas.</p></div>
       )}
       <ul className="song-list">
         {list.map((x) => {

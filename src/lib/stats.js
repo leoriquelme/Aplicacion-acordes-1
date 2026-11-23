@@ -36,7 +36,7 @@ export function songUsage(songs, events, now = new Date()) {
   return [...stats.values()];
 }
 
-const byTitle = (a, b) => a.song.title.localeCompare(b.song.title, 'es');
+const byTitle = (a, b) => a.song.title.localeCompare(b.song.title, 'es', { numeric: true });
 
 export function mostUsed(usage) {
   return [...usage].sort((a, b) => b.count - a.count || (b.lastUsed || '').localeCompare(a.lastUsed || '') || byTitle(a, b));

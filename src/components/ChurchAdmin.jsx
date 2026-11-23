@@ -81,7 +81,7 @@ export function UsersCard() {
 
   return (
     <section className="card">
-      <h2>Usuarios</h2>
+      <h2>Miembros</h2>
       <div className="table-scroll">
         <table className="rank-table users-table">
           <thead>
