@@ -1706,3 +1706,15 @@ a.tf-cabeza:hover { text-decoration: none; background: color-mix(in srgb, var(--
 .nacimiento-campos { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
 .nacimiento-campos input[type='date'] { flex: 1 1 10rem; min-width: 0; }
 .nacimiento-editar p { margin: 0; }
+
+/* Consejo de uso en Inicio (debajo del versículo) */
+.bloque-consejo { background: var(--lila-bg); border-color: transparent; box-shadow: none; padding: 0.8rem 1rem; }
+.consejo-arriba { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem; }
+.consejo-etiqueta { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--lila-fg); }
+.consejo-x { color: var(--muted); padding: 0.15rem 0.45rem; min-height: 0; }
+.consejo-cuerpo { display: flex; gap: 0.75rem; align-items: flex-start; }
+.consejo-icono { flex: none; display: grid; place-items: center; width: 2.3rem; height: 2.3rem; border-radius: 50%; background: var(--surface); color: var(--lila-fg); font-size: 1.1rem; }
+.consejo-cuerpo h3 { margin: 0 0 0.15rem; font-size: 1rem; }
+.consejo-cuerpo p { margin: 0; font-size: 0.92rem; line-height: 1.4; color: color-mix(in srgb, var(--lila-fg) 35%, var(--text)); }
+.consejo-botones { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.65rem; padding-left: 3.05rem; }
+.consejo-botones .btn.ghost { color: var(--lila-fg); }
