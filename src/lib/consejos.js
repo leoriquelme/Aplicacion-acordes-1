@@ -7,6 +7,7 @@ import { NOVEDADES } from '../data/novedades.js';
 export const DIAS_NOVEDAD = 14;
 
 export const OCULTOS_KEY = 'cancionero-consejos-ocultos';
+export const CERRADO_KEY = 'cancionero-consejos-cerrado'; // día en que se cerró el cuadro con la ✕
 
 /**
  * Cada consejo: id, icono, título, texto, a dónde lleva (to) y el texto del botón.
@@ -113,4 +114,13 @@ export function leerOcultos() {
 
 export function guardarOcultos(lista) {
   try { localStorage.setItem(OCULTOS_KEY, JSON.stringify(lista)); } catch { /* nada */ }
+}
+
+/** ¿Se cerró el cuadro hoy? */
+export function cerradoHoy(hoy) {
+  try { return localStorage.getItem(CERRADO_KEY) === hoy; } catch { return false; }
+}
+
+export function cerrarHoy(hoy) {
+  try { localStorage.setItem(CERRADO_KEY, hoy); } catch { /* nada */ }
 }
