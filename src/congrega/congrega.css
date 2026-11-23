@@ -116,3 +116,9 @@ a.cg-item:hover { background: var(--surface-2); text-decoration: none; }
 .cg .page-head p { margin: 0.2rem 0 0; }
 .cg .datos-grid { margin: 0; }
 .cg .dato .cg-delta { font-size: 0.85rem; font-weight: 600; }
+
+/* Tipo de asistencia (regular / visita / colaborador) en la fila de quien llegó */
+.cg-item:has(.cg-tipo) { flex-wrap: wrap; }
+.cg-item .cg-tipo { order: 5; flex: 1 1 100%; display: flex; }
+.cg-item .cg-tipo button { flex: 1; min-height: 2.2rem; padding: 0.3rem 0.4rem; font-size: 0.85rem; }
+.cg-item .cg-tipo button[aria-pressed='true'] { background: var(--cg-ok); color: #fff; }
