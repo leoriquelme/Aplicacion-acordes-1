@@ -11,6 +11,7 @@ import { DataContext, ROLES } from './store.jsx';
 import { normalize } from './chordpro.js';
 import { keyOf } from './claves.js';
 import { datosEnVivo } from './envivo.js';
+import { cumpleDeNacimiento } from './cumpleanos.js';
 
 // Cada persona entra con su cuenta (Google o correo y contraseña). Sin iglesia ve los himnos,
 // la biblioteca compartida y sus canciones personales. Puede crear una iglesia o unirse con un código.
@@ -128,6 +129,19 @@ export async function guardarMiFoto(photo) {
   await Promise.all(mias.map((c) => updateDoc(personRef(c, uid), { photo: valor }).catch(() => {})));
 }
 
+/**
+ * Mi fecha de nacimiento ("AAAA-MM-DD" o null para quitarla). La fecha completa queda solo en mi cuenta;
+ * en mi ficha de cada iglesia se guarda solo el día y el mes ("MM-DD") para el aviso de cumpleaños.
+ */
+export async function guardarMiNacimiento(fecha) {
+  const uid = auth.currentUser.uid;
+  const cumple = fecha ? cumpleDeNacimiento(fecha) : '';
+  if (fecha && !cumple) throw new Error('Fecha no válida');
+  await setDoc(userRef(uid), { birthDate: fecha || deleteField() }, { merge: true });
+  const mias = Object.keys((await getDoc(userRef(uid))).data()?.churches || {});
+  await Promise.all(mias.map((c) => updateDoc(personRef(c, uid), { birthday: cumple || deleteField() }).catch(() => {})));
+}
+
 /** Quitar una iglesia de "Mis iglesias". */
 export async function olvidarIglesia(churchId) {
   await updateDoc(userRef(auth.currentUser.uid), { [`churches.${churchId}`]: deleteField() }).catch(() => {});
@@ -148,8 +162,9 @@ async function entrarComoMiembro(churchId, { code = '', role = 'colaborador', na
   }
   const c = (await getDoc(doc(db, 'churches', churchId))).data();
   await anotarIglesia(churchId, c.name);
-  const miFoto = (await getDoc(userRef(uid)).catch(() => null))?.data()?.photo;
-  await updateDoc(personRef(churchId, uid), { lastSeen: now, ...(miFoto ? { photo: miFoto } : {}) }).catch(() => {});
+  const mio = (await getDoc(userRef(uid)).catch(() => null))?.data() || {};
+  const miCumple = cumpleDeNacimiento(mio.birthDate);
+  await updateDoc(personRef(churchId, uid), { lastSeen: now, ...(mio.photo ? { photo: mio.photo } : {}), ...(miCumple ? { birthday: miCumple } : {}) }).catch(() => {});
   return { churchId, churchName: c.name };
 }
 

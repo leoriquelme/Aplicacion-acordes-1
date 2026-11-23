@@ -203,6 +203,13 @@ describe('perfiles', () => {
     const foto = 'data:image/jpeg;base64,/9j/4AAQSkZJRg==';
     await assertSucceeds(updateDoc(doc(cuenta('juan'), 'churches', C, 'people', 'juan'), { photo: foto }));
     await assertSucceeds(setDoc(doc(cuenta('juan'), 'users', 'juan'), { photo: foto }, { merge: true }));
+    // Fecha de nacimiento: completa solo en mi cuenta; en la iglesia solo día y mes.
+    await assertSucceeds(setDoc(doc(cuenta('juan'), 'users', 'juan'), { birthDate: '1990-03-14' }, { merge: true }));
+    await assertFails(setDoc(doc(cuenta('juan'), 'users', 'juan'), { birthDate: '14/03/1990' }, { merge: true }));
+    await assertSucceeds(updateDoc(doc(cuenta('juan'), 'churches', C, 'people', 'juan'), { birthday: '03-14' }));
+    await assertFails(updateDoc(doc(cuenta('juan'), 'churches', C, 'people', 'juan'), { birthday: '1990-03-14' }));
+    await assertFails(updateDoc(doc(cuenta('juan'), 'churches', C, 'people', 'ana'), { birthday: '03-14' }));
+    await assertSucceeds(updateDoc(doc(cuenta('juan'), 'churches', C, 'people', 'juan'), { birthday: deleteField() }));
     await assertFails(updateDoc(doc(cuenta('juan'), 'churches', C, 'people', 'ana'), { photo: foto }));
     await assertFails(updateDoc(doc(cuenta('juan'), 'churches', C, 'people', 'juan'), { photo: 'https://otro.com/x.jpg' }));
     await assertFails(updateDoc(doc(cuenta('juan'), 'churches', C, 'people', 'juan'), { photo: `data:image/jpeg;base64,${'A'.repeat(60000)}` }));

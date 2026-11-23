@@ -7,6 +7,7 @@ import Icon from '../components/Icon.jsx';
 import VersiculoDelDia from '../components/VersiculoDelDia.jsx';
 import IglesiaLogo from '../components/IglesiaLogo.jsx';
 import { TuPropuesta } from '../components/Participacion.jsx';
+import Cumpleanos from '../components/Cumpleanos.jsx';
 
 const MAX_EVENTOS = 4;
 
@@ -47,6 +48,8 @@ export default function Inicio() {
           ))}
         </section>
       )}
+
+      <Cumpleanos />
 
       <VersiculoDelDia />
 
