@@ -29,3 +29,29 @@ describe('importar desde Planning Center', () => {
     expect(t.ficha.motivoInactivo).toBe('Fallecido/a');
   });
 });
+
+import { buscarCoincidencias, fusionarDatos } from './importarPco.js';
+describe('coincidencias al importar', () => {
+  const filas = parseCsv(CSV).map((r) => filaPco(r));
+  it('encuentra por nombre (con o sin segundo apellido y tildes), correo o celular', () => {
+    const people = [{ key: 'uidAna', uid: 'uidAna', name: 'Ana Perez' }, { key: 'x', name: 'Tomás Pérez Soto' }];
+    let m = buscarCoincidencias(filas, people);
+    expect(m.get('pco-101')).toEqual({ key: 'uidAna', motivo: 'mismo nombre' });
+    expect(m.get('pco-102')).toEqual({ key: 'x', motivo: 'mismo nombre' });
+    m = buscarCoincidencias(filas, [{ key: 'k1', name: 'Otra' }], new Map([['k1', { telefono: '+56 9 3333 4444' }]]));
+    expect(m.get('pco-101')).toEqual({ key: 'k1', motivo: 'mismo celular' });
+    m = buscarCoincidencias(filas, [{ key: 'k2', name: 'Otra' }], new Map([['k2', { email: 'ANA@ejemplo.cl ' }]]));
+    expect(m.get('pco-101').motivo).toBe('mismo correo');
+  });
+  it('no sugiere si el nombre es ambiguo o si la persona ya fue importada antes', () => {
+    expect(buscarCoincidencias(filas, [{ key: 'a', name: 'Ana Pérez' }, { key: 'b', name: 'Ana Pérez' }]).has('pco-101')).toBe(false);
+    expect(buscarCoincidencias(filas, [{ key: 'pco-101', name: 'Ana Pérez Soto' }]).size).toBe(0);
+  });
+  it('reconoce a quien ya se fusionó en una importación anterior', () => {
+    expect(buscarCoincidencias(filas, [{ key: 'uidAna', uid: 'uidAna', name: 'Anita', pcoId: '101' }]).get('pco-101').motivo).toBe('mismo registro de Planning Center');
+  });
+  it('fusionar suma equipos, no borra datos y respeta el nombre de quien tiene cuenta', () => {
+    const r = fusionarDatos({ uid: 'u', name: 'Anita', teams: ['Adoración'], photo: 'x' }, { name: 'Ana Pérez', teams: ['Multimedia'], apodo: '', tipo: 'Activo' });
+    expect(r).toEqual({ uid: 'u', name: 'Anita', teams: ['Adoración', 'Multimedia'], photo: 'x', tipo: 'Activo' });
+  });
+});
