@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import Icon from '../components/Icon.jsx';
+import { APP_ETAPA, APP_NOMBRE } from '../lib/marca.js';
 import {
   crearCuentaConCorreo, entrarConCorreo, entrarConGoogle, mensajeAcceso, recuperarContrasena,
 } from '../lib/acceso.js';
@@ -41,8 +41,8 @@ export default function Bienvenida({ notice }) {
   return (
     <div className="welcome">
       <div className="welcome-card card">
-        <div className="welcome-logo"><Icon name="music" size="2.4rem" /></div>
-        <h1>Cancionero</h1>
+        <img className="welcome-adora" src="icono-192.png" alt="" width="96" height="96" />
+        <h1>{APP_NOMBRE} <span className="beta-pill">{APP_ETAPA}</span></h1>
         <p className="muted">Letras y acordes para tu iglesia</p>
         {notice && <p className="error">{notice}</p>}
         {invitacionPendiente() && (

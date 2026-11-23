@@ -1,17 +1,24 @@
 import { Link } from 'react-router-dom';
+import { APP_NOMBRE } from '../lib/marca.js';
 import { useStore } from '../lib/store.jsx';
 import { formatLong, relativeDay, sortEvents, todayISO } from '../lib/dates.js';
 import Avatares from '../components/Avatares.jsx';
 import Icon from '../components/Icon.jsx';
 import VersiculoDelDia from '../components/VersiculoDelDia.jsx';
 import IglesiaLogo from '../components/IglesiaLogo.jsx';
+import { TuPropuesta } from '../components/Participacion.jsx';
 
 const MAX_EVENTOS = 4;
 
 export default function Inicio() {
-  const { events, songs, mode, church, people = [], participations = [], can } = useStore();
+  const { events, songs, mode, church, people = [], participations = [], propuestas = [], me, joinEvent, rechazarPropuesta, can } = useStore();
   const today = todayISO();
   const upcoming = sortEvents(events.filter((e) => e.date >= today)).slice(0, MAX_EVENTOS);
+  const misPropuestas = propuestas
+    .filter((p) => me && p.personKey === me.key && p.estado === 'propuesta')
+    .map((p) => ({ p, ev: events.find((e) => e.id === p.eventId) }))
+    .filter(({ ev }) => ev && ev.date >= today)
+    .sort((a, b) => a.ev.date.localeCompare(b.ev.date));
 
   return (
     <div className="page inicio">
@@ -19,7 +26,7 @@ export default function Inicio() {
       <section className="card bloque-iglesia">
         <IglesiaLogo />
         <div>
-          <h1>{mode === 'cloud' ? church?.name : 'Cancionero'}</h1>
+          <h1>{mode === 'cloud' ? church?.name : APP_NOMBRE}</h1>
           <p className="muted">
             {mode === 'cloud'
               ? `${people.length} ${people.length === 1 ? 'miembro participando' : 'miembros participando'}`
@@ -27,6 +34,19 @@ export default function Inicio() {
           </p>
         </div>
       </section>
+
+      {/* Propuestas del líder para servir (la persona acepta o dice que no puede) */}
+      {misPropuestas.length > 0 && (
+        <section className="card bloque-propuestas">
+          <h2>{misPropuestas.length === 1 ? 'Te proponen servir' : 'Te proponen servir en estos servicios'}</h2>
+          {misPropuestas.map(({ p, ev }) => (
+            <div key={p.id}>
+              <Link className="small" to={`/eventos/${ev.id}`}>{ev.name} · {formatLong(ev.date)}{ev.time ? ` · ${ev.time}` : ''}</Link>
+              <TuPropuesta p={p} onAcepto={() => joinEvent(ev, p.role, me)} onNoPuedo={() => rechazarPropuesta(p)} />
+            </div>
+          ))}
+        </section>
+      )}
 
       <VersiculoDelDia />
 

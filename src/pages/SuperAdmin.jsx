@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { APP_NOMBRE } from '../lib/marca.js';
 import { Link } from 'react-router-dom';
 import {
   actividadGeneral, actividadIglesia, cambiarEstadoIglesia, eliminarIglesia, reiniciarOraciones, resolverSugerencia, soySuperAdmin, todasLasIglesias, todasLasSugerencias, useAuth,
@@ -57,7 +58,7 @@ export default function SuperAdmin() {
         <div className="welcome-card card wide">
           <h1>Super Admin</h1>
           <p>La cuenta <strong>{email}</strong> no es Super Admin.</p>
-          <p className="muted small">Si eres el encargado del Cancionero, copia este código y créalo en Firebase (Firestore → colección <code>superadmins</code> → documento con este código como ID):</p>
+          <p className="muted small">Si eres el encargado de {APP_NOMBRE}, copia este código y créalo en Firebase (Firestore → colección <code>superadmins</code> → documento con este código como ID):</p>
           <div className="uid-box">{user.uid}</div>
           <div className="row gap wrap" style={{ marginTop: '0.6rem' }}>
             <button className="btn" onClick={() => navigator.clipboard?.writeText(user.uid)}>Copiar código</button>

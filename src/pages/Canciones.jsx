@@ -6,6 +6,7 @@ import AddMenu from '../components/AddMenu.jsx';
 import AgregarEjemplos from '../components/AgregarEjemplos.jsx';
 import { displayKey, normalize } from '../lib/chordpro.js';
 import Icon from '../components/Icon.jsx';
+import { lineaQueCoincide } from '../lib/buscar.js';
 
 const VISTA_KEY = 'cancionero-vista-canciones';
 const VISTA_INICIAL = { orden: 'az', tono: '', onlyFav: false };
@@ -31,11 +32,21 @@ export default function Canciones() {
     // Las canciones antiguas no tienen fecha de creación: van al final, por título.
     nuevas: (a, b) => (b.createdAt || 0) - (a.createdAt || 0) || titulo(a).localeCompare(titulo(b), 'es', { numeric: true }),
   };
-  const list = songs
+  // Busca en el título, el autor y también en la letra (muestra la línea donde aparece).
+  const enLetra = {};
+  const coincide = (s) => {
+    if (!query || normalize(s.title).includes(query) || normalize(s.author).includes(query)) return true;
+    const linea = lineaQueCoincide(s.content, q);
+    if (linea) enLetra[s.id] = linea;
+    return Boolean(linea);
+  };
+  const filtradas = songs
     .filter((s) => !onlyFav || favorites.includes(s.id))
     .filter((s) => !tono || songKey(s) === tono)
-    .filter((s) => !query || normalize(s.title).includes(query) || normalize(s.author).includes(query))
-    .sort(ORDENES[orden] || ORDENES.az);
+    .filter(coincide);
+  const orden1 = ORDENES[orden] || ORDENES.az;
+  // Primero las que coinciden por título o autor; después las que lo tienen en la letra.
+  const list = filtradas.sort((a, b) => Boolean(enLetra[a.id]) - Boolean(enLetra[b.id]) || orden1(a, b));
   const activos = (orden !== 'az') + Boolean(tono) + Boolean(onlyFav);
 
   return (
@@ -50,7 +61,7 @@ export default function Canciones() {
       <input
         className="search"
         type="search"
-        placeholder="Buscar por título o autor…"
+        placeholder="Buscar por título, autor o letra…"
         value={q}
         onChange={(e) => setQ(e.target.value)}
         autoFocus
@@ -104,7 +115,9 @@ export default function Canciones() {
               <Link to={`/canciones/${s.id}`} className="song-block">
                 <span className="song-block-text">
                   <strong>{s.title}</strong>
-                  {s.author && <span className="muted small">{s.author}</span>}
+                  {enLetra[s.id] ? (
+                    <span className="muted small en-letra">“{enLetra[s.id]}”</span>
+                  ) : s.author && <span className="muted small">{s.author}</span>}
                 </span>
                 {favorites.includes(s.id) && <span className="fav-mini" aria-label="Favorita">★</span>}
                 {songKey(s) && <span className="key-pill">{displayKey(songKey(s), 0, settings.notation)}</span>}
