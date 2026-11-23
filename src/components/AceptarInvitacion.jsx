@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { APP_NOMBRE } from '../lib/marca.js';
 import { useNavigate } from 'react-router-dom';
 import { unirseAIglesia, useAuth } from '../lib/cloud.jsx';
 import { borrarInvitacion } from '../lib/invitacion.js';
@@ -44,7 +45,7 @@ export default function AceptarInvitacion({ code, onListo }) {
           <>
             <div className="welcome-logo"><Icon name="church" size="2.4rem" /></div>
             <h1>Te invitaron a una iglesia</h1>
-            <p>Hola, <strong>{name}</strong>. Con este link te puedes unir a una iglesia en el Cancionero para ver sus canciones y eventos.</p>
+            <p>Hola, <strong>{name}</strong>. Con este link te puedes unir a una iglesia en {APP_NOMBRE} para ver sus canciones y eventos.</p>
             <p className="muted small">Código de la invitación: <strong className="codigo">{code}</strong></p>
             <button className="btn primary big" disabled={busy} onClick={unirme}>{busy ? 'Uniéndote…' : 'Unirme a la iglesia'}</button>
             {error && <p className="error">{error}</p>}

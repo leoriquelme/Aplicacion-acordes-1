@@ -1,3 +1,4 @@
+import { APP_NOMBRE } from './marca.js';
 // Link de invitación: https://…/Aplicacion-acordes-1/?unirse=CODIGO
 // Al abrirlo, el código se guarda en este equipo hasta que la persona entre con su cuenta y se una.
 
@@ -45,5 +46,5 @@ export function linkDeInvitacion(code, base = window.location.origin + window.lo
 /** Mensaje listo para WhatsApp. */
 export function mensajeDeInvitacion(code, churchName, base) {
   const link = linkDeInvitacion(code, base);
-  return `Te invito a unirte a ${churchName || 'nuestra iglesia'} en el Cancionero (letras y acordes). Abre este link, entra con tu cuenta y quedas dentro:\n${link}\n\nSi te pide un código, es: ${limpiar(code)}`;
+  return `Te invito a unirte a ${churchName || 'nuestra iglesia'} en ${APP_NOMBRE} (letras y acordes). Abre este link, entra con tu cuenta y quedas dentro:\n${link}\n\nSi te pide un código, es: ${limpiar(code)}`;
 }

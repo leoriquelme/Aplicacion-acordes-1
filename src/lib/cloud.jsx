@@ -623,7 +623,7 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
 
   /** Restaurar un respaldo: vuelve a guardar canciones y eventos con su mismo id. */
   const restoreBackup = useCallback(async (data) => {
-    if (!data || !Array.isArray(data.songs)) throw new Error('El archivo no es un respaldo del Cancionero.');
+    if (!data || !Array.isArray(data.songs)) throw new Error('El archivo no es un respaldo de la app.');
     const ops = [
       ...data.songs.filter((s) => s.id && s.title).map((s) => (b) => b.set(doc(col('songs'), s.id), { ...sinId(s), updatedAt: Date.now() })),
       ...(Array.isArray(data.events) ? data.events : []).filter((e) => e.id && e.name).map((e) => (b) => b.set(doc(col('events'), e.id), sinId(e))),

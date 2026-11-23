@@ -1,4 +1,5 @@
 import { Suspense, lazy, useEffect } from 'react';
+import { APP_ETAPA, APP_NOMBRE } from './lib/marca.js';
 import { Link, NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import Inicio from './pages/Inicio.jsx';
 import Canciones from './pages/Canciones.jsx';
@@ -77,7 +78,7 @@ export default function App() {
     <div className="app">
       {!presenting && (
         <header className="topbar">
-          <div className="brand">Cancionero</div>
+          <div className="brand">{APP_NOMBRE} <span className="beta-pill">{APP_ETAPA}</span></div>
           <nav className="tabs">
             {tabs.map((t) => (
               <NavLink

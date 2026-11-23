@@ -11,7 +11,7 @@ export const DEFAULT_SETTINGS = {
   fontSize: 22,
   notation: 'americano', // 'americano' (C D E) o 'latino' (Do Re Mi)
   showChords: true,
-  theme: 'claro',
+  tema: 'auto', // 'auto' (como el teléfono o el computador), 'oscuro' o 'claro'
 };
 
 /** Permisos por perfil (tabla de control de acceso). */
@@ -54,16 +54,26 @@ export function readLocalData() {
 const SettingsContext = createContext(null);
 
 export function SettingsProvider({ children }) {
-  const [settings, setSettings] = useState(() => ({
-    ...DEFAULT_SETTINGS,
-    ...(readJSON(STORAGE_KEY)?.settings || {}),
-    ...(readJSON(SETTINGS_KEY) || {}),
-  }));
+  const [settings, setSettings] = useState(() => {
+    const s = { ...DEFAULT_SETTINGS, ...(readJSON(STORAGE_KEY)?.settings || {}), ...(readJSON(SETTINGS_KEY) || {}) };
+    // Antes había solo un interruptor (theme): quien lo tenía encendido sigue en oscuro; el resto pasa a automático.
+    if (!readJSON(SETTINGS_KEY)?.tema) s.tema = s.theme === 'oscuro' ? 'oscuro' : 'auto';
+    delete s.theme;
+    return s;
+  });
 
   useEffect(() => writeJSON(SETTINGS_KEY, settings), [settings]);
   useEffect(() => {
-    document.documentElement.dataset.theme = settings.theme;
-  }, [settings.theme]);
+    const mq = window.matchMedia?.('(prefers-color-scheme: dark)');
+    const aplicar = () => {
+      const oscuro = settings.tema === 'oscuro' || (settings.tema === 'auto' && mq?.matches);
+      document.documentElement.dataset.theme = oscuro ? 'oscuro' : 'claro';
+    };
+    aplicar();
+    if (settings.tema !== 'auto' || !mq) return undefined;
+    mq.addEventListener?.('change', aplicar);
+    return () => mq.removeEventListener?.('change', aplicar);
+  }, [settings.tema]);
 
   const updateSettings = useCallback((patch) => setSettings((s) => ({ ...s, ...patch })), []);
   const value = useMemo(() => ({ settings, updateSettings }), [settings, updateSettings]);

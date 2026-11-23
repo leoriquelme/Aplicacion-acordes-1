@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { APP_NOMBRE } from '../lib/marca.js';
 import { useStore } from '../lib/store.jsx';
 import { formatLong, relativeDay, sortEvents, todayISO } from '../lib/dates.js';
 import Avatares from '../components/Avatares.jsx';
@@ -19,7 +20,7 @@ export default function Inicio() {
       <section className="card bloque-iglesia">
         <IglesiaLogo />
         <div>
-          <h1>{mode === 'cloud' ? church?.name : 'Cancionero'}</h1>
+          <h1>{mode === 'cloud' ? church?.name : APP_NOMBRE}</h1>
           <p className="muted">
             {mode === 'cloud'
               ? `${people.length} ${people.length === 1 ? 'miembro participando' : 'miembros participando'}`

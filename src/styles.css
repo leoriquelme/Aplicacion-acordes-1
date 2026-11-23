@@ -1597,3 +1597,13 @@ label.barra-btn { margin: 0; display: inline-grid; font-weight: 700; }
   .barra-presentar { padding: 0 0.75rem 0 0.6rem; }
   .barra-tono { min-width: 2.4rem; }
 }
+
+/* Nombre Adora (Beta) y logo en la entrada (23-nov) */
+.beta-pill {
+  display: inline-block; vertical-align: middle; margin-left: 0.3em; padding: 0.15em 0.5em; border-radius: 999px;
+  font-size: 0.55em; font-weight: 700; letter-spacing: 0.02em; background: var(--lila-bg, #ece8ff); color: var(--lila-fg, #5b4bc4);
+}
+h1 .beta-pill { font-size: 0.4em; }
+.welcome-adora { display: block; margin: 0 auto 0.6rem; width: 96px; height: 96px; border-radius: 22px; box-shadow: var(--shadow); }
+.en-letra { font-style: italic; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.song-block-text { min-width: 0; }

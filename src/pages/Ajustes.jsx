@@ -33,7 +33,7 @@ export default function Ajustes() {
         setMsg('Respaldo cargado correctamente.');
       }
     } catch {
-      setMsg('No se pudo leer el archivo. ¿Es un respaldo del Cancionero?');
+      setMsg('No se pudo leer el archivo. ¿Es un respaldo de la app?');
     }
     e.target.value = '';
   };
@@ -69,10 +69,11 @@ export default function Ajustes() {
         </label>
         <label className="fila">
           <span className="fila-label"><Icon name="moon" /> Modo oscuro</span>
-          <input
-            type="checkbox" className="interruptor" checked={settings.theme === 'oscuro'}
-            onChange={(e) => updateSettings({ theme: e.target.checked ? 'oscuro' : 'claro' })}
-          />
+          <select className="fila-select" value={settings.tema} onChange={(e) => updateSettings({ tema: e.target.value })}>
+            <option value="auto">Automático</option>
+            <option value="oscuro">Siempre</option>
+            <option value="claro">Nunca</option>
+          </select>
         </label>
         <div className="fila fila-muestra">
           <SongView content={MUESTRA} songKey="G" settings={settings} />
