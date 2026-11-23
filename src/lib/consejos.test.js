@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { consejosPara, numeroDelDia } from './consejos.js';
+import { consejosPara, novedadesPara, numeroDelDia } from './consejos.js';
 
 const base = { mode: 'cloud', can: { edit: false, events: false, users: false }, birthDate: '', photo: '', tema: 'auto', instalada: false, eventosProximos: 1 };
 const ids = (ctx, ocultos) => consejosPara(ctx, ocultos).map((c) => c.id);
@@ -34,5 +34,12 @@ describe('consejos', () => {
   });
   it('el número del día cambia de un día a otro', () => {
     expect(numeroDelDia(new Date(2026, 10, 24)) - numeroDelDia(new Date(2026, 10, 23))).toBe(1);
+  });
+  it('las novedades salen solo las 2 semanas siguientes y se pueden esconder', () => {
+    const lista = [{ id: 'a', fecha: '2026-11-23' }, { id: 'b', fecha: '2026-11-25' }];
+    expect(novedadesPara('2026-11-22', [], lista)).toEqual([]);
+    expect(novedadesPara('2026-11-25', [], lista).map((n) => n.id)).toEqual(['b', 'a']);
+    expect(novedadesPara('2026-12-07', [], lista).map((n) => n.id)).toEqual(['b']);
+    expect(novedadesPara('2026-11-25', ['b'], lista).map((n) => n.id)).toEqual(['a']);
   });
 });
