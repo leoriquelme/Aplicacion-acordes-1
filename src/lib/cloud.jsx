@@ -292,7 +292,7 @@ export async function soySuperAdmin() {
   }
 }
 
-const SUBCOLECCIONES = ['members', 'sessions', 'people', 'private', 'songs', 'events', 'participations', 'favorites', 'suggestions', 'live'];
+const SUBCOLECCIONES = ['members', 'sessions', 'people', 'private', 'songs', 'events', 'participations', 'favorites', 'suggestions', 'live', 'families', 'fichas', 'asistencia'];
 
 /** Todas las iglesias (solo Super Admin). */
 export async function todasLasIglesias() {

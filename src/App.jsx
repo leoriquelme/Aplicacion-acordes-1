@@ -1,6 +1,7 @@
-import { Suspense, lazy, useEffect } from 'react';
+import { Suspense, lazy, useEffect, useRef } from 'react';
 import { APP_ETAPA, APP_NOMBRE } from './lib/marca.js';
-import { Link, NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { Link, NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { appElegida } from './congrega/apps.js';
 import Inicio from './pages/Inicio.jsx';
 import Canciones from './pages/Canciones.jsx';
 import InicioPersonal from './pages/InicioPersonal.jsx';
@@ -25,6 +26,10 @@ const cargarSugerencias = () => import('./pages/Sugerencias.jsx');
 const cargarImprimir = () => import('./pages/Imprimir.jsx');
 const cargarImportar = () => import('./pages/Importar.jsx');
 const cargarEditarPerfil = () => import('./components/Comunicacion.jsx');
+const cargarCongrega = () => import('./congrega/Congrega.jsx');
+const cargarApps = () => import('./congrega/Apps.jsx');
+const Congrega = lazy(cargarCongrega);
+const Apps = lazy(cargarApps);
 const Cancion = lazy(cargarCancion);
 const EditarCancion = lazy(cargarEditarCancion);
 const Eventos = lazy(cargarEventos);
@@ -39,7 +44,7 @@ const Sugerencias = lazy(cargarSugerencias);
 const Imprimir = lazy(cargarImprimir);
 const Importar = lazy(cargarImportar);
 const EditarPerfil = lazy(() => cargarEditarPerfil().then((m) => ({ default: m.EditarPerfil })));
-const TODAS = [cargarCancion, cargarEditarCancion, cargarEventos, cargarEvento, cargarAjustes, cargarPresentacion, cargarBiblioteca, cargarApoyo, cargarMiIglesia, cargarMiembros, cargarSugerencias, cargarImprimir, cargarImportar, cargarEditarPerfil];
+const TODAS = [cargarCancion, cargarEditarCancion, cargarEventos, cargarEvento, cargarAjustes, cargarPresentacion, cargarBiblioteca, cargarApoyo, cargarMiIglesia, cargarMiembros, cargarSugerencias, cargarImprimir, cargarImportar, cargarEditarPerfil, cargarCongrega, cargarApps];
 
 /** Baja las demás páginas cuando el teléfono está libre, así después cambian al instante y sirven sin internet. */
 function usePrecargarPaginas() {
@@ -71,6 +76,19 @@ export default function App() {
   const liveEvent = enVivoActivo(live) ? events.find((e) => e.id === live.eventId) : null;
   const personal = mode === 'personal';
   usePrecargarPaginas();
+  // Selector de apps (como Planning Center): la primera vez se pregunta qué app usar; después se abre la última elegida.
+  const navigate = useNavigate();
+  const yaElegido = useRef(false);
+  useEffect(() => {
+    if (yaElegido.current || mode !== 'cloud' || !church) return;
+    yaElegido.current = true;
+    if (pathname !== '/') return;
+    const app = appElegida();
+    if (!app) navigate('/apps', { replace: true });
+    else if (app === 'congrega') navigate('/congrega', { replace: true });
+  }, [mode, church, pathname, navigate]);
+  const enCongrega = pathname.startsWith('/congrega');
+  const enApps = pathname === '/apps';
   // Sin iglesia abierta: solo Inicio, Canciones y Ajustes (a la iglesia se entra desde Ajustes o con un link).
   const tabs = personal ? TABS.filter((t) => ['/', '/canciones', '/ajustes'].includes(t.to)) : TABS;
 
@@ -78,8 +96,8 @@ export default function App() {
     <div className="app">
       {!presenting && (
         <header className="topbar">
-          <div className="brand">{APP_NOMBRE} <span className="beta-pill">{APP_ETAPA}</span></div>
-          <nav className="tabs">
+          <Link className="brand" to="/apps" title="Cambiar de app">{enCongrega ? 'Congrega' : enApps ? 'Apps' : APP_NOMBRE} <span className="beta-pill">{APP_ETAPA}</span> <span className="brand-cambiar" aria-hidden="true">▾</span></Link>
+          {!enCongrega && !enApps && <nav className="tabs">
             {tabs.map((t) => (
               <NavLink
                 key={t.to}
@@ -91,7 +109,7 @@ export default function App() {
                 <span>{t.label}</span>
               </NavLink>
             ))}
-          </nav>
+          </nav>}
           {personal && <div className="church-chip" title={me?.name}><Icon name="user" /> {me?.name}</div>}
           {mode === 'cloud' && church && (
             <div className="church-chip" title={`${me?.name} en ${church.name}`}><IglesiaLogo className="logo-chip" /> {church.name}</div>
@@ -134,6 +152,8 @@ export default function App() {
           <Route path="/apoyo" element={<Apoyo />} />
           <Route path="/presentar/:tipo/:id" element={<Presentacion />} />
           <Route path="/imprimir/evento/:id" element={<Imprimir />} />
+          <Route path="/apps" element={<Apps />} />
+          <Route path="/congrega/*" element={<Congrega />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         </Suspense>
