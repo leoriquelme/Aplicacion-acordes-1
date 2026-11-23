@@ -1638,6 +1638,8 @@ h1 .beta-pill { font-size: 0.4em; }
 /* Miembros como tarjetas (23-nov) */
 .miembros-tarjetas h2 { margin: 1.2rem 0 0.2rem; }
 .miembros-tarjetas > p { margin: 0 0 0.8rem; }
+.miembros-tarjetas { margin-bottom: 1.8rem; }
+.miembros-tarjetas + .grupo, .card.miembros + .grupo { margin-top: 1.8rem; }
 .miembros-tarjetas ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.6rem; }
 @media (min-width: 801px) { .miembros-tarjetas ul { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .tarjeta-miembro {
