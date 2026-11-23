@@ -1633,3 +1633,4 @@ h1 .beta-pill { font-size: 0.4em; }
 }
 .fila-persona:hover { background: var(--surface-2); }
 .fila-persona .grow { min-width: 0; }
+.g-otros { --g: #7c5cc4; }
