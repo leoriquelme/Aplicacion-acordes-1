@@ -41,7 +41,7 @@ Pruebas de permisos: `npm run test:rules` (usa el emulador de Firebase).
 
 ## Abrirla sin instalar nada
 
-La app se publica sola en https://leoriquelme.github.io/Aplicacion-acordes-1/ cada vez que se suben cambios.
+La app se publica sola en https://leoriquelme.github.io/aplicacion-iglesia/ cada vez que se suben cambios.
 
 ## Cómo ejecutarla en tu PC
 

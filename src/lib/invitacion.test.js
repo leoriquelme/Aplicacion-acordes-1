@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { codigoDelLink, linkDeInvitacion } from './invitacion.js';
 
-const BASE = 'https://leoriquelme.github.io/Aplicacion-acordes-1/';
+const BASE = 'https://leoriquelme.github.io/aplicacion-iglesia/';
 
 describe('link de invitación', () => {
   it('arma el link con el código', () => {

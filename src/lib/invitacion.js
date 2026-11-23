@@ -1,5 +1,5 @@
 import { APP_NOMBRE } from './marca.js';
-// Link de invitación: https://…/Aplicacion-acordes-1/?unirse=CODIGO
+// Link de invitación: https://…/aplicacion-iglesia/?unirse=CODIGO
 // Al abrirlo, el código se guarda en este equipo hasta que la persona entre con su cuenta y se una.
 
 const KEY = 'cancionero-invitacion';
