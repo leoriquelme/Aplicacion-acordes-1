@@ -1,5 +1,10 @@
 // Consejos de uso que se muestran en Inicio, debajo del versículo.
 // Se muestra uno a la vez; se esconden los que ya hiciste o los que no te sirven.
+// Las novedades (src/data/novedades.js) salen primero mientras son recientes.
+
+import { NOVEDADES } from '../data/novedades.js';
+
+export const DIAS_NOVEDAD = 14;
 
 export const OCULTOS_KEY = 'cancionero-consejos-ocultos';
 
@@ -80,6 +85,16 @@ export const CONSEJOS = [
 /** Los consejos que te sirven ahora y que no escondiste. */
 export function consejosPara(ctx, ocultos = []) {
   return CONSEJOS.filter((c) => !ocultos.includes(c.id) && c.mostrar(ctx));
+}
+
+/** Novedades recientes (de los últimos DIAS_NOVEDAD días) que no escondiste, la más nueva primero. */
+export function novedadesPara(hoy, ocultos = [], lista = NOVEDADES) {
+  const dia = (iso) => Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10)) / 86400000;
+  return lista
+    .filter((n) => !ocultos.includes(n.id))
+    .filter((n) => { const d = dia(hoy) - dia(n.fecha); return d >= 0 && d < DIAS_NOVEDAD; })
+    .sort((a, b) => b.fecha.localeCompare(a.fecha))
+    .map((n) => ({ ...n, novedad: true }));
 }
 
 /** Número del día (cambia cada día), para que el consejo vaya rotando solo. */
