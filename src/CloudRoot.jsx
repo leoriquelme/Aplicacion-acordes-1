@@ -1,14 +1,16 @@
-import { useContext, useEffect, useState } from 'react';
+import { Suspense, lazy, useContext, useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { AuthProvider, CloudStoreProvider, abrirIglesia, guardarPerfil, iglesiaCerradaAMano, marcarIglesiaCerrada, useAuth } from './lib/cloud.jsx';
 import { PersonalStoreProvider } from './lib/personal.jsx';
 import { DataContext } from './lib/store.jsx';
 import Bienvenida from './pages/Bienvenida.jsx';
 import { cerrarSesion } from './lib/acceso.js';
-import SuperAdmin from './pages/SuperAdmin.jsx';
 import App from './App.jsx';
 import AceptarInvitacion from './components/AceptarInvitacion.jsx';
 import { invitacionPendiente } from './lib/invitacion.js';
+
+// La página del Super Admin solo la usa una persona: se baja únicamente cuando se abre.
+const SuperAdmin = lazy(() => import('./pages/SuperAdmin.jsx'));
 
 function Gate() {
   const { user, profile, session, setSession } = useAuth();
@@ -32,7 +34,7 @@ function Gate() {
   // Llegó con un link de invitación: ofrecer unirse a esa iglesia.
   if (invitacion) return <AceptarInvitacion code={invitacion} onListo={() => setInvitacion('')} />;
   // Página del Super Admin: no es de una iglesia, se abre con #/super
-  if (pathname.startsWith('/super')) return <SuperAdmin />;
+  if (pathname.startsWith('/super')) return <Suspense fallback={<div className="loading">Cargando…</div>}><SuperAdmin /></Suspense>;
   if (!session && (abrirSola || abriendo) && !pathname.startsWith('/super')) return <div className="loading">Entrando a la iglesia…</div>;
   if (!session) {
     return (

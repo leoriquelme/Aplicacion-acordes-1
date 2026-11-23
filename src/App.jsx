@@ -1,25 +1,57 @@
+import { Suspense, lazy, useEffect } from 'react';
 import { Link, NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import Inicio from './pages/Inicio.jsx';
 import Canciones from './pages/Canciones.jsx';
-import Cancion from './pages/Cancion.jsx';
-import EditarCancion from './pages/EditarCancion.jsx';
-import Eventos from './pages/Eventos.jsx';
-import Evento from './pages/Evento.jsx';
-import Ajustes from './pages/Ajustes.jsx';
-import Presentacion from './pages/Presentacion.jsx';
-import Biblioteca from './pages/Biblioteca.jsx';
-import Apoyo from './pages/Apoyo.jsx';
-import MiIglesia from './pages/MiIglesia.jsx';
-import Miembros from './pages/Miembros.jsx';
-import Sugerencias from './pages/Sugerencias.jsx';
-import Imprimir from './pages/Imprimir.jsx';
-import Importar from './pages/Importar.jsx';
 import InicioPersonal from './pages/InicioPersonal.jsx';
 import { useStore } from './lib/store.jsx';
 import Icon from './components/Icon.jsx';
 import { enVivoActivo } from './lib/envivo.js';
 import IglesiaLogo from './components/IglesiaLogo.jsx';
-import { EditarPerfil } from './components/Comunicacion.jsx';
+
+// Para que la app abra rápido (aunque haya poca señal), al abrir solo se baja lo de la primera
+// pantalla. Las demás páginas se bajan solas un momento después, sin que se note.
+const cargarCancion = () => import('./pages/Cancion.jsx');
+const cargarEditarCancion = () => import('./pages/EditarCancion.jsx');
+const cargarEventos = () => import('./pages/Eventos.jsx');
+const cargarEvento = () => import('./pages/Evento.jsx');
+const cargarAjustes = () => import('./pages/Ajustes.jsx');
+const cargarPresentacion = () => import('./pages/Presentacion.jsx');
+const cargarBiblioteca = () => import('./pages/Biblioteca.jsx');
+const cargarApoyo = () => import('./pages/Apoyo.jsx');
+const cargarMiIglesia = () => import('./pages/MiIglesia.jsx');
+const cargarMiembros = () => import('./pages/Miembros.jsx');
+const cargarSugerencias = () => import('./pages/Sugerencias.jsx');
+const cargarImprimir = () => import('./pages/Imprimir.jsx');
+const cargarImportar = () => import('./pages/Importar.jsx');
+const cargarEditarPerfil = () => import('./components/Comunicacion.jsx');
+const Cancion = lazy(cargarCancion);
+const EditarCancion = lazy(cargarEditarCancion);
+const Eventos = lazy(cargarEventos);
+const Evento = lazy(cargarEvento);
+const Ajustes = lazy(cargarAjustes);
+const Presentacion = lazy(cargarPresentacion);
+const Biblioteca = lazy(cargarBiblioteca);
+const Apoyo = lazy(cargarApoyo);
+const MiIglesia = lazy(cargarMiIglesia);
+const Miembros = lazy(cargarMiembros);
+const Sugerencias = lazy(cargarSugerencias);
+const Imprimir = lazy(cargarImprimir);
+const Importar = lazy(cargarImportar);
+const EditarPerfil = lazy(() => cargarEditarPerfil().then((m) => ({ default: m.EditarPerfil })));
+const TODAS = [cargarCancion, cargarEditarCancion, cargarEventos, cargarEvento, cargarAjustes, cargarPresentacion, cargarBiblioteca, cargarApoyo, cargarMiIglesia, cargarMiembros, cargarSugerencias, cargarImprimir, cargarImportar, cargarEditarPerfil];
+
+/** Baja las demás páginas cuando el teléfono está libre, así después cambian al instante y sirven sin internet. */
+function usePrecargarPaginas() {
+  useEffect(() => {
+    const precargar = () => TODAS.forEach((f) => f().catch(() => {}));
+    if ('requestIdleCallback' in window) {
+      const id = window.requestIdleCallback(precargar, { timeout: 4000 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const t = setTimeout(precargar, 1500);
+    return () => clearTimeout(t);
+  }, []);
+}
 
 const TABS = [
   { to: '/', label: 'Inicio', icon: 'home', end: true },
@@ -37,6 +69,7 @@ export default function App() {
   const { mode, church, me, live, myUid, events = [] } = useStore();
   const liveEvent = enVivoActivo(live) ? events.find((e) => e.id === live.eventId) : null;
   const personal = mode === 'personal';
+  usePrecargarPaginas();
   // Sin iglesia abierta: solo Inicio, Canciones y Ajustes (a la iglesia se entra desde Ajustes o con un link).
   const tabs = personal ? TABS.filter((t) => ['/', '/canciones', '/ajustes'].includes(t.to)) : TABS;
 
@@ -81,6 +114,7 @@ export default function App() {
         </div>
       )}
       <main className={presenting ? '' : 'content'}>
+        <Suspense fallback={<div className="cargando-pagina">Cargando…</div>}>
         <Routes>
           <Route path="/" element={personal ? <InicioPersonal /> : <Inicio />} />
           <Route path="/canciones" element={<Canciones />} />
@@ -101,6 +135,7 @@ export default function App() {
           <Route path="/imprimir/evento/:id" element={<Imprimir />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </Suspense>
       </main>
     </div>
   );

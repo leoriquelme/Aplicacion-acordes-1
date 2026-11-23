@@ -9,6 +9,18 @@ import './styles.css';
 import CloudRoot from './CloudRoot.jsx';
 import { guardarInvitacionDelLink } from './lib/invitacion.js';
 
+// Si se publicó una versión nueva mientras la app estaba abierta, una página puede no encontrarse:
+// en ese caso recargar una vez para traer la versión nueva.
+window.addEventListener('vite:preloadError', (e) => {
+  try {
+    const antes = Number(sessionStorage.getItem('recargado-por-version') || 0);
+    if (Date.now() - antes < 15000) return; // ya se recargó hace poco: no repetir
+    sessionStorage.setItem('recargado-por-version', String(Date.now()));
+    e.preventDefault();
+    window.location.reload();
+  } catch { /* sin sessionStorage: no hacer nada */ }
+});
+
 // Si se abrió con un link de invitación (?unirse=CÓDIGO), guardarlo antes de mostrar nada.
 guardarInvitacionDelLink();
 
