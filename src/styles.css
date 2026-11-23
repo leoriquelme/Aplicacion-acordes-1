@@ -1634,3 +1634,37 @@ h1 .beta-pill { font-size: 0.4em; }
 .fila-persona:hover { background: var(--surface-2); }
 .fila-persona .grow { min-width: 0; }
 .g-otros { --g: #7c5cc4; }
+
+/* Miembros como tarjetas (23-nov) */
+.miembros-tarjetas h2 { margin: 1.2rem 0 0.2rem; }
+.miembros-tarjetas > p { margin: 0 0 0.8rem; }
+.miembros-tarjetas ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.6rem; }
+@media (min-width: 801px) { .miembros-tarjetas ul { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.tarjeta-miembro {
+  position: relative; display: flex; align-items: center; gap: 0.8rem; padding: 0.8rem 0.9rem;
+  background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow);
+}
+.tarjeta-miembro .avatar-lg { width: 2.9rem; height: 2.9rem; font-size: 1rem; flex-shrink: 0; }
+.tarjeta-miembro .grow { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 0.15rem; }
+.tm-nombre { font-size: 1.02rem; }
+.tm-detalle { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.tarjeta-miembro .role-pill { font-size: 0.75rem; margin-top: 0.15rem; }
+.tm-mas {
+  flex-shrink: 0; width: 2.6rem; height: 2.6rem; border: 0; border-radius: 999px; background: transparent;
+  color: var(--muted); font-size: 1.4rem; line-height: 1; cursor: pointer;
+}
+.tm-mas:hover, .tm-mas[aria-expanded='true'] { background: var(--surface-2); color: var(--text); }
+.menu-persona {
+  position: absolute; z-index: 30; right: 0.6rem; top: calc(100% - 0.4rem); width: min(17rem, calc(100% - 1.2rem));
+  background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow-float, 0 8px 24px rgba(0,0,0,.18));
+  overflow: hidden;
+}
+.menu-persona > button {
+  display: flex; justify-content: space-between; width: 100%; padding: 0.8rem 1rem; border: 0; border-bottom: 1px solid var(--border);
+  background: none; font: inherit; color: var(--text); text-align: left; cursor: pointer;
+}
+.menu-persona > button:hover { background: var(--surface-2); }
+.menu-persona > button.peligro { color: var(--danger); border-bottom: 0; }
+.menu-confirmar { padding: 0.8rem 1rem; display: grid; gap: 0.6rem; font-size: 0.92rem; }
+.menu-persona .error { margin: 0; padding: 0 1rem 0.8rem; }
+.role-pill.role-colaborador { background: var(--surface-2); color: var(--muted); }
