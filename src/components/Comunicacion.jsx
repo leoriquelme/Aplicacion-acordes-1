@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ROLES, useStore } from '../lib/store.jsx';
-import { marcarIglesiaCerrada, salirDeIglesia, useAuth } from '../lib/cloud.jsx';
+import { guardarMiNacimiento, marcarIglesiaCerrada, salirDeIglesia, useAuth } from '../lib/cloud.jsx';
+import { formatoNacimiento, nacimientoValido } from '../lib/cumpleanos.js';
 import { cerrarSesion } from '../lib/acceso.js';
 import ConfirmX from './ConfirmX.jsx';
 import { APP_VERSION } from '../lib/version.js';
@@ -105,7 +106,7 @@ export function EditarPerfil() {
   const [name, setName] = useState('');
   const [msg, setMsg] = useState('');
   const cloud = mode === 'cloud';
-  const { user } = useAuth() || {};
+  const { user, profile } = useAuth() || {};
   if (mode !== 'cloud' && mode !== 'personal') return <div className="page"><Link to="/ajustes" className="back">← Ajustes</Link></div>;
 
   const guardar = async () => {
@@ -148,8 +149,51 @@ export function EditarPerfil() {
         )}
         {msg && <p className="error small fila">{msg}</p>}
         {user?.email && <Fila label="Correo" valor={user.email} />}
+        <Nacimiento fecha={profile?.birthDate || ''} />
         {cloud && <EquiposPerfil />}
       </Grupo>
+    </div>
+  );
+}
+
+/**
+ * Fecha de nacimiento (opcional). Los hermanos de la iglesia solo ven el día y el mes:
+ * en Inicio les sale el aviso 7 días antes y el mismo día, para que puedan saludar.
+ */
+function Nacimiento({ fecha }) {
+  const [editando, setEditando] = useState(false);
+  const [valor, setValor] = useState('');
+  const [msg, setMsg] = useState('');
+  const hoy = new Date();
+  const max = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
+  const guardar = async (f) => {
+    try {
+      await guardarMiNacimiento(f);
+      setEditando(false);
+      setMsg('');
+    } catch {
+      setMsg('No se pudo guardar. Revisa la fecha y tu conexión.');
+    }
+  };
+  if (!editando) {
+    return (
+      <>
+        <Fila label="Fecha de nacimiento" valor={fecha ? formatoNacimiento(fecha) : 'Agregar'} onClick={() => { setValor(fecha); setEditando(true); }} />
+        {msg && <p className="error small fila">{msg}</p>}
+      </>
+    );
+  }
+  return (
+    <div className="fila nacimiento-editar">
+      <span className="fila-label">Fecha de nacimiento</span>
+      <div className="nacimiento-campos">
+        <input type="date" value={valor} min="1900-01-01" max={max} onChange={(e) => setValor(e.target.value)} aria-label="Fecha de nacimiento" autoFocus />
+        <button className="btn primary small" disabled={!nacimientoValido(valor)} onClick={() => guardar(valor)}>Guardar</button>
+        <button className="btn ghost small" onClick={() => { setEditando(false); setMsg(''); }}>Cancelar</button>
+        {fecha && <button className="btn ghost small" onClick={() => guardar(null)}>Quitar</button>}
+      </div>
+      <p className="muted small">Los hermanos de tu iglesia verán solo el día y el mes, para saludarte en tu cumpleaños.</p>
+      {msg && <p className="error small">{msg}</p>}
     </div>
   );
 }

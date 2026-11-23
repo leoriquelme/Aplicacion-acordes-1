@@ -12,7 +12,7 @@ rules_version = '2';
 //   ← el id es el nombre "normalizado" (sin mayúsculas, tildes ni espacios de más): no puede haber dos iglesias con el mismo nombre.
 //     status: 'activa' (o sin campo) | 'bloqueada' (la bloquea el Super Admin: nadie entra)
 // churches/{iglesia}/members/{uid}   { key (= uid), name, role, code, joinedAt }  ← quién pertenece y con qué perfil (lo que vale)
-// churches/{iglesia}/people/{uid}    { name, uid, role, teams, photo, firstSeen, lastSeen }  ← ficha visible de cada persona
+// churches/{iglesia}/people/{uid}    { name, uid, role, teams, photo, birthday, firstSeen, lastSeen }  ← ficha visible de cada persona
 // churches/{iglesia}/participations/{evento__persona}, favorites/{persona}, songs, events
 // feedback/{id}                      ← sugerencias de mejoras: las envía cualquiera con cuenta, las lee solo el Super Admin
 // churches/{iglesia}/live/actual      { eventId, songId, song, section, by, byName, active, at }  ← modo en vivo
@@ -59,14 +59,17 @@ service cloud.firestore {
     // Foto o logo achicado en el teléfono (texto data:image/jpeg;base64,… de menos de 60.000 letras).
     function validPhoto(x) { return x is string && x.size() <= 60000 && x.matches('^data:image/(jpeg|webp);base64,[A-Za-z0-9+/=]+$'); }
     function photoOk(d) { return !('photo' in d) || validPhoto(d.photo); }
+    // Fecha de nacimiento (solo en mi cuenta) "AAAA-MM-DD" y cumpleaños (en mi ficha de la iglesia) "MM-DD".
+    function birthDateOk(d) { return !('birthDate' in d) || (d.birthDate is string && d.birthDate.matches('^(19|20)[0-9]{2}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$')); }
+    function birthdayOk(d) { return !('birthday' in d) || (d.birthday is string && d.birthday.matches('^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$')); }
     function codeFor(c, x) { return validCode(x) && existsAfter(codePath(x)) && getAfter(codePath(x)).data.churchId == c; }
 
     // ---------- Cuenta personal ----------
     match /users/{uid} {
       allow read, delete: if signedIn() && request.auth.uid == uid;
       allow create, update: if account() && request.auth.uid == uid
-        && request.resource.data.keys().hasOnly(['name', 'email', 'churches', 'favorites', 'notes', 'createdAt', 'photo'])
-        && photoOk(request.resource.data)
+        && request.resource.data.keys().hasOnly(['name', 'email', 'churches', 'favorites', 'notes', 'createdAt', 'photo', 'birthDate'])
+        && photoOk(request.resource.data) && birthDateOk(request.resource.data)
         && (!('name' in request.resource.data) || validName(request.resource.data.name))
         && (!('churches' in request.resource.data) || (request.resource.data.churches is map && request.resource.data.churches.size() <= 20))
         && (!('favorites' in request.resource.data) || (request.resource.data.favorites is list && request.resource.data.favorites.size() <= 500))
@@ -241,8 +244,8 @@ service cloud.firestore {
         allow update: if (isAdmin(c) && photoOk(request.resource.data))
           // Cada uno actualiza su "última vez", su nombre, sus equipos y su foto.
           || (isMember(c) && key == request.auth.uid
-              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastSeen', 'name', 'teams', 'photo'])
-              && photoOk(request.resource.data)
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastSeen', 'name', 'teams', 'photo', 'birthday'])
+              && photoOk(request.resource.data) && birthdayOk(request.resource.data)
               && validName(request.resource.data.name)
               && (!('teams' in request.resource.data) || (request.resource.data.teams is list && request.resource.data.teams.size() <= 12)));
         allow delete: if isAdmin(c);
