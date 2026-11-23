@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react';
-import { collection, doc, onSnapshot, writeBatch } from 'firebase/firestore';
+import { collection, doc, onSnapshot, setDoc, writeBatch } from 'firebase/firestore';
 import { db } from '../lib/firebase.js';
 import { ROLES } from '../lib/store.jsx';
 import { buscarCoincidencias, esExportPco, filaPco, fusionarDatos, parseCsv } from './importarPco.js';
-import { useCongrega } from './datos.jsx';
+import { asistenciaId, nombreDe as nombreP, norm, useCongrega } from './datos.jsx';
+import { fechaExcel, leerXlsx } from './xlsx.js';
+import { hojaCheckins, keyNueva, planAsistencia } from './importarAsistencia.js';
 
 export default function Ajustes() {
   const { isAdmin } = useCongrega();
   if (!isAdmin) return <div className="card">Solo el Administrador de la iglesia ve los ajustes de Congrega.</div>;
-  return <div className="cg-stack"><Voluntarios /><Importar /></div>;
+  return <div className="cg-stack"><div className="page-head"><h1>Ajustes</h1></div><Voluntarios /><Importar /><ImportarAsistencia /></div>;
 }
 
 function Voluntarios() {
@@ -171,6 +173,116 @@ function Importar() {
       <div className="cg-row">
         {!estado.hechos && <button type="button" className="btn primary" disabled={estado.corriendo} onClick={importar}>{estado.corriendo ? 'Importando…' : `Importar ${filas.length} personas`}</button>}
         {!estado.corriendo && <button type="button" className="btn" onClick={() => { setArchivo(null); setEstado({ corriendo: false, hechos: 0, error: '' }); }}>{estado.hechos ? 'Cerrar' : 'Cancelar'}</button>}
+      </div>
+    </section>
+  );
+}
+
+/** Historial de asistencia (Planning Center Check-Ins, planilla Excel). */
+function ImportarAsistencia() {
+  const { churchId, people, events = [], asistencia, myUid } = useCongrega();
+  const [archivo, setArchivo] = useState(null);
+  const [elecciones, setElecciones] = useState({});
+  const [estado, setEstado] = useState({ corriendo: false, hechos: 0, total: 0, error: '', listo: false });
+
+  const elegir = async (f) => {
+    setEstado({ corriendo: false, hechos: 0, total: 0, error: '', listo: false });
+    try {
+      const checkins = hojaCheckins(await leerXlsx(await f.arrayBuffer()), fechaExcel);
+      if (!checkins?.length) throw new Error('No encontré la hoja de Check-Ins (columnas Fecha de sesión, Evento, Nombre y Apellido).');
+      setElecciones({});
+      setArchivo({ nombre: f.name, plan: planAsistencia(checkins, people, events) });
+    } catch (e) { setEstado((s) => ({ ...s, error: e.message })); }
+  };
+
+  if (!archivo) {
+    return (
+      <section className="card cg-stack">
+        <h2>Importar historial de asistencia</h2>
+        <p className="muted">Elige la planilla Excel con los Check-Ins de Planning Center. Cada asistencia se une con la persona que ya está en la app y con el evento de ese día. Si la cargas de nuevo, no se duplica nada.</p>
+        <label className="btn cg-izq">Elegir planilla Excel
+          <input type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) elegir(f); e.target.value = ''; }} />
+        </label>
+        {estado.error && <div className="cg-aviso" role="alert">{estado.error}</div>}
+      </section>
+    );
+  }
+
+  const { plan } = archivo;
+  // destino: key de una persona existente, 'nueva' para crearla, o '' para no importar sus asistencias.
+  const destinoDe = (p) => elecciones[p.clave] ?? (p.match?.key || 'nueva');
+  const revisar = plan.personas.filter((p) => !p.match || p.match.motivo !== 'mismo nombre').sort((a, b) => b.n - a.n);
+  const ordenadas = [...people].sort((a, b) => norm(nombreP(a)).localeCompare(norm(nombreP(b))));
+  const nuevosEv = plan.eventos.filter((e) => e.nuevo);
+  const porTipo = new Map(); plan.eventos.forEach((e) => porTipo.set(e.name, (porTipo.get(e.name) || 0) + 1));
+  const desde = plan.eventos.reduce((m, e) => (e.date < m ? e.date : m), '9999');
+  const hasta = plan.eventos.reduce((m, e) => (e.date > m ? e.date : m), '');
+
+  const importar = async () => {
+    const ref = (...x) => doc(db, 'churches', churchId, ...x);
+    const keyDe = new Map(plan.personas.map((p) => { const d = destinoDe(p); return [p.clave, d === 'nueva' ? keyNueva(p) : d]; }));
+    const regs = plan.registros.filter((r) => keyDe.get(r.clave) && !asistencia.has(asistenciaId(r.eventId, keyDe.get(r.clave))));
+    setEstado({ corriendo: true, hechos: 0, total: regs.length, error: '', listo: false });
+    try {
+      const ops = [];
+      nuevosEv.forEach((e) => ops.push((b) => b.set(ref('events', e.id), { name: e.name, date: e.date, time: '', items: [], notes: '', soloAsistencia: true, origen: 'Planning Center' }, { merge: true })));
+      plan.personas.forEach((p) => {
+        if (destinoDe(p) !== 'nueva' || people.some((x) => x.key === keyNueva(p))) return;
+        const primera = plan.registros.filter((r) => r.clave === p.clave).reduce((m, r) => (r.date < m ? r.date : m), '9999');
+        ops.push((b) => b.set(ref('people', keyNueva(p)), {
+          name: `${p.nombre} ${p.apellido}`.trim().slice(0, 60), nombre: p.nombre, apellido: p.apellido, uid: '', role: 'colaborador',
+          tipo: p.visita ? 'Visita' : '', estado: 'activo', miembro: false, esNino: p.nino, creadoEn: Date.now(), creadoPor: myUid, primeraVisita: primera,
+        }));
+      });
+      for (let i = 0; i < ops.length; i += 400) {
+        const b = writeBatch(db); ops.slice(i, i + 400).forEach((op) => op(b)); await b.commit();
+      }
+      // Asistencias una por una (las reglas revisan que el evento y la persona existan), de a 20 a la vez.
+      let hechos = 0;
+      for (let i = 0; i < regs.length; i += 20) {
+        await Promise.all(regs.slice(i, i + 20).map((r) => {
+          const k = keyDe.get(r.clave);
+          return setDoc(ref('asistencia', asistenciaId(r.eventId, k)), { eventId: r.eventId, personKey: k, date: r.date, at: Date.parse(`${r.date}T12:00:00`), por: myUid });
+        }));
+        hechos = Math.min(regs.length, i + 20);
+        setEstado((s) => ({ ...s, hechos }));
+      }
+      setEstado({ corriendo: false, hechos, total: regs.length, error: '', listo: true });
+    } catch (e) {
+      setEstado((s) => ({ ...s, corriendo: false, error: `La importación se detuvo: ${e.message}. Puedes intentarlo de nuevo; lo ya cargado no se duplica.` }));
+    }
+  };
+
+  return (
+    <section className="card cg-stack">
+      <h2>Importar historial de asistencia</h2>
+      <strong>{archivo.nombre}</strong>
+      <span>{plan.registros.length} asistencias · {plan.eventos.length} eventos ({[...porTipo].map(([n, c]) => `${c} ${n}`).join(', ')}) · del {desde} al {hasta}</span>
+      <span className="muted">{plan.personas.length - revisar.length === 1 ? '1 persona se encontró' : `${plan.personas.length - revisar.length} personas se encontraron`} por su nombre exacto. {nuevosEv.length < plan.eventos.length ? `${plan.eventos.length - nuevosEv.length === 1 ? '1 evento ya existía y se usa ese' : `${plan.eventos.length - nuevosEv.length} eventos ya existían y se usan esos`}.` : ''} Los eventos nuevos quedan solo en Congrega, no aparecen en la lista de servicios de Adora.</span>
+      {revisar.length > 0 && (
+        <>
+          <h3 className="cg-h3">Revisa a estas {revisar.length} personas</h3>
+          <p className="muted">No las encontramos con el nombre exacto. Elige quién es cada una, créala como persona nueva (las que Planning Center marcó como visita quedan como Visita), o no importes sus asistencias.</p>
+          <div className="card cg-lista">
+            {revisar.map((p) => (
+              <div key={p.clave} className="cg-item">
+                <span className="cg-quien"><span className="cg-nombre">{p.nombre} {p.apellido}</span><span className="cg-meta">{p.n} {p.n === 1 ? 'asistencia' : 'asistencias'}{p.visita ? ' · visita' : ''}{p.match ? ` · sugerido: ${p.match.motivo}` : p.candidatos.length > 1 ? ' · hay varias con ese nombre' : ''}</span></span>
+                <select className="cg-unir" value={destinoDe(p)} disabled={estado.corriendo} onChange={(e) => setElecciones({ ...elecciones, [p.clave]: e.target.value })} aria-label={`Quién es ${p.nombre} ${p.apellido}`}>
+                  <option value="nueva">{p.visita ? 'Crear como visita' : 'Crear como persona nueva'}</option>
+                  <option value="">No importar sus asistencias</option>
+                  {p.candidatos.length > 0 && <optgroup label="Sugeridas">{p.candidatos.map((k) => <option key={k} value={k}>{nombreP(people.find((x) => x.key === k))}</option>)}</optgroup>}
+                  <optgroup label="Todas las personas">{ordenadas.map((x) => <option key={x.key} value={x.key}>{nombreP(x)}</option>)}</optgroup>
+                </select>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+      {(estado.corriendo || estado.listo) && <span aria-live="polite">{estado.listo ? `Listo: ${estado.hechos} asistencias cargadas.` : `Cargando… ${estado.hechos} de ${estado.total}`}</span>}
+      {estado.error && <div className="cg-aviso" role="alert">{estado.error}</div>}
+      <div className="cg-row">
+        {!estado.listo && <button type="button" className="btn primary" disabled={estado.corriendo} onClick={importar}>{estado.corriendo ? 'Cargando…' : `Importar ${plan.registros.length} asistencias`}</button>}
+        {!estado.corriendo && <button type="button" className="btn" onClick={() => { setArchivo(null); setEstado({ corriendo: false, hechos: 0, total: 0, error: '', listo: false }); }}>{estado.listo ? 'Cerrar' : 'Cancelar'}</button>}
       </div>
     </section>
   );

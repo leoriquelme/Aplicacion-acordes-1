@@ -389,6 +389,14 @@ describe('Congrega: familias, fichas privadas y asistencia', () => {
     await assertSucceeds(updateDoc(doc(ana(), 'churches', C, 'members', 'ana'), { asistencia: true }));
     await assertFails(updateDoc(doc(ana(), 'churches', C, 'members', 'ana'), { role: 'colaborador' }));
   });
+  it('el Administrador importa el historial: evento solo de asistencia, visita nueva y su asistencia', async () => {
+    const db = ana();
+    const b = writeBatch(db);
+    b.set(doc(db, 'churches', C, 'events', 'pcoe-2025-11-23-escuela-dominical'), { name: 'Escuela dominical', date: '2025-11-23', time: '', items: [], notes: '', soloAsistencia: true, origen: 'Planning Center' }, { merge: true });
+    b.set(doc(db, 'churches', C, 'people', 'pcoa-juan-nuevo'), { name: 'Juan Nuevo', nombre: 'Juan', apellido: 'Nuevo', uid: '', role: 'colaborador', tipo: 'Visita', estado: 'activo', miembro: false, esNino: false, creadoEn: 1, creadoPor: 'ana', primeraVisita: '2025-11-23' });
+    await assertSucceeds(b.commit());
+    await assertSucceeds(setDoc(doc(db, 'churches', C, 'asistencia', 'pcoe-2025-11-23-escuela-dominical__pcoa-juan-nuevo'), { eventId: 'pcoe-2025-11-23-escuela-dominical', personKey: 'pcoa-juan-nuevo', date: '2025-11-23', at: Date.parse('2025-11-23T12:00:00'), por: 'ana' }));
+  });
   it('la asistencia queda firmada por quien marca y apunta a un evento y persona reales', async () => {
     await assertSucceeds(marca(ana(), 'ana'));
     await assertFails(marca(ana(), 'otro', 'ana'));
