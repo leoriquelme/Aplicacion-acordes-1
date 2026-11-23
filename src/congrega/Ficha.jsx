@@ -96,6 +96,7 @@ export default function Ficha() {
           </fieldset>
           <fieldset className="card cg-grid"><legend>Consentimiento y registro</legend>
             <Dato label="Consentimiento de datos" value={d.consentimiento ? `Sí${d.fechaConsentimiento ? `, ${fmt(d.fechaConsentimiento)}` : ''}${d.medioConsentimiento ? ` (${d.medioConsentimiento})` : ''}` : 'No registrado'} />
+            {d.notaConsentimiento && <Dato full label="Nota del consentimiento" value={d.notaConsentimiento} />}
             <Dato label="Última modificación" value={d.actualizadoEn ? new Date(d.actualizadoEn).toLocaleString('es-CL') : ''} />
             {(d.cambios || []).length > 0 && <Dato full label="Historial de cambios" value={(d.cambios || []).slice(-5).reverse().map((x) => `${new Date(x.at).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' })} · ${(x.campos || []).join(', ')}`).join('\n')} />}
           </fieldset>
@@ -219,7 +220,7 @@ function Editar({ p, k, onListo }) {
       <fieldset className="card cg-grid"><legend>Consentimiento</legend>
         <Campo label="¿Autorizó guardar sus datos?"><Opciones value={f.consentimiento ? 'Sí' : ''} onChange={(v) => set('consentimiento')(v === 'Sí')} options={['Sí', 'No']} /></Campo>
         <Campo label="Fecha"><input type="date" value={f.fechaConsentimiento || ''} onChange={set('fechaConsentimiento')} /></Campo>
-        <Campo label="Medio"><Opciones value={f.medioConsentimiento} onChange={set('medioConsentimiento')} options={['Formulario en papel', 'Formulario digital', 'Verbal']} /></Campo>
+        <Campo label="Medio"><Opciones value={f.medioConsentimiento} onChange={set('medioConsentimiento')} options={['Formulario en papel', 'Formulario digital', 'Verbal', 'Entregados por la persona']} /></Campo>
       </fieldset>
       {error && <div className="cg-aviso" role="alert">{error}</div>}
       <div className="cg-row">
