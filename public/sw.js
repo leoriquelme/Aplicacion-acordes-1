@@ -1,6 +1,8 @@
 // Service worker del Cancionero: guarda la app en el equipo para que abra sin internet.
 // Las canciones las guarda Firebase en el equipo (caché sin conexión).
-const CACHE = 'cancionero-v23';
+const CACHE = 'cancionero-v24';
+// Con poca señal no esperar para siempre: si internet no responde en este tiempo, se abre la copia guardada.
+const ESPERA_MAX = 3000;
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './index.html', './manifest.webmanifest', './icono-192.png'])).then(() => self.skipWaiting()));
@@ -25,10 +27,16 @@ self.addEventListener('fetch', (e) => {
 
   // Páginas: primero internet (para ver siempre lo último), si no hay, la copia guardada.
   if (req.mode === 'navigate') {
+    const red = fetch(req).then((res) => {
+      if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put('./index.html', copy)); }
+      return res;
+    });
+    const guardada = () => caches.match('./index.html').then((r) => r || caches.match('./'));
+    const lenta = new Promise((ok) => setTimeout(ok, ESPERA_MAX)).then(guardada);
+    e.waitUntil(red.catch(() => {})); // aunque se abra la copia, la nueva se sigue bajando para la próxima vez
     e.respondWith(
-      fetch(req)
-        .then((res) => { const copy = res.clone(); caches.open(CACHE).then((c) => c.put('./index.html', copy)); return res; })
-        .catch(() => caches.match('./index.html').then((r) => r || caches.match('./'))),
+      Promise.race([red.catch(() => guardada()), lenta.then((r) => r || red)])
+        .then((r) => r || red),
     );
     return;
   }
