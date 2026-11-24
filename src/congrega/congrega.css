@@ -140,3 +140,30 @@ a.cg-item:hover { background: var(--surface-2); text-decoration: none; }
 .cg-grupo-pie { padding: 0.7rem 0.9rem; border-top: 1px solid var(--border); }
 .cg-manual { display: grid; gap: 0.6rem; }
 .cg-manual label { margin: 0; }
+
+/* Familia desplegable en Asistencia */
+.cg-item:has(.cg-familia) { flex-wrap: wrap; }
+.cg-familia { order: 6; flex: 1 1 100%; display: flex; flex-direction: column; gap: 0.35rem; padding: 0.5rem 0.6rem; border-radius: 12px; background: var(--surface-2, var(--chorus-bg)); }
+.cg-familiar { display: flex; align-items: center; gap: 0.6rem; min-height: 2.8rem; }
+.cg-familiar.presente .cg-grow { font-weight: 600; }
+.cg-check.chico { width: 2.4rem; height: 2.4rem; }
+.cg-check.chico svg { width: 1.2rem; height: 1.2rem; }
+.cg-resumen .datos-grid { grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr)); }
+.cg-resumen .dato strong { font-size: 1.5rem; }
+
+/* Estación de asistencia (pantalla completa) */
+.cg-estacion { min-height: 100dvh; padding: max(1rem, env(safe-area-inset-top)) 1rem 2rem; display: flex; flex-direction: column; gap: 1rem; background: var(--bg); max-width: 1200px; margin: 0 auto; }
+.cg-estacion-head { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; }
+.cg-estacion-head select { font-size: 1.15rem; font-weight: 700; }
+.cg-estacion-buscar { display: flex; gap: 0.6rem; flex-wrap: wrap; position: sticky; top: 0; z-index: 2; background: var(--bg); padding: 0.4rem 0; }
+.cg .cg-estacion-buscar input { flex: 1 1 16rem; width: auto; font-size: 1.3rem; min-height: 3.4rem; border-radius: 14px; }
+.cg-estacion-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(46%, 10.5rem), 1fr)); gap: 0.8rem; }
+.cg-tarjeta { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 1rem 0.6rem; border-radius: 18px; border: 2px solid var(--border); background: var(--surface); color: var(--text); font: inherit; cursor: pointer; text-align: center; min-height: 11rem; }
+.cg-tarjeta:active { transform: scale(0.98); }
+.cg-tarjeta.presente { border-color: var(--cg-ok); background: var(--cg-ok-soft); }
+.cg-tarjeta-nombre { font-weight: 700; font-size: 1.1rem; line-height: 1.2; overflow-wrap: anywhere; }
+.cg-tarjeta-meta { font-size: 0.85rem; color: var(--muted); }
+.cg-tarjeta.presente .cg-tarjeta-meta { color: var(--cg-ok); font-weight: 700; }
+.cg-estacion-modal { max-width: 28rem; width: 100%; }
+.cg-estacion-modal .cg-familia { order: 0; text-align: left; }
+.cg-estacion-buscar .btn.ghost { white-space: nowrap; }
