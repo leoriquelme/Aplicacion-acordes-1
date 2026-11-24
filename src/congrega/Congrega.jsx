@@ -2,7 +2,7 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { useStore } from '../lib/store.jsx';
 import { CongregaProvider, useCongrega } from './datos.jsx';
 import Inicio from './Inicio.jsx';
-import Asistencia from './Asistencia.jsx';
+import Asistencia, { RevisarAsistencia } from './Asistencia.jsx';
 import Personas from './Personas.jsx';
 import Ficha from './Ficha.jsx';
 import Ajustes from './Ajustes.jsx';
@@ -41,6 +41,7 @@ function Paginas() {
       <Routes>
         <Route index element={tabs.includes('inicio') ? <Inicio /> : <MiFicha />} />
         <Route path="asistencia" element={si(c.asisAdmin, <Asistencia />)} />
+        <Route path="asistencia/:eventId" element={si(c.asisAdmin, <RevisarAsistencia />)} />
         <Route path="estacion" element={si(c.marca || c.equipo.has(c.myUid), <EstacionInicio />)} />
         <Route path="personas" element={si(c.verPersonas, <Personas />)} />
         <Route path="personas/:key" element={<Ficha />} />

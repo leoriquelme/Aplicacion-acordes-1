@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { fechaCorta, todayISO, formatLong, sortEvents } from '../lib/dates.js';
 import { activo, nombreDe, norm, useCongrega } from './datos.jsx';
 import { TIPOS_ASISTENCIA } from './unir.js';
@@ -52,11 +52,51 @@ function ResumenJornada() {
   );
 }
 
+/** Asistencia: resumen de la última jornada y lista de eventos. Para cambiar quién vino se entra a "Revisar". */
 export default function Asistencia() {
   const ctx = useCongrega();
-  const { people, familias, marca, can, saveEvent, registrarVisita, listo, sinTipo } = ctx;
+  const { events = [], asistencia, can, saveEvent } = ctx;
   const navigate = useNavigate();
-  const { ev, opciones, setEventId, hoy } = useEvento();
+  const hoy = todayISO();
+  const lista = useMemo(() => sortEvents(events.filter((e) => e.date && e.date <= hoy), -1).slice(0, 30), [events, hoy]);
+  const conteo = useMemo(() => { const c = new Map(); asistencia.forEach((a) => c.set(a.eventId, (c.get(a.eventId) || 0) + 1)); return c; }, [asistencia]);
+  const puedeAbrir = ctx.asisAdmin || can?.events;
+  return (
+    <div className="cg-stack">
+      <div className="page-head">
+        <h1>Asistencia</h1>
+        <Link className="btn" to="/congrega/estacion">Abrir estación</Link>
+      </div>
+      <ResumenJornada />
+      {!events.some((e) => e.date === hoy) && puedeAbrir && (
+        <button type="button" className="btn primary" onClick={() => navigate(`/congrega/asistencia/${saveEvent({ name: 'Culto dominical', date: hoy, time: '', items: [] })}`)}>
+          Abrir registro de hoy
+        </button>
+      )}
+      <section className="card cg-stack">
+        <h2>Eventos</h2>
+        <p className="muted">Toca Revisar para ver y corregir quién vino a cada evento.</p>
+        <div className="cg-lista">
+          {lista.map((e) => (
+            <div key={e.id} className="cg-item">
+              <span className="cg-quien"><span className="cg-nombre">{e.name || 'Evento'}</span><span className="cg-meta">{fechaCorta(e.date)} · {plural(conteo.get(e.id) || 0, 'presente', 'presentes')}</span></span>
+              <Link className="btn small" to={`/congrega/asistencia/${e.id}`}>Revisar ›</Link>
+            </div>
+          ))}
+          {!lista.length && <div className="muted cg-vacio">Todavía no hay eventos. {puedeAbrir ? 'Abre el registro de hoy para empezar.' : 'Un Administrador debe crear el evento.'}</div>}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+/** Revisar asistencia de un evento: aquí se marca, se quita y se cambia el tipo. */
+export function RevisarAsistencia() {
+  const ctx = useCongrega();
+  const { people, familias, marca, registrarVisita, listo, sinTipo, events = [] } = ctx;
+  const navigate = useNavigate();
+  const { eventId } = useParams();
+  const ev = events.find((e) => e.id === eventId);
   const [buscar, setBuscar] = useState('');
   const [filtro, setFiltro] = useState('todos');
   const [visita, setVisita] = useState(null);
@@ -64,9 +104,8 @@ export default function Asistencia() {
   const [tipoAbierto, setTipoAbierto] = useState('');
   const [error, setError] = useState('');
 
-  if (!marca) {
-    return <div className="card"><p>Para marcar asistencia, pide al Administrador que te habilite en <strong>Congrega → Ajustes</strong>.</p></div>;
-  }
+  if (!marca) return <Navigate to="/congrega" replace />;
+  if (!ev) return <div className="card">{events.length ? 'No encontramos este evento.' : 'Cargando…'} <Link to="/congrega/asistencia">Volver a Asistencia</Link></div>;
 
   const m = marcadoDe(ctx, ev, setError);
   const { presentes } = m;
@@ -82,19 +121,10 @@ export default function Asistencia() {
 
   return (
     <div className="cg-stack">
-      <div className="page-head">
-        <h1>Asistencia</h1>
-        <Link className="btn" to="/congrega/estacion">Abrir estación</Link>
+      <div className="cg-row cg-entre">
+        <Link className="btn ghost" to="/congrega/asistencia">← Asistencia</Link>
       </div>
-      <ResumenJornada />
-      {!ctx.events?.some((e) => e.date === hoy) && (ctx.asisAdmin || can?.events) && (
-        <button type="button" className="btn primary" onClick={() => setEventId(saveEvent({ name: 'Culto dominical', date: hoy, time: '', items: [] }))}>
-          Abrir registro de hoy
-        </button>
-      )}
-      {!ev ? (
-        <div className="card muted">Todavía no hay eventos. {(ctx.asisAdmin || can?.events) ? 'Abre el registro de hoy para empezar.' : 'Un Administrador debe crear el evento.'}</div>
-      ) : (
+      {(
         <>
           <section className="card cg-evento">
             <div className="cg-evento-head">
@@ -104,9 +134,6 @@ export default function Asistencia() {
               </div>
               <Contador m={m} />
             </div>
-            <select value={ev.id} onChange={(e) => setEventId(e.target.value)} aria-label="Evento">
-              {opciones.map((e) => <option key={e.id} value={e.id}>{fechaCorta(e.date)} · {e.name || 'Evento'}</option>)}
-            </select>
           </section>
           <div className="cg-row">
             <input className="cg-grow" type="search" value={buscar} onChange={(e) => setBuscar(e.target.value)} placeholder="Buscar por nombre o familia…" aria-label="Buscar persona" />
