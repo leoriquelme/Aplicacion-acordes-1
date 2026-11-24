@@ -229,3 +229,16 @@ a.cg-item:hover { background: var(--surface-2); text-decoration: none; }
 @media (max-width: 520px) {
   .cg-item .cg-chip-tipo { order: 4; margin-left: 4.3rem; margin-top: -0.3rem; }
 }
+
+/* Unir perfiles: buscador y vista previa */
+.cg-resultados { margin-top: 0.4rem; max-height: 22rem; overflow-y: auto; }
+.cg-resultado { width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--border, rgba(127,127,127,.2)); cursor: pointer; font: inherit; color: inherit; }
+.cg-resultado:hover, .cg-resultado:focus-visible { background: var(--chorus-bg); }
+.cg-elegida { border: 1px solid var(--border, rgba(127,127,127,.25)); border-radius: 12px; }
+.cg-vista-union h4 { margin: 0.4rem 0 0; }
+.cg-opciones { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.25rem; }
+.cg-op { font: inherit; padding: 0.35rem 0.7rem; border-radius: 10px; border: 1px solid var(--border, rgba(127,127,127,.35)); background: none; color: inherit; cursor: pointer; text-align: left; max-width: 100%; overflow-wrap: anywhere; }
+.cg-op.on { border-color: var(--accent, #3b6); background: var(--chorus-bg); font-weight: 600; }
+.cg-op.on::before { content: '✓ '; }
+.cg-mini-foto { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; vertical-align: middle; }
+.cg-google { display: inline-flex; flex-wrap: wrap; gap: 0.3rem; align-items: center; overflow-wrap: anywhere; }

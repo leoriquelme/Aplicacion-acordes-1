@@ -333,6 +333,16 @@ service cloud.firestore {
           && shortText(request.resource.data.get('notas', ''), 5000) && shortText(request.resource.data.get('notasMedicas', ''), 3000);
         allow delete: if isAdmin(c);
       }
+      // Cuenta de Google con la que entra cada uno (cuentas/{uid}): la escribe la misma persona al entrar;
+      // la ven solo el Administrador y el Pastor (y uno mismo).
+      match /cuentas/{uid} {
+        allow read: if isPastor(c) || (signedIn() && request.auth.uid == uid);
+        allow create, update: if isMember(c) && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['email', 'nombre', 'at'])
+          && shortText(request.resource.data.get('email', ''), 120) && shortText(request.resource.data.get('nombre', ''), 80)
+          && request.resource.data.at is int;
+        allow delete: if isAdmin(c);
+      }
       // Registro de cambios: cada uno anota lo que cambió; solo el Súper admin lo lee. No se edita ni se borra.
       match /registro/{rid} {
         allow read: if isOwner(c);

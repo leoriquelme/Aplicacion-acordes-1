@@ -63,6 +63,7 @@ function PerfilesAcceso() {
               <Avatar name={nombreDe(p)} personKey={p.key} photo={p.photo || ''} size="md" />
               <span className="cg-quien"><span className="cg-nombre">{nombreDe(p)}{yo && <span className="muted"> (tú)</span>}</span>
                 <span className="cg-meta cg-etiquetas">{etiquetas(p.key, m).map((e) => <span key={e} className="cg-chip">{e}</span>)}</span>
+                <span className="cg-meta">{c.cuentas?.get(p.key)?.email ? `Google: ${c.cuentas.get(p.key).email}` : 'Google: el correo aparece cuando vuelva a abrir la app'}</span>
               </span>
               {(editable || yo) && <button type="button" className="btn small" aria-expanded={abiertoAqui} onClick={() => setAbierto(abiertoAqui ? '' : p.key)}>{abiertoAqui ? 'Listo' : 'Cambiar'}</button>}
               {abiertoAqui && (
