@@ -53,3 +53,13 @@ describe('fecha de nacimiento', () => {
     expect(formatoNacimiento('1990-03-14')).toBe('14 de marzo de 1990');
   });
 });
+
+import { describe as d2, expect as e2, it as i2 } from 'vitest';
+import { proximosCumples as pc } from './cumpleanos.js';
+d2('cumpleaños e inactivos', () => {
+  i2('no muestra a las personas inactivas', () => {
+    const hoy = new Date(2026, 10, 23);
+    const r = pc([{ key: 'a', name: 'Ana', birthday: '11-24' }, { key: 'b', name: 'Beto', birthday: '11-24', estado: 'inactivo' }], hoy);
+    e2(r.map((x) => x.persona.key)).toEqual(['a']);
+  });
+});
