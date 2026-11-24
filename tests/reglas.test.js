@@ -429,6 +429,16 @@ describe('Congrega: familias, fichas privadas y asistencia', () => {
     await assertSucceeds(getDocs(collection(ana(), 'churches', C, 'registro')));
     await assertFails(deleteDoc(doc(ana(), 'churches', C, 'registro', 'r1')));
   });
+  it('cuentas de Google: cada uno anota la suya; la ven el Administrador y el Pastor', async () => {
+    const c = (db, uid, extra = {}) => setDoc(doc(db, 'churches', C, 'cuentas', uid), { email: `${uid}@gmail.com`, nombre: uid, at: 1, ...extra });
+    await assertSucceeds(c(cuenta('juan'), 'juan'));
+    await assertFails(c(cuenta('juan'), 'ana'));
+    await assertFails(c(cuenta('juan'), 'juan', { role: 'admin' }));
+    await assertSucceeds(getDoc(doc(cuenta('juan'), 'churches', C, 'cuentas', 'juan')));
+    await assertFails(getDocs(collection(cuenta('juan'), 'churches', C, 'cuentas')));
+    await assertSucceeds(getDocs(collection(ana(), 'churches', C, 'cuentas')));
+    await assertFails(c(cuenta('pedro'), 'pedro'));
+  });
   it('familias: los miembros leen, solo el Administrador escribe', async () => {
     await assertSucceeds(setDoc(doc(ana(), 'churches', C, 'families', 'f1'), { name: 'Rojas Muñoz' }));
     await assertSucceeds(getDoc(doc(cuenta('juan'), 'churches', C, 'families', 'f1')));

@@ -164,6 +164,9 @@ async function entrarComoMiembro(churchId, { code = '', role = 'colaborador', na
   await anotarIglesia(churchId, c.name);
   const mio = (await getDoc(userRef(uid)).catch(() => null))?.data() || {};
   const miCumple = cumpleDeNacimiento(mio.birthDate);
+  // Con qué cuenta de Google entró (la ven el Administrador y el Pastor en su ficha).
+  const u = auth.currentUser;
+  await setDoc(doc(db, 'churches', churchId, 'cuentas', uid), { email: (u.email || '').slice(0, 120), nombre: (u.displayName || '').slice(0, 80), at: now }).catch(() => {});
   await updateDoc(personRef(churchId, uid), { lastSeen: now, ...(mio.photo ? { photo: mio.photo } : {}), ...(miCumple ? { birthday: miCumple } : {}) }).catch(() => {});
   return { churchId, churchName: c.name };
 }
@@ -292,7 +295,7 @@ export async function soySuperAdmin() {
   }
 }
 
-const SUBCOLECCIONES = ['members', 'sessions', 'people', 'private', 'songs', 'events', 'participations', 'favorites', 'suggestions', 'live', 'families', 'fichas', 'asistencia', 'notas', 'registro'];
+const SUBCOLECCIONES = ['members', 'sessions', 'people', 'private', 'songs', 'events', 'participations', 'favorites', 'suggestions', 'live', 'families', 'fichas', 'asistencia', 'notas', 'registro', 'cuentas'];
 
 /** Todas las iglesias (solo Super Admin). */
 export async function todasLasIglesias() {

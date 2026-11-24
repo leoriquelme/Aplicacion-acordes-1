@@ -4,7 +4,8 @@ import { doc, deleteField, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase.js';
 import { Avatar } from '../components/Avatares.jsx';
 import ElegirFoto from '../components/ElegirFoto.jsx';
-import { CIVIL, RANGOS, ROLES_FAMILIA, TIPOS, activo, esMiembro, nombreDe, norm, useCongrega } from './datos.jsx';
+import { UnirBuscador } from './UnirPerfiles.jsx';
+import { CIVIL, RANGOS, ROLES_FAMILIA, TIPOS, activo, esMiembro, nombreDe, useCongrega } from './datos.jsx';
 
 const fmt = (s) => (s ? new Date(`${s}T12:00:00`).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' }) : '');
 function edad(s) {
@@ -30,7 +31,7 @@ export default function Ficha() {
   const { key } = useParams();
   const nueva = key === 'nueva';
   const c = useCongrega();
-  const { people, familias, fichas, notas, asistencia, events = [], isAdmin, verPrivado, editarFicha, myUid } = c;
+  const { people, familias, fichas, notas, asistencia, cuentas, events = [], isAdmin, verPrivado, editarFicha, myUid } = c;
   const p = nueva ? { tipo: 'Activo', estado: 'activo', teams: [] } : people.find((x) => x.key === key);
   const [params] = useSearchParams();
   const [editar, setEditar] = useState(nueva || params.get('editar') === '1');
@@ -80,6 +81,7 @@ export default function Ficha() {
               {p.photo && <button type="button" className="btn small ghost" onClick={() => updateDoc(doc(db, 'churches', c.churchId, 'people', key), { photo: deleteField() })}>Quitar foto</button>}
             </div>
           )}
+          {verPrivado && <CuentaGoogle p={p} cuenta={cuentas.get(p.uid)} />}
           {p.uid && p.photo && <span className="muted small">Si la persona tiene su propia foto en Adora, al entrar se vuelve a poner la suya.</span>}
         </div>
       </div>
@@ -285,27 +287,26 @@ function Editar({ p, k, onListo, soloFicha = false }) {
 
 export { esMiembro };
 
+/** Con qué cuenta de Google entra esta persona (solo Administrador y Pastor). */
+export function CuentaGoogle({ p, cuenta }) {
+  if (!p.uid) return <span className="muted small">Sin cuenta: nunca ha entrado a la app.</span>;
+  return (
+    <span className="cg-google small">
+      <span className="cg-chip">Google</span>{' '}
+      {cuenta?.email ? <>Entra con <strong>{cuenta.email}</strong>{cuenta.nombre && cuenta.nombre !== nombreDe(p) ? ` (${cuenta.nombre})` : ''}</> : 'Entra con su cuenta de Google. El correo aparecerá la próxima vez que abra la app.'}
+    </span>
+  );
+}
+
 /** Unir a mano con otra ficha que es la misma persona (por ejemplo, con otro nombre o apodo). */
 function UnirCon({ p, onCerrar }) {
-  const { people, unirPersonas } = useCongrega();
   const navigate = useNavigate();
-  const [otra, setOtra] = useState('');
-  const [estado, setEstado] = useState('');
-  const opciones = people.filter((x) => x.key !== p.key && !(x.uid && p.uid)).sort((a, b) => norm(nombreDe(a)).localeCompare(norm(nombreDe(b))));
   return (
     <div className="card">
       <div className="cg-row cg-entre"><strong>Unir con otra ficha de la misma persona</strong><button type="button" className="btn small ghost" onClick={onCerrar} aria-label="Cerrar">✕</button></div>
       <div className="cg-stack" style={{ marginTop: '0.7rem' }}>
-        <p className="muted">Se juntan los datos, la familia, los ministerios y toda la asistencia en una sola ficha. Si una de las dos entró con su cuenta, queda esa.</p>
-        <select value={otra} onChange={(e) => setOtra(e.target.value)} aria-label="Con quién unir" disabled={estado === 'uniendo'}>
-          <option value="">Elige a la otra persona…</option>
-          {opciones.map((x) => <option key={x.key} value={x.key}>{nombreDe(x)}</option>)}
-        </select>
-        {estado && estado !== 'uniendo' && <div className="cg-aviso" role="alert">{estado}</div>}
-        <button type="button" className="btn primary cg-izq" disabled={!otra || estado === 'uniendo'} onClick={async () => {
-          setEstado('uniendo');
-          try { const k = await unirPersonas(p.key, otra); setEstado(''); setOtra(''); onCerrar(); navigate(`/congrega/personas/${k}`, { replace: true }); } catch (e) { setEstado(`No se pudo unir: ${e.message}`); }
-        }}>{estado === 'uniendo' ? 'Uniendo…' : 'Unir en una'}</button>
+        <p className="muted">Lo que le falta a una se completa con la otra; donde tengan datos distintos, eliges cuál queda. Si una entró con Google, queda esa.</p>
+        <UnirBuscador fija={p.key} onListo={(k) => { onCerrar(); navigate(`/congrega/personas/${k}`, { replace: true }); }} />
       </div>
     </div>
   );

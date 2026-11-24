@@ -60,3 +60,40 @@ export function tipoPorDefecto(p, { sirve = false, anteriores = 0 } = {}) {
 
 /** Tipo de registro de Planning Center Check-Ins → tipo de asistencia. */
 export const tipoDePco = (c) => (c.tipo === 'Volunteer' ? 'colaborador' : c.tipo === 'Guest' || c.sinPerfil ? 'visita' : 'regular');
+
+// Campos que se comparan al unir: [campo, etiqueta, dónde está ('people' o 'ficha')].
+export const CAMPOS_UNION = [
+  ['nombre', 'Nombre', 'people'], ['apellido', 'Apellidos', 'people'], ['apodo', 'Apodo', 'people'], ['segundoNombre', 'Segundo nombre', 'ficha'],
+  ['photo', 'Foto', 'people'], ['familiaId', 'Familia', 'people'], ['rolFamilia', 'Rol en la familia', 'people'],
+  ['tipo', 'Asistencia habitual', 'people'], ['miembro', 'Miembro', 'people'], ['rangoEdad', 'Rango de edad', 'people'],
+  ['telefono', 'Celular', 'ficha'], ['email', 'Correo', 'ficha'], ['direccion', 'Dirección', 'ficha'], ['comuna', 'Comuna', 'ficha'], ['region', 'Región', 'ficha'],
+  ['fechaNacimiento', 'Fecha de nacimiento', 'ficha'], ['genero', 'Género', 'ficha'], ['estadoCivil', 'Estado civil', 'ficha'], ['aniversario', 'Aniversario', 'ficha'],
+  ['fechaLlegada', 'Llegó a la iglesia', 'ficha'], ['fechaConversion', 'Fecha de conversión', 'ficha'], ['bautizado', 'Bautizado/a', 'ficha'], ['fechaBautismo', 'Fecha de bautismo', 'ficha'],
+];
+const vacio = (v) => v === '' || v == null || (Array.isArray(v) && !v.length);
+const mismo = (a, b) => (typeof a === 'string' && typeof b === 'string' ? sinTildes(a) === sinTildes(b) : JSON.stringify(a) === JSON.stringify(b));
+
+/** El "mejor" de dos valores distintos: el texto más completo (más largo); si empatan, el de la base. */
+export function valorMejor(base, otro) {
+  if (vacio(base)) return otro;
+  if (vacio(otro)) return base;
+  if (typeof base === 'string' && typeof otro === 'string' && !base.startsWith('data:') && otro.trim().length > base.trim().length) return otro;
+  return base;
+}
+
+/**
+ * Compara dos perfiles campo por campo. `base` es el que queda (el que tiene cuenta de Google, si hay).
+ * Devuelve [{ campo, label, donde, a, b, estado: 'igual' | 'soloA' | 'soloB' | 'distinto', elegido }].
+ */
+export function compararPerfiles(base, otra, fBase = {}, fOtra = {}) {
+  return CAMPOS_UNION.map(([campo, label, donde]) => {
+    // Quien entró con Google a veces solo tiene `name` (sin nombre y apellido separados).
+    const de = (p, f) => (donde === 'ficha' ? f[campo] : campo === 'nombre' && !p.nombre && !p.apellido ? p.name : p[campo]);
+    const a = de(base, fBase);
+    const b = de(otra, fOtra);
+    let estado = 'igual';
+    if (vacio(a) && vacio(b)) return null;
+    if (vacio(a)) estado = 'soloB'; else if (vacio(b)) estado = 'soloA'; else if (!mismo(a, b)) estado = 'distinto';
+    return { campo, label, donde, a, b, estado, elegido: estado === 'soloB' ? b : estado === 'distinto' ? valorMejor(a, b) : a };
+  }).filter(Boolean);
+}

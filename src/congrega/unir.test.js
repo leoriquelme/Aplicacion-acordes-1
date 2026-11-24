@@ -37,3 +37,18 @@ describe('tipo de asistencia por defecto', () => {
     expect(tipoPorDefecto({ miembro: true }, { anteriores: 0 })).toBe('regular');
   });
 });
+
+describe('unir: lo mejor de cada perfil', () => {
+  it('completa lo que falta y elige el texto más completo', async () => {
+    const { compararPerfiles, valorMejor } = await import('./unir.js');
+    expect(valorMejor('Juan', 'Juan Andrés')).toBe('Juan Andrés');
+    expect(valorMejor('', '9 1234')).toBe('9 1234');
+    expect(valorMejor('2020-01-01', '2021-02-02')).toBe('2020-01-01');
+    const r = compararPerfiles({ nombre: 'Juan', apellido: 'Pérez', uid: 'g' }, { nombre: 'Juan', apellido: 'Pérez Soto', tipo: 'Regular' }, { telefono: '' }, { telefono: '9 1111 2222', email: 'j@x.cl' });
+    const por = Object.fromEntries(r.map((x) => [x.campo, x]));
+    expect(por.nombre.estado).toBe('igual');
+    expect(por.apellido).toMatchObject({ estado: 'distinto', elegido: 'Pérez Soto' });
+    expect(por.tipo).toMatchObject({ estado: 'soloB', elegido: 'Regular' });
+    expect(por.telefono).toMatchObject({ estado: 'soloB', elegido: '9 1111 2222' });
+  });
+});

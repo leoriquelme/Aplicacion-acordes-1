@@ -6,7 +6,7 @@ import { collection, deleteDoc, deleteField, doc, getDocs, onSnapshot, query, se
 import { db } from '../lib/firebase.js';
 import { useStore } from '../lib/store.jsx';
 import { fusionarDatos } from './importarPco.js';
-import { ordenarUnion, personaUnida } from './unir.js';
+import { compararPerfiles, ordenarUnion, personaUnida } from './unir.js';
 import { permisosDe } from './permisos.js';
 import { registrar, useEquipoEstacion } from './estacion.jsx';
 
@@ -34,6 +34,7 @@ export function CongregaProvider({ children }) {
   const [fichas, setFichas] = useState(new Map());
   const [notas, setNotas] = useState(new Map());
   const [asistencia, setAsistencia] = useState(new Map());
+  const [cuentas, setCuentas] = useState(new Map());
   const [listo, setListo] = useState({ familias: false, asistencia: false });
   const anotar = useCallback((accion, persona, detalle) => registrar(churchId, myUid, me?.name, accion, persona, detalle), [churchId, myUid, me?.name]);
 
@@ -54,6 +55,11 @@ export function CongregaProvider({ children }) {
   useEffect(() => {
     if (!churchId || !verPrivado) { setNotas(new Map()); return undefined; }
     return onSnapshot(collection(db, 'churches', churchId, 'notas'), (s) => setNotas(new Map(s.docs.map((d) => [d.id, d.data()]))), () => setNotas(new Map()));
+  }, [churchId, verPrivado]);
+  // Con qué cuenta de Google entró cada uno: solo Administrador y Pastor.
+  useEffect(() => {
+    if (!churchId || !verPrivado) { setCuentas(new Map()); return undefined; }
+    return onSnapshot(collection(db, 'churches', churchId, 'cuentas'), (s) => setCuentas(new Map(s.docs.map((d) => [d.id, d.data()]))), () => setCuentas(new Map()));
   }, [churchId, verPrivado]);
   // Una sola vez: las notas que todavía estén dentro de la ficha pasan a notas/ (aparte), y el cumpleaños
   // y aniversario (día y mes) quedan en la ficha visible, para avisarlos en la estación.
@@ -158,8 +164,13 @@ export function CongregaProvider({ children }) {
     anotar('Eliminó una persona', nombreDe(people.find((p) => p.key === key)));
   }, [asistencia, ref, anotar, people]);
 
-  /** Une a personas repetidas en una sola (solo Administrador). `otras`: una key o una lista. Devuelve la key de quien queda. */
-  const unirPersonas = useCallback(async (keyQueda, otras) => {
+  /**
+   * Une a personas repetidas en una sola (solo Administrador), sacando lo mejor de cada una:
+   * lo que le falta a una se completa con la otra y, donde las dos tienen un dato distinto, se usa
+   * `elecciones[campo]` o, si no se eligió, el más completo. Queda la que entró con Google.
+   * `otras`: una key o una lista. Devuelve la key de quien queda.
+   */
+  const unirPersonas = useCallback(async (keyQueda, otras, elecciones = {}) => {
     const ahora = Date.now();
     let queda = people.find((p) => p.key === keyQueda);
     const fichaDe = (k) => fichas.get(k) || {};
@@ -173,9 +184,14 @@ export function CongregaProvider({ children }) {
       const fq = q.key === queda.key ? ficha : fichaDe(q.key); const fo = o.key === queda.key ? ficha : fichaDe(o.key);
       const { cambios: c1 = [], ...restoQ } = fq; const { cambios: c2 = [], ...restoO } = fo;
       ficha = { ...fusionarDatos(restoO, restoQ), cambios: [...c1, ...c2, { at: ahora, by: myUid, campos: [`unida con ${nombreDe(o)}`] }].sort((x, y) => x.at - y.at).slice(-50) };
+      const distintos = compararPerfiles(q, o, restoQ, restoO).filter((x) => x.estado === 'distinto');
       const no = notas.get(o.key) || {};
       nota = { notas: [nota.notas, no.notas].filter(Boolean).join('\n\n').slice(0, 5000), notasMedicas: [nota.notasMedicas, no.notasMedicas].filter(Boolean).join('\n\n').slice(0, 3000) };
       queda = { ...personaUnida(q, o), key: q.key };
+      distintos.forEach((x) => {
+        const v = Object.prototype.hasOwnProperty.call(elecciones, x.campo) ? elecciones[x.campo] : x.elegido;
+        if (x.donde === 'ficha') ficha[x.campo] = v; else queda[x.campo] = v;
+      });
       unidas.push(o.key);
     }
     const { key: kq, ...persona } = queda;
@@ -217,9 +233,9 @@ export function CongregaProvider({ children }) {
   }, [ref, myUid, anotar, people]);
 
   const value = useMemo(() => ({
-    ...store, ...perms, isAdmin, marca, familias, fichas, notas, asistencia, listo, people, sinTipo, equipo, anotar,
+    ...store, ...perms, isAdmin, marca, familias, fichas, notas, asistencia, cuentas, listo, people, sinTipo, equipo, anotar,
     marcar, registrarVisita, guardarPersona, guardarMisDatos, crearFamilia, eliminarPersona, unirPersonas, cambiarPerfiles,
-  }), [store, perms, isAdmin, marca, familias, fichas, notas, asistencia, listo, people, sinTipo, equipo, anotar, marcar, registrarVisita, guardarPersona, guardarMisDatos, crearFamilia, eliminarPersona, unirPersonas, cambiarPerfiles]);
+  }), [store, perms, isAdmin, marca, familias, fichas, notas, asistencia, cuentas, listo, people, sinTipo, equipo, anotar, marcar, registrarVisita, guardarPersona, guardarMisDatos, crearFamilia, eliminarPersona, unirPersonas, cambiarPerfiles]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

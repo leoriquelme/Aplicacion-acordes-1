@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Avatar } from '../components/Avatares.jsx';
 import { nombreDe, norm, useCongrega } from './datos.jsx';
-import { gruposDuplicados } from './unir.js';
+import { compararPerfiles, gruposDuplicados, ordenarUnion } from './unir.js';
 
 const meta = (p, familias, veces) => [
   p.uid ? 'Con cuenta' : '',
@@ -16,7 +16,7 @@ export default function UnirPerfiles() {
   return (
     <section className="card cg-stack">
       <h2>Unir perfiles</h2>
-      <p className="muted">Cuando una persona aparece dos veces, únela en un solo perfil: se juntan sus datos, familia, ministerios, foto y toda su asistencia. Si uno de los dos entró con su cuenta, queda ese.</p>
+      <p className="muted">Cuando una persona aparece dos veces, búscala y únela: lo que le falta a una ficha se completa con la otra, y donde tengan datos distintos eliges cuál queda. Se junta toda la asistencia. Si una entró con Google, queda esa.</p>
       <UnirManual />
       <h3 className="cg-h3">Con el mismo nombre</h3>
       <Repetidos />
@@ -25,36 +25,132 @@ export default function UnirPerfiles() {
 }
 
 function UnirManual() {
-  const { people, unirPersonas } = useCongrega();
-  const [a, setA] = useState('');
+  return <div className="card cg-manual"><UnirBuscador /></div>;
+}
+
+const coincide = (p, q) => {
+  const t = norm(q).trim();
+  if (!t) return false;
+  const texto = norm([nombreDe(p), p.name, p.apodo, ...(p.otrosNombres || [])].filter(Boolean).join(' '));
+  return t.split(/\s+/).every((w) => texto.includes(w));
+};
+
+/** Busca a una persona por nombre, apodo u otros nombres. Las que entraron con Google van primero. */
+function Buscar({ label, excluir = [], onElegir, cuentas }) {
+  const { people } = useCongrega();
+  const [q, setQ] = useState('');
+  const res = q.trim().length < 2 ? [] : people.filter((p) => !excluir.includes(p.key) && coincide(p, q))
+    .sort((a, b) => (Boolean(b.uid) - Boolean(a.uid)) || norm(nombreDe(a)).localeCompare(norm(nombreDe(b)))).slice(0, 8);
+  return (
+    <div className="cg-buscar-unir">
+      <label className="cg-dato"><span>{label}</span>
+        <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Escribe un nombre o apodo…" autoComplete="off" />
+      </label>
+      {q.trim().length >= 2 && (
+        <div className="cg-lista cg-resultados">
+          {!res.length && <div className="muted cg-vacio">Nadie con ese nombre.</div>}
+          {res.map((p) => (
+            <button key={p.key} type="button" className="cg-item cg-resultado" onClick={() => { onElegir(p.key); setQ(''); }}>
+              <Avatar name={nombreDe(p)} personKey={p.key} photo={p.photo || ''} size="md" />
+              <span className="cg-quien"><span className="cg-nombre">{nombreDe(p)}</span>
+                <span className="cg-meta">{p.uid ? <><span className="cg-chip">Google</span> {cuentas?.get(p.uid)?.email || 'con cuenta'}</> : 'Sin cuenta'}{p.apodo ? ` · “${p.apodo}”` : ''}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Elegida({ p, onCambiar, cuentas }) {
+  return (
+    <div className="cg-item cg-elegida">
+      <Avatar name={nombreDe(p)} personKey={p.key} photo={p.photo || ''} size="md" />
+      <span className="cg-quien"><span className="cg-nombre">{nombreDe(p)}</span>
+        <span className="cg-meta">{p.uid ? <><span className="cg-chip">Google</span> {cuentas?.get(p.uid)?.email || 'con cuenta'}</> : 'Sin cuenta'}</span>
+      </span>
+      {onCambiar && <button type="button" className="btn small ghost" onClick={onCambiar}>Cambiar</button>}
+    </div>
+  );
+}
+
+/**
+ * Unir dos fichas de la misma persona sacando lo mejor de cada una.
+ * `fija`: una de las dos ya elegida (desde su ficha). `onListo(key)`: después de unir.
+ */
+export function UnirBuscador({ fija = '', onListo }) {
+  const { people, fichas, familias, cuentas, unirPersonas } = useCongrega();
+  const [a, setA] = useState(fija);
   const [b, setB] = useState('');
+  const [elecciones, setElecciones] = useState({});
   const [estado, setEstado] = useState('');
-  const orden = [...people].sort((x, y) => norm(nombreDe(x)).localeCompare(norm(nombreDe(y))));
   const pa = people.find((p) => p.key === a); const pb = people.find((p) => p.key === b);
-  const dosCuentas = pa?.uid && pb?.uid;
+  const orden = pa && pb ? ordenarUnion(pa, pb) : null;
+  const [base, otra] = orden || [];
+  const filas = orden ? compararPerfiles(base, otra, fichas.get(base.key) || {}, fichas.get(otra.key) || {}) : [];
+  const completa = filas.filter((x) => x.estado === 'soloB');
+  const distintos = filas.filter((x) => x.estado === 'distinto');
+  const iguales = filas.filter((x) => x.estado === 'igual' || x.estado === 'soloA').length;
+  const ver = (campo, v) => {
+    if (v === true) return 'Sí'; if (v === false) return 'No';
+    if (campo === 'photo') return <img src={v} alt="" className="cg-mini-foto" />;
+    if (campo === 'familiaId') return `Familia ${familias.get(v)?.name || '(otra)'}`;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(String(v))) return new Date(`${v}T12:00:00`).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' });
+    return String(v);
+  };
+  const limpiar = () => { setElecciones({}); setEstado(''); };
   const unir = async () => {
     setEstado('uniendo');
-    try { await unirPersonas(a, b); setEstado(`Listo: quedó un solo perfil de ${nombreDe(pa.uid || !pb.uid ? pa : pb)}.`); setA(''); setB(''); } catch (e) { setEstado(`No se pudo unir: ${e.message}`); }
+    try {
+      const k = await unirPersonas(base.key, otra.key, elecciones);
+      setEstado('Listo: quedó un solo perfil con lo mejor de las dos fichas.'); setB(''); if (!fija) setA(''); setElecciones({});
+      onListo?.(k);
+    } catch (e) { setEstado(`No se pudo unir: ${e.message}`); }
   };
   return (
-    <div className="card cg-manual">
-      <label>Perfil que queda
-        <select value={a} onChange={(e) => { setA(e.target.value); setEstado(''); }} disabled={estado === 'uniendo'}>
-          <option value="">Elige una persona…</option>
-          {orden.map((p) => <option key={p.key} value={p.key} disabled={p.key === b}>{nombreDe(p)}{p.uid ? ' (con cuenta)' : ''}</option>)}
-        </select>
-      </label>
-      <label>Perfil que se une a ese (se elimina)
-        <select value={b} onChange={(e) => { setB(e.target.value); setEstado(''); }} disabled={estado === 'uniendo'}>
-          <option value="">Elige la otra…</option>
-          {orden.map((p) => <option key={p.key} value={p.key} disabled={p.key === a}>{nombreDe(p)}{p.uid ? ' (con cuenta)' : ''}</option>)}
-        </select>
-      </label>
-      {dosCuentas && <div className="cg-aviso">Las dos tienen su propia cuenta; no se pueden unir.</div>}
+    <div className="cg-stack">
+      {pa ? <Elegida p={pa} cuentas={cuentas} onCambiar={fija ? null : () => { setA(''); limpiar(); }} />
+        : <Buscar label="Primera ficha" excluir={[b]} cuentas={cuentas} onElegir={(k) => { setA(k); limpiar(); }} />}
+      {pa && (pb ? <Elegida p={pb} cuentas={cuentas} onCambiar={() => { setB(''); limpiar(); }} />
+        : <Buscar label="¿Con quién la unes? (la misma persona)" excluir={[a]} cuentas={cuentas} onElegir={(k) => { setB(k); limpiar(); }} />)}
+      {pa && pb && !orden && <div className="cg-aviso">Las dos entraron con su propia cuenta de Google; no se pueden unir.</div>}
+      {orden && (
+        <div className="card cg-stack cg-vista-union">
+          <p><strong>Se mantiene la ficha de {nombreDe(base)}</strong>{base.uid ? ' (entró con Google)' : ''}, con la asistencia, familia y ministerios de las dos. No se pierde ningún dato.</p>
+          {completa.length > 0 && (
+            <div className="cg-stack">
+              <h4 className="cg-h3">Se completa con la otra ficha</h4>
+              {completa.map((x) => <div key={x.campo} className="cg-dato"><span>{x.label}</span><div>{ver(x.campo, x.b)}</div></div>)}
+            </div>
+          )}
+          {distintos.length > 0 && (
+            <div className="cg-stack">
+              <h4 className="cg-h3">Distintos: elige cuál queda</h4>
+              {distintos.map((x) => {
+                const elegido = Object.prototype.hasOwnProperty.call(elecciones, x.campo) ? elecciones[x.campo] : x.elegido;
+                return (
+                  <div key={x.campo} className="cg-dato"><span>{x.label}</span>
+                    <div className="cg-opciones" role="radiogroup" aria-label={x.label}>
+                      {[x.a, x.b].map((v, i) => (
+                        <button key={i} type="button" role="radio" aria-checked={elegido === v} className={`cg-op${elegido === v ? ' on' : ''}`} onClick={() => setElecciones({ ...elecciones, [x.campo]: v })}>{ver(x.campo, v)}</button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {!completa.length && !distintos.length && <p className="muted">Los datos ya coinciden; solo se juntan la asistencia y los ministerios.</p>}
+          {iguales > 0 && <p className="muted small">{iguales} {iguales === 1 ? 'dato se mantiene' : 'datos se mantienen'} como están.</p>}
+        </div>
+      )}
       {estado && estado !== 'uniendo' && <div className={`cg-aviso${estado.startsWith('Listo') ? ' info' : ''}`} aria-live="polite">{estado}</div>}
-      <button type="button" className="btn primary cg-izq" disabled={!a || !b || dosCuentas || estado === 'uniendo'} onClick={unir}>
-        {estado === 'uniendo' ? 'Uniendo…' : 'Unir en un perfil'}
-      </button>
+      {orden && (
+        <button type="button" className="btn primary cg-izq" disabled={estado === 'uniendo'} onClick={unir}>
+          {estado === 'uniendo' ? 'Uniendo…' : 'Unir con lo mejor de cada una'}
+        </button>
+      )}
     </div>
   );
 }
@@ -95,7 +191,7 @@ export function Repetidos() {
                 <Avatar name={nombreDe(p)} personKey={p.key} photo={p.photo || ''} size="lg" />
                 <span className="cg-quien">
                   <span className="cg-nombre">{nombreDe(p)}</span>
-                  <span className="cg-meta">{!fuera(p) && elegida?.key === p.key ? 'Queda este · ' : ''}{meta(p, familias, veces)}</span>
+                  <span className="cg-meta">{!fuera(p) && elegida?.key === p.key ? 'Base · ' : ''}{meta(p, familias, veces)}</span>
                 </span>
                 <button type="button" className="btn small ghost" disabled={Boolean(ocupado)} onClick={() => setQuitar({ ...quitar, [`${id}|${p.key}`]: !fuera(p) })}>
                   {fuera(p) ? 'Incluir' : 'Es otra'}
