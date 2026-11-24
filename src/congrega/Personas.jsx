@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { TIPOS, activo, esMiembro, nombreDe, norm, useCongrega } from './datos.jsx';
 import { gruposDuplicados } from './unir.js';
+import { Avatar } from '../components/Avatares.jsx';
 
 const FILTROS = [['activos', 'Activos'], ['familias', 'Por familia'], ['miembros', 'Miembros'], ...TIPOS.map((t) => [t, t]), ['ninos', 'Niños'], ['inactivos', 'Inactivos']];
 const ORDEN_ROL = { 'Contacto principal': 0, 'Cónyuge': 1, 'Hijo/a': 2 };
@@ -10,6 +11,7 @@ function Fila({ p, familias }) {
   const fam = p.familiaId && familias.get(p.familiaId);
   return (
     <Link className="cg-item" role="listitem" to={`/congrega/personas/${p.key}`}>
+      <Avatar name={nombreDe(p)} personKey={p.key} photo={p.photo || ''} size="lg" />
       <span className="cg-quien">
         <span className="cg-nombre">{nombreDe(p)}</span>
         <span className="cg-meta">
