@@ -34,8 +34,10 @@ export default function Estacion() {
   const q = norm(buscar);
   const lista = people.filter((p) => (q ? coincide(p, q, familias) : activo(p)))
     .sort((a, b) => norm(nombreDe(a)).localeCompare(norm(nombreDe(b))));
+  // Un toque marca a la persona y a toda su familia; después se puede quitar a quien no vino.
   const tocar = (p) => {
-    if (!m.presentes.has(p.key) && m.familiaDe(p).length) { m.toggle(p); setFamilia(p); return; }
+    const parientes = m.familiaDe(p);
+    if (!m.presentes.has(p.key) && parientes.length) { m.marcarVarios([p.key, ...parientes.map((x) => x.key)]); setFamilia(p); return; }
     m.toggle(p);
   };
   const pantallaCompleta = () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.())?.catch?.(() => {});
@@ -71,14 +73,15 @@ export default function Estacion() {
             </button>
           );
         })}
-        {!lista.length && <div className="card muted cg-vacio">Nadie coincide. Si es su primera vez, toca “+ Visita”.</div>}
+        {!lista.length && <div className="card muted cg-vacio">Nadie coincide. Si es su primera vez, toca “Agregar visita”.</div>}
       </div>
+      <button type="button" className="btn primary cg-agregar-visita" onClick={() => setVisita({ nombre: '', apellido: '' })}>+ Agregar visita</button>
 
       {familia && (
         <div className="modal-fondo" role="dialog" aria-modal="true" aria-label="Familia" onClick={(e) => e.target === e.currentTarget && setFamilia(null)}>
           <div className="modal cg-stack cg-estacion-modal">
             <h2>¡Hola, {familia.nombre || nombreDe(familia)}!</h2>
-            <p className="muted">¿Quién más de la familia {familias.get(familia.familiaId)?.name || ''} vino hoy?</p>
+            <p className="muted">Marcamos a la familia {familias.get(familia.familiaId)?.name || ''}. Si alguien no vino, tócalo para quitarlo.</p>
             <Familia p={familia} m={m} />
             <button type="button" className="btn primary" onClick={() => { setFamilia(null); setBuscar(''); }}>Listo</button>
           </div>

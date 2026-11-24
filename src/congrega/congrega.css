@@ -167,3 +167,5 @@ a.cg-item:hover { background: var(--surface-2); text-decoration: none; }
 .cg-estacion-modal { max-width: 28rem; width: 100%; }
 .cg-estacion-modal .cg-familia { order: 0; text-align: left; }
 .cg-estacion-buscar .btn.ghost { white-space: nowrap; }
+.cg-agregar-visita { width: 100%; min-height: 3.2rem; font-size: 1.1rem; }
+.cg-estacion .cg-agregar-visita { position: sticky; bottom: max(0.8rem, env(safe-area-inset-bottom)); box-shadow: var(--shadow-float, 0 6px 20px rgba(0,0,0,.25)); }

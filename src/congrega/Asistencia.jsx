@@ -157,7 +157,10 @@ export default function Asistencia() {
                         {a && <span>{String(t.getHours()).padStart(2, '0')}:{String(t.getMinutes()).padStart(2, '0')} · por {quien(a.por)}</span>}
                       </span>
                     </button>
-                    <button type="button" className="cg-check" aria-pressed={Boolean(a)} aria-label={`${a ? 'Quitar' : 'Marcar'} asistencia de ${nombreDe(p)}`} onClick={() => m.toggle(p)}>
+                    <button type="button" className="cg-check" aria-pressed={Boolean(a)} aria-label={`${a ? 'Quitar' : 'Marcar'} asistencia de ${nombreDe(p)}`} onClick={() => {
+                      // Al marcar a alguien con familia se marca a toda la familia; el panel queda abierto para desmarcar a quien no vino.
+                      if (!a && parientes.length) { m.marcarVarios([p.key, ...parientes.map((x) => x.key)]); setAbierta(p.key); } else m.toggle(p);
+                    }}>
                       <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>
                     </button>
                     {a && (
@@ -170,6 +173,7 @@ export default function Asistencia() {
                 );
               })}
           </div>
+          <button type="button" className="btn primary cg-agregar-visita" onClick={() => { setVisita({ nombre: '', apellido: '' }); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>+ Agregar visita</button>
         </>
       )}
     </div>
@@ -182,6 +186,7 @@ export function Familia({ p, m, onFicha }) {
   const faltan = [p, ...parientes].filter((x) => !m.presentes.has(x.key));
   return (
     <div className="cg-familia">
+      <span className="muted small">{faltan.length ? 'Familia:' : 'Se marcó a toda la familia. Toca a quien no vino para quitarlo.'}</span>
       {parientes.map((x) => (
         <div key={x.key} className={`cg-familiar${m.presentes.has(x.key) ? ' presente' : ''}`}>
           <Avatar name={nombreDe(x)} personKey={x.key} photo={x.photo || ''} size="sm" />
