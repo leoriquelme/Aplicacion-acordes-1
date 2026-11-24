@@ -11,7 +11,7 @@
 .cg-titulo { margin: 0; }
 .cg h2, .cg h3 { margin: 0; text-wrap: balance; }
 .cg-h3 { font-size: 1rem; }
-.cg input:not([type='checkbox']), .cg select, .cg textarea { width: 100%; min-height: 2.75rem; padding: 0.55rem 0.7rem; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); font: inherit; }
+.cg input:not([type='checkbox']):not([type='radio']), .cg select, .cg textarea { width: 100%; min-height: 2.75rem; padding: 0.55rem 0.7rem; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); font: inherit; }
 .cg-row > input, .cg-row > select { width: auto; }
 
 
@@ -128,3 +128,15 @@ a.cg-item:hover { background: var(--surface-2); text-decoration: none; }
 .cg-perfil .cg-titulo { font-size: 1.6rem; overflow-wrap: anywhere; }
 .cg-item .avatar { flex: none; }
 .cg-entre { justify-content: space-between; flex-wrap: nowrap; }
+
+/* Unir perfiles */
+.cg-grupo { padding: 0; overflow: hidden; }
+.cg-grupo-head { display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; padding: 0.7rem 0.9rem; border-bottom: 1px solid var(--border); }
+.cg-grupo-head h3 { font-size: 1rem; }
+.cg-grupo .cg-item { margin: 0; }
+.cg-grupo .cg-item.fuera { opacity: 0.5; }
+.cg-grupo .cg-item.queda { background: var(--cg-ok-soft); }
+.cg input[type='radio'] { width: 1.3rem; height: 1.3rem; flex: none; margin: 0; accent-color: var(--cg-ok); }
+.cg-grupo-pie { padding: 0.7rem 0.9rem; border-top: 1px solid var(--border); }
+.cg-manual { display: grid; gap: 0.6rem; }
+.cg-manual label { margin: 0; }

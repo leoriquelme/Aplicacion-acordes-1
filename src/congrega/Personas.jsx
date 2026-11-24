@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { TIPOS, activo, esMiembro, nombreDe, norm, useCongrega } from './datos.jsx';
-import { gruposDuplicados } from './unir.js';
+import { Repetidos } from './UnirPerfiles.jsx';
 import { Avatar } from '../components/Avatares.jsx';
 
 const FILTROS = [['activos', 'Activos'], ['familias', 'Por familia'], ['miembros', 'Miembros'], ...TIPOS.map((t) => [t, t]), ['ninos', 'Niños'], ['inactivos', 'Inactivos']];
@@ -75,7 +75,7 @@ export default function Personas() {
         {FILTROS.map(([k, l]) => <button key={k} type="button" className="cg-tag" aria-pressed={filtro === k} onClick={() => setFiltro(k)}>{l}</button>)}
         {isAdmin && <button type="button" className="cg-tag" aria-pressed={filtro === 'repetidos'} onClick={() => setFiltro('repetidos')}>Repetidos</button>}
       </div>
-      {filtro === 'repetidos' ? <Repetidos /> : (
+      {filtro === 'repetidos' ? <><p className="muted">Elige qué perfil queda y presiona Unir. Si alguno es otra persona, toca "Es otra". También puedes unir dos perfiles cualquiera en Ajustes → Unir perfiles.</p><Repetidos /></> : (
         <>
           <div className="muted">{filas.length} {filas.length === 1 ? 'persona' : 'personas'}</div>
           {cuerpo}
@@ -85,63 +85,3 @@ export default function Personas() {
   );
 }
 
-/** Personas con el mismo nombre (vienen de distintas bases): el Administrador las une en una. */
-function Repetidos() {
-  const { people, familias, asistencia, unirPersonas } = useCongrega();
-  const [queda, setQueda] = useState({});
-  const [quitar, setQuitar] = useState({});
-  const [ocupado, setOcupado] = useState('');
-  const [aviso, setAviso] = useState('');
-  const veces = new Map(); asistencia.forEach((a) => veces.set(a.personKey, (veces.get(a.personKey) || 0) + 1));
-  const grupos = gruposDuplicados(people).sort((a, b) => norm(nombreDe(a[0])).localeCompare(norm(nombreDe(b[0]))));
-  if (!grupos.length) return <div className="card muted cg-vacio">No hay personas con el mismo nombre y primer apellido. {aviso}</div>;
-  const unir = async (g, id) => {
-    const marcadas = g.filter((p) => !quitar[`${id}|${p.key}`]);
-    const principal = marcadas.find((p) => p.key === queda[id]) || marcadas.find((p) => p.uid) || marcadas[0];
-    setOcupado(id); setAviso('');
-    try {
-      await unirPersonas(principal.key, marcadas.filter((p) => p.key !== principal.key).map((p) => p.key));
-      setAviso(`Listo: ${nombreDe(principal)} quedó como una sola persona.`);
-    } catch (e) { setAviso(`No se pudo unir: ${e.message}`); }
-    setOcupado('');
-  };
-  return (
-    <div className="cg-stack">
-      <p className="muted">Estas personas tienen el mismo nombre y primer apellido. Si son la misma, elige qué ficha queda y presiona Unir: se juntan sus datos, familia, ministerios y toda su asistencia. Desmarca a quien sea otra persona.</p>
-      {aviso && <div className="cg-aviso info" aria-live="polite">{aviso}</div>}
-      {grupos.map((g) => {
-        const id = g.map((p) => p.key).sort().join('|');
-        const marcadas = g.filter((p) => !quitar[`${id}|${p.key}`]);
-        const elegida = marcadas.find((p) => p.key === queda[id]) || marcadas.find((p) => p.uid) || marcadas[0];
-        return (
-          <section key={id} className="card cg-stack">
-            <div className="card cg-lista">
-              {g.map((p) => {
-                const fam = p.familiaId && familias.get(p.familiaId);
-                const fuera = quitar[`${id}|${p.key}`];
-                return (
-                  <label key={p.key} className="cg-item">
-                    <input type="radio" className="cg-checkbox" name={id} checked={!fuera && elegida?.key === p.key} disabled={fuera || Boolean(ocupado)} onChange={() => setQueda({ ...queda, [id]: p.key })} />
-                    <span className="cg-quien">
-                      <span className="cg-nombre">{nombreDe(p)}{!fuera && elegida?.key === p.key ? ' · queda esta' : ''}</span>
-                      <span className="cg-meta">
-                        {p.uid && <span className="cg-chip ok">Con cuenta</span>}
-                        {p.tipo && <span className="cg-chip">{p.tipo}</span>}
-                        {fam && <span>{fam.name}</span>}
-                        <span>{veces.get(p.key) || 0} asistencias</span>
-                      </span>
-                    </span>
-                    <button type="button" className="btn small ghost" disabled={Boolean(ocupado)} onClick={(e) => { e.preventDefault(); setQuitar({ ...quitar, [`${id}|${p.key}`]: !fuera }); }}>{fuera ? 'Incluir' : 'No es la misma'}</button>
-                  </label>
-                );
-              })}
-            </div>
-            <button type="button" className="btn primary cg-izq" disabled={marcadas.length < 2 || Boolean(ocupado)} onClick={() => unir(g, id)}>
-              {ocupado === id ? 'Uniendo…' : `Unir ${marcadas.length} en una`}
-            </button>
-          </section>
-        );
-      })}
-    </div>
-  );
-}

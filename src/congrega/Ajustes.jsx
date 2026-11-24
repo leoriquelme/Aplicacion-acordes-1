@@ -3,11 +3,12 @@ import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase.js';
 import { ROLES } from '../lib/store.jsx';
 import { useCongrega } from './datos.jsx';
+import UnirPerfiles from './UnirPerfiles.jsx';
 
 export default function Ajustes() {
   const { isAdmin } = useCongrega();
   if (!isAdmin) return <div className="card">Solo el Administrador de la iglesia ve los ajustes de Congrega.</div>;
-  return <div className="cg-stack"><div className="page-head"><h1>Ajustes</h1></div><Voluntarios /></div>;
+  return <div className="cg-stack"><div className="page-head"><h1>Ajustes</h1></div><UnirPerfiles /><Voluntarios /></div>;
 }
 
 function Voluntarios() {
