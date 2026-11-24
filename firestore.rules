@@ -300,7 +300,7 @@ service cloud.firestore {
         allow update: if (isAdmin(c) && photoOk(request.resource.data))
           || (isAsisAdmin(c) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['tipo', 'rangoEdad', 'esNino'])
               && request.resource.data.get('tipo', '') in ['', 'Activo', 'Regular', 'Ocasional', 'Visita']
-              && request.resource.data.get('rangoEdad', '') in ['', 'Bebé', 'Niño', 'Adolescente', 'Joven', 'Adulto', 'Adulto Mayor']
+              && shortText(request.resource.data.get('rangoEdad', ''), 20)
               && request.resource.data.get('esNino', false) is bool)
           // Cada uno actualiza su "última vez", su nombre, sus equipos y su foto.
           || (isMember(c) && key == request.auth.uid
