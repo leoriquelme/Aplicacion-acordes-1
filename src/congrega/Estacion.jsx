@@ -4,7 +4,7 @@
 // Avisa los cumpleaños y aniversarios de la semana.
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { formatLong, todayISO } from '../lib/dates.js';
+import { fechaCorta, formatLong, todayISO } from '../lib/dates.js';
 import { activo, nombreDe, norm, useCongrega } from './datos.jsx';
 import { celebraciones, coincide, marcadoDe } from './marcado.js';
 import { Contador, Familia, useEvento } from './Asistencia.jsx';
@@ -61,7 +61,7 @@ export default function Estacion() {
         <div className="cg-grow">
           {ctx.asisAdmin && !elegido ? (
             <select value={ev.id} onChange={(e) => setEventId(e.target.value)} aria-label="Evento">
-              {opciones.map((e) => <option key={e.id} value={e.id}>{e.name || 'Evento'} · {e.date}</option>)}
+              {opciones.map((e) => <option key={e.id} value={e.id}>{fechaCorta(e.date)} · {e.name || 'Evento'}</option>)}
             </select>
           ) : <strong className="cg-estacion-evento">{ev.name || 'Evento'}</strong>}
           <div className="muted">{formatLong(ev.date)}</div>

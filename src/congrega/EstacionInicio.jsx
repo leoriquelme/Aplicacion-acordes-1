@@ -4,7 +4,7 @@
 // Quien está en el equipo se ofrece para los próximos servicios e inicia la estación en su turno aprobado.
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { formatLong, sortEvents, todayISO } from '../lib/dates.js';
+import { fechaCorta, formatLong, sortEvents, todayISO } from '../lib/dates.js';
 import { Avatar } from '../components/Avatares.jsx';
 import { nombreDe, norm, useCongrega } from './datos.jsx';
 import { estacion, proximosEventos, turnoId, useTurnos } from './estacion.jsx';
@@ -55,7 +55,7 @@ function IniciarAdmin({ events, hoy, iniciar, saveEvent }) {
       {ev ? (
         <>
           <select value={ev.id} onChange={(e) => setId(e.target.value)} aria-label="Evento">
-            {[...deHoy, ...lista.filter((e) => e.date !== hoy)].map((e) => <option key={e.id} value={e.id}>{e.date === hoy ? 'Hoy' : e.date} · {e.name || 'Evento'}</option>)}
+            {[...deHoy, ...lista.filter((e) => e.date !== hoy)].map((e) => <option key={e.id} value={e.id}>{fechaCorta(e.date)} · {e.name || 'Evento'}</option>)}
           </select>
           <button type="button" className="btn primary cg-boton-iniciar" onClick={() => iniciar(ev)}>▶ Iniciar</button>
         </>

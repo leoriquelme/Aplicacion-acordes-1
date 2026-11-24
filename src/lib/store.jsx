@@ -39,6 +39,9 @@ function writeJSON(key, value) {
   }
 }
 
+/** Quienes usan la app (entraron con su cuenta). Las personas sin cuenta (importadas o visitas) viven en Congrega. */
+export const conCuenta = (people = [], isTest = false) => (isTest ? people : people.filter((p) => p.uid));
+
 export function newId() {
   if (globalThis.crypto?.randomUUID) return crypto.randomUUID();
   return Date.now().toString(36) + Math.random().toString(36).slice(2);

@@ -4,7 +4,7 @@ import { TIPOS, activo, esMiembro, nombreDe, norm, useCongrega } from './datos.j
 import { Repetidos } from './UnirPerfiles.jsx';
 import { Avatar } from '../components/Avatares.jsx';
 
-const FILTROS = [['activos', 'Activos'], ['familias', 'Por familia'], ['miembros', 'Miembros'], ...TIPOS.map((t) => [t, t]), ['ninos', 'Niños'], ['inactivos', 'Inactivos']];
+const FILTROS = [['activos', 'Todos'], ['familias', 'Por familia'], ['miembros', 'Miembros'], ['ninos', 'Niños'], ['inactivos', 'Inactivos']];
 const ORDEN_ROL = { 'Contacto principal': 0, 'Cónyuge': 1, 'Hijo/a': 2 };
 
 function Fila({ p, familias }) {
@@ -30,12 +30,13 @@ export default function Personas() {
   const { people, familias, isAdmin } = useCongrega();
   const [filtro, setFiltro] = useState('activos');
   const [buscar, setBuscar] = useState('');
+  const [habitual, setHabitual] = useState('');
   const q = norm(buscar);
   const filas = people.filter((p) => {
     if (filtro === 'inactivos' ? activo(p) : !activo(p)) return false;
     if (filtro === 'miembros' && !esMiembro(p)) return false;
     if (filtro === 'ninos' && !p.esNino) return false;
-    if (TIPOS.includes(filtro) && p.tipo !== filtro) return false;
+    if (habitual && p.tipo !== habitual) return false;
     if (!q) return true;
     const fam = p.familiaId && familias.get(p.familiaId);
     return norm(`${nombreDe(p)} ${p.apodo || ''} ${fam?.name || ''} ${(p.teams || []).join(' ')}`).includes(q);
@@ -74,6 +75,12 @@ export default function Personas() {
       <div className="cg-tags" role="group" aria-label="Filtrar">
         {FILTROS.map(([k, l]) => <button key={k} type="button" className="cg-tag" aria-pressed={filtro === k} onClick={() => setFiltro(k)}>{l}</button>)}
         {isAdmin && <button type="button" className="cg-tag" aria-pressed={filtro === 'repetidos'} onClick={() => setFiltro('repetidos')}>Repetidos</button>}
+        {filtro !== 'repetidos' && (
+          <select className="cg-tag cg-habitual" value={habitual} onChange={(e) => setHabitual(e.target.value)} aria-label="Asistencia habitual">
+            <option value="">Asistencia: cualquiera</option>
+            {TIPOS.map((t) => <option key={t} value={t}>Asistencia: {t}</option>)}
+          </select>
+        )}
       </div>
       {filtro === 'repetidos' ? <><p className="muted">Elige qué perfil queda y presiona Unir. Si alguno es otra persona, toca "Es otra". También puedes unir dos perfiles cualquiera en Ajustes → Unir perfiles.</p><Repetidos /></> : (
         <>

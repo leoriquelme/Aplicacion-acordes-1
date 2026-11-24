@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ROLES, useStore } from '../lib/store.jsx';
+import { ROLES, conCuenta, useStore } from '../lib/store.jsx';
 import { guardarMiNacimiento, marcarIglesiaCerrada, salirDeIglesia, useAuth } from '../lib/cloud.jsx';
 import { formatoNacimiento, nacimientoValido } from '../lib/cumpleanos.js';
 import { cerrarSesion } from '../lib/acceso.js';
@@ -71,7 +71,8 @@ export function PerfilCard() {
 
 /** Debajo del perfil: mi iglesia con sus miembros. Al tocarla se entra a la iglesia. */
 export function IglesiaTarjeta() {
-  const { mode, church, people = [] } = useStore();
+  const { mode, church, people: todas = [], isTest } = useStore();
+  const people = conCuenta(todas, isTest);
   const { profile } = useAuth() || {};
   const tieneIglesias = Object.keys(profile?.churches || {}).length > 0;
   if (mode !== 'cloud' && mode !== 'personal') return null;
@@ -85,7 +86,7 @@ export function IglesiaTarjeta() {
           <IglesiaLogo className="logo-tarjeta" />
           <span className="grow">
             <strong>{church?.name}</strong>
-            <span className="muted">{people.length} {people.length === 1 ? 'miembro' : 'miembros'}</span>
+            <span className="muted">{people.length} {people.length === 1 ? 'persona usa' : 'personas usan'} la app</span>
           </span>
           <Avatares people={people} max={3} size="sm" />
         </Link>
