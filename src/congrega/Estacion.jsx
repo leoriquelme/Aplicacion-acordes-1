@@ -13,6 +13,7 @@ export default function Estacion() {
   const { people, familias, marca, registrarVisita, sinTipo } = ctx;
   const { ev, opciones, setEventId } = useEvento();
   const [buscar, setBuscar] = useState('');
+  const [filtro, setFiltro] = useState('todos');
   const [familia, setFamilia] = useState(null);
   const [visita, setVisita] = useState(null);
   const [error, setError] = useState('');
@@ -32,7 +33,9 @@ export default function Estacion() {
 
   const m = marcadoDe(ctx, ev, setError);
   const q = norm(buscar);
-  const lista = people.filter((p) => (q ? coincide(p, q, familias) : activo(p)))
+  const base = people.filter((p) => (q ? coincide(p, q, familias) : activo(p) || m.presentes.has(p.key)));
+  const nPresentes = base.filter((p) => m.presentes.has(p.key)).length;
+  const lista = base.filter((p) => (filtro === 'presentes' ? m.presentes.has(p.key) : filtro === 'ausentes' ? !m.presentes.has(p.key) : true))
     .sort((a, b) => norm(nombreDe(a)).localeCompare(norm(nombreDe(b))));
   // Un toque marca a la persona y a toda su familia; después se puede quitar a quien no vino.
   const tocar = (p) => {
@@ -58,6 +61,11 @@ export default function Estacion() {
         <input type="search" value={buscar} onChange={(e) => setBuscar(e.target.value)} placeholder="Escribe tu nombre o apellido…" aria-label="Buscar persona" autoFocus />
         <button type="button" className="btn" onClick={() => setVisita({ nombre: '', apellido: '' })}>+ Visita</button>
         {document.documentElement.requestFullscreen && <button type="button" className="btn ghost" onClick={pantallaCompleta}>{completa ? 'Salir de pantalla completa' : 'Pantalla completa'}</button>}
+        <div className="cg-seg cg-estacion-filtros" role="group" aria-label="Mostrar">
+          {[['todos', 'Todos', base.length], ['ausentes', 'Ausentes', base.length - nPresentes], ['presentes', 'Presentes', nPresentes]].map(([k, l, n]) => (
+            <button key={k} type="button" aria-pressed={filtro === k} onClick={() => setFiltro(k)}>{l} <span className="cg-filtro-n">{n}</span></button>
+          ))}
+        </div>
       </div>
       {error && <div className="cg-aviso" role="alert">{error}</div>}
       {sinTipo && <div className="cg-aviso">Falta publicar las reglas nuevas en Firebase (tipo de asistencia). Si ya las publicaste, recarga la app.</div>}
@@ -73,7 +81,7 @@ export default function Estacion() {
             </button>
           );
         })}
-        {!lista.length && <div className="card muted cg-vacio">Nadie coincide. Si es su primera vez, toca “Agregar visita”.</div>}
+        {!lista.length && <div className="card muted cg-vacio">{filtro === 'presentes' && !q ? 'Todavía no hay nadie marcado.' : filtro === 'ausentes' && !q ? '¡Llegaron todos!' : 'Nadie coincide. Si es su primera vez, toca “Agregar visita”.'}</div>}
       </div>
       <button type="button" className="btn primary cg-agregar-visita" onClick={() => setVisita({ nombre: '', apellido: '' })}>+ Agregar visita</button>
 
