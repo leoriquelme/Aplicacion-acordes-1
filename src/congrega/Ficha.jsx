@@ -33,6 +33,8 @@ export default function Ficha() {
   const { people, familias, fichas, asistencia, events = [], isAdmin } = c;
   const p = nueva ? { tipo: 'Activo', estado: 'activo', teams: [] } : people.find((x) => x.key === key);
   const [editar, setEditar] = useState(nueva);
+  const [menu, setMenu] = useState(false);
+  const [unir, setUnir] = useState(false);
   if (!p) return <div className="card">No encontramos a esta persona. <Link to="/congrega/personas">Volver a Personas</Link></div>;
   if (editar && isAdmin) return <Editar p={p} k={nueva ? null : key} onListo={() => setEditar(false)} />;
 
@@ -46,7 +48,20 @@ export default function Ficha() {
     <div className="cg-stack">
       <div className="cg-row cg-entre">
         <Link className="btn ghost" to="/congrega/personas">← Personas</Link>
-        {isAdmin && <button type="button" className="btn primary" onClick={() => setEditar(true)}>Editar</button>}
+        {isAdmin && (
+          <div className="cg-menu">
+            <button type="button" className="btn primary" aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu(!menu)}>Editar ▾</button>
+            {menu && (
+              <>
+                <div className="cg-menu-fondo" onClick={() => setMenu(false)} />
+                <div className="cg-menu-panel" role="menu">
+                  <button type="button" role="menuitem" onClick={() => { setMenu(false); setEditar(true); }}>✏️ Editar datos</button>
+                  <button type="button" role="menuitem" onClick={() => { setMenu(false); setUnir(true); }}>🔗 Unir con otra ficha</button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
       <div className="cg-perfil">
         <Avatar name={nombreDe(p)} personKey={key} photo={p.photo || ''} size="xl" />
@@ -63,7 +78,7 @@ export default function Ficha() {
           {p.uid && p.photo && <span className="muted small">Si la persona tiene su propia foto en Adora, al entrar se vuelve a poner la suya.</span>}
         </div>
       </div>
-      {isAdmin && !nueva && <UnirCon p={p} />}
+      {isAdmin && !nueva && unir && <UnirCon p={p} onCerrar={() => setUnir(false)} />}
       {isAdmin && !d.consentimiento && <div className="cg-aviso">Falta registrar el consentimiento de esta persona para guardar sus datos (Ley 21.719).</div>}
       {c.marca && (
         <fieldset className="card cg-grid"><legend>Asistencia</legend>
@@ -251,15 +266,15 @@ function Editar({ p, k, onListo }) {
 export { esMiembro };
 
 /** Unir a mano con otra ficha que es la misma persona (por ejemplo, con otro nombre o apodo). */
-function UnirCon({ p }) {
+function UnirCon({ p, onCerrar }) {
   const { people, unirPersonas } = useCongrega();
   const navigate = useNavigate();
   const [otra, setOtra] = useState('');
   const [estado, setEstado] = useState('');
   const opciones = people.filter((x) => x.key !== p.key && !(x.uid && p.uid)).sort((a, b) => norm(nombreDe(a)).localeCompare(norm(nombreDe(b))));
   return (
-    <details className="card">
-      <summary>Unir con otra ficha de la misma persona</summary>
+    <div className="card">
+      <div className="cg-row cg-entre"><strong>Unir con otra ficha de la misma persona</strong><button type="button" className="btn small ghost" onClick={onCerrar} aria-label="Cerrar">✕</button></div>
       <div className="cg-stack" style={{ marginTop: '0.7rem' }}>
         <p className="muted">Se juntan los datos, la familia, los ministerios y toda la asistencia en una sola ficha. Si una de las dos entró con su cuenta, queda esa.</p>
         <select value={otra} onChange={(e) => setOtra(e.target.value)} aria-label="Con quién unir" disabled={estado === 'uniendo'}>
@@ -269,9 +284,9 @@ function UnirCon({ p }) {
         {estado && estado !== 'uniendo' && <div className="cg-aviso" role="alert">{estado}</div>}
         <button type="button" className="btn primary cg-izq" disabled={!otra || estado === 'uniendo'} onClick={async () => {
           setEstado('uniendo');
-          try { const k = await unirPersonas(p.key, otra); setEstado(''); setOtra(''); navigate(`/congrega/personas/${k}`, { replace: true }); } catch (e) { setEstado(`No se pudo unir: ${e.message}`); }
+          try { const k = await unirPersonas(p.key, otra); setEstado(''); setOtra(''); onCerrar(); navigate(`/congrega/personas/${k}`, { replace: true }); } catch (e) { setEstado(`No se pudo unir: ${e.message}`); }
         }}>{estado === 'uniendo' ? 'Uniendo…' : 'Unir en una'}</button>
       </div>
-    </details>
+    </div>
   );
 }
