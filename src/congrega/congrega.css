@@ -176,3 +176,8 @@ a.cg-item:hover { background: var(--surface-2); text-decoration: none; }
 .cg-menu-panel { position: absolute; right: 0; top: calc(100% + 0.35rem); z-index: 21; min-width: 14rem; display: flex; flex-direction: column; padding: 0.35rem; background: var(--surface, var(--bg, #fff)); border: 1px solid var(--border, #ddd); border-radius: 12px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18); }
 .cg-menu-panel button { text-align: left; background: none; border: 0; padding: 0.7rem 0.8rem; border-radius: 8px; font: inherit; color: inherit; cursor: pointer; }
 .cg-menu-panel button:hover, .cg-menu-panel button:focus-visible { background: var(--surface-2); }
+
+/* Estación: pestañas Todos / Ausentes / Presentes, grandes y a lo ancho */
+.cg-estacion-filtros { display: flex; flex: 1 1 100%; }
+.cg-estacion-filtros button { flex: 1; font-size: 1.15rem; padding: 0.8rem 0.5rem; }
+.cg-filtro-n { opacity: 0.65; font-weight: 600; margin-left: 0.25rem; }
