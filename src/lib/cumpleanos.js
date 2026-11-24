@@ -52,6 +52,7 @@ export function diasParaCumple(texto, hoy = new Date()) {
  */
 export function proximosCumples(people = [], hoy = new Date(), diasAntes = DIAS_ANTES) {
   return people
+    .filter((persona) => persona.estado !== 'inactivo') // las personas inactivas (Congrega) no aparecen
     .map((persona) => ({ persona, dias: diasParaCumple(persona.birthday, hoy) }))
     .filter(({ dias }) => dias != null && dias <= diasAntes)
     .sort((a, b) => a.dias - b.dias || (a.persona.name || '').localeCompare(b.persona.name || ''));

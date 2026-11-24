@@ -94,7 +94,6 @@ export default function Ficha() {
             <Dato label="Género" value={d.genero} />
             <Dato label="Estado civil" value={d.estadoCivil} />
             <Dato label="Aniversario de matrimonio" value={fmt(d.aniversario)} />
-            <Dato label="RUT" value={d.rut} />
           </fieldset>
           <fieldset className="card cg-grid"><legend>Contacto</legend>
             <Dato label="Celular" value={d.telefono} />
@@ -187,7 +186,6 @@ function Editar({ p, k, onListo }) {
         <Campo label="Segundo nombre"><input value={f.segundoNombre || ''} onChange={set('segundoNombre')} /></Campo>
         <Campo label="Apellidos"><input value={f.apellido || ''} onChange={set('apellido')} /></Campo>
         <Campo label="Apodo"><input value={f.apodo || ''} onChange={set('apodo')} /></Campo>
-        <Campo label="RUT"><input value={f.rut || ''} onChange={set('rut')} placeholder="12.345.678-9" /></Campo>
       </fieldset>
       <fieldset className="card cg-grid"><legend>Situación en la iglesia</legend>
         <Campo label="Miembro"><Opciones value={sino(f.miembro)} onChange={(v) => set('miembro')(bool(v))} options={['Sí', 'No']} /></Campo>
