@@ -25,3 +25,18 @@ describe('marcar asistencia', () => {
     expect(r.eventos.map((x) => x.n)).toEqual([3, 1]);
   });
 });
+
+describe('cumpleaños y aniversarios en la estación', () => {
+  it('avisa hoy, mañana, en la semana y lo que pasó hace poco', async () => {
+    const { celebraciones, diasHasta } = await import('./marcado.js');
+    const hoy = '2026-11-29'; // domingo
+    expect(diasHasta('11-30', hoy)).toBe(1);
+    expect(diasHasta('01-02', '2026-12-30')).toBe(3);
+    expect(celebraciones({ birthday: '11-29' }, hoy)[0].texto).toBe('¡Hoy está de cumpleaños!');
+    expect(celebraciones({ birthday: '11-30' }, hoy)[0].texto).toBe('Está de cumpleaños mañana');
+    expect(celebraciones({ birthday: '12-03' }, hoy)[0].texto).toBe('Está de cumpleaños el jueves');
+    expect(celebraciones({ aniversarioMD: '11-26' }, hoy)[0].texto).toBe('Estuvo de aniversario el jueves pasado');
+    expect(celebraciones({ birthday: '12-25' }, hoy)).toEqual([]);
+    expect(celebraciones({}, hoy)).toEqual([]);
+  });
+});

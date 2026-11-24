@@ -68,7 +68,7 @@ function Recordatorio({ r, titulo, sub, onClick }) {
 }
 
 export default function Inicio() {
-  const { people, events = [], asistencia, fichas, familias, isAdmin, marca } = useCongrega();
+  const { people, events = [], asistencia, fichas, familias, verPrivado: isAdmin, verAsistencia: marca } = useCongrega();
   const navigate = useNavigate();
   const hoy = todayISO();
   const activos = people.filter(activo);

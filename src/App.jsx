@@ -9,6 +9,8 @@ import { useStore } from './lib/store.jsx';
 import Icon from './components/Icon.jsx';
 import { enVivoActivo } from './lib/envivo.js';
 import IglesiaLogo from './components/IglesiaLogo.jsx';
+import { useEquipoEstacion } from './congrega/estacion.jsx';
+import { permisosDe, pestanasCongrega } from './congrega/permisos.js';
 
 // Para que la app abra rápido (aunque haya poca señal), al abrir solo se baja lo de la primera
 // pantalla. Las demás páginas se bajan solas un momento después, sin que se note.
@@ -67,12 +69,14 @@ const TABS = [
   { to: '/ajustes', label: 'Ajustes', icon: 'settings' },
 ];
 // Congrega usa el mismo menú de Adora (arriba en computador, abajo en el teléfono).
+// Cada perfil ve solo sus pestañas (permisos.js → pestanasCongrega).
 const TABS_CONGREGA = [
-  { to: '/congrega', label: 'Inicio', icon: 'home', end: true },
-  { to: '/congrega/asistencia', label: 'Asistencia', icon: 'hand' },
-  { to: '/congrega/estacion', label: 'Estación', icon: 'laptop' },
-  { to: '/congrega/personas', label: 'Personas', icon: 'users' },
-  { to: '/congrega/ajustes', label: 'Ajustes', icon: 'settings', admin: true },
+  { id: 'inicio', to: '/congrega', label: 'Inicio', icon: 'home', end: true },
+  { id: 'asistencia', to: '/congrega/asistencia', label: 'Asistencia', icon: 'hand' },
+  { id: 'estacion', to: '/congrega/estacion', label: 'Estación', icon: 'laptop' },
+  { id: 'personas', to: '/congrega/personas', label: 'Personas', icon: 'users' },
+  { id: 'mificha', to: '/congrega/mificha', label: 'Mi ficha', icon: 'user' },
+  { id: 'ajustes', to: '/congrega/ajustes', label: 'Ajustes', icon: 'settings' },
 ];
 
 export default function App() {
@@ -80,8 +84,10 @@ export default function App() {
   // Páginas abiertas desde Ajustes (ej. la página de la iglesia): la pestaña Ajustes sigue marcada.
   const desdeAjustes = state?.from === 'ajustes';
   // Presentación y Estación de asistencia usan la pantalla completa, sin barra ni menú.
-  const presenting = pathname.startsWith('/presentar') || pathname.startsWith('/congrega/estacion');
-  const { mode, church, me, live, myUid, role, events = [] } = useStore();
+  const presenting = pathname.startsWith('/presentar') || pathname.startsWith('/congrega/estacion/marcar');
+  const { mode, church, me, live, myUid, role, events = [], churchId, misPerfiles = [] } = useStore();
+  const equipoEstacion = useEquipoEstacion(mode === 'cloud' && pathname.startsWith('/congrega') ? churchId : null);
+  const pestanas = pestanasCongrega(permisosDe({ role, perfiles: misPerfiles, enEquipo: equipoEstacion.get(myUid)?.estado === 'aceptado', esDueno: church?.ownerUid === myUid }));
   const liveEvent = enVivoActivo(live) ? events.find((e) => e.id === live.eventId) : null;
   const personal = mode === 'personal';
   usePrecargarPaginas();
@@ -99,7 +105,7 @@ export default function App() {
   const enCongrega = pathname.startsWith('/congrega');
   const enApps = pathname === '/apps';
   // Sin iglesia abierta: solo Inicio, Canciones y Ajustes (a la iglesia se entra desde Ajustes o con un link).
-  const tabs = enCongrega ? TABS_CONGREGA.filter((t) => !t.admin || role === 'admin')
+  const tabs = enCongrega ? TABS_CONGREGA.filter((t) => pestanas.includes(t.id))
     : personal ? TABS.filter((t) => ['/', '/canciones', '/ajustes'].includes(t.to)) : TABS;
 
   return (

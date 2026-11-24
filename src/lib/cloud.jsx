@@ -292,7 +292,7 @@ export async function soySuperAdmin() {
   }
 }
 
-const SUBCOLECCIONES = ['members', 'sessions', 'people', 'private', 'songs', 'events', 'participations', 'favorites', 'suggestions', 'live', 'families', 'fichas', 'asistencia'];
+const SUBCOLECCIONES = ['members', 'sessions', 'people', 'private', 'songs', 'events', 'participations', 'favorites', 'suggestions', 'live', 'families', 'fichas', 'asistencia', 'notas', 'registro'];
 
 /** Todas las iglesias (solo Super Admin). */
 export async function todasLasIglesias() {
@@ -709,7 +709,8 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
     mode: 'cloud', churchId, church, me, role, can, people, songs, events, participations: confirmadas, propuestas, proponer, rechazarPropuesta, error,
     clearError: () => setError(''), saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples, myShares, shareSong, unshareSong, loadLibrary,
     favorites, toggleFavorite, prayers, pray, updateMyName, setMyTeams, setMyPhoto, removePhoto, setChurchLogo, isTest, fillTestData, resetTestChurch, getAccessCode, setAccessCode, restoreBackup, myNotes, setMyNotes, live, publishLive, stopLive, myUid: user.uid,
-  }), [churchId, church.name, church.logo, me?.name, me?.key, me?.photo, setMyPhoto, removePhoto, setChurchLogo, expired, role, can, people, songs, events, confirmadas, propuestas, proponer, rechazarPropuesta, error, saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples, myShares, shareSong, unshareSong, loadLibrary, favorites, toggleFavorite, prayers, pray, updateMyName, setMyTeams, person?.teams?.join('|'), isTest, fillTestData, resetTestChurch, getAccessCode, setAccessCode, restoreBackup, myNotes, setMyNotes, live, publishLive, stopLive, user.uid]); // eslint-disable-line react-hooks/exhaustive-deps
+    misPerfiles: mySession?.perfiles || [],
+  }), [churchId, church.name, church.logo, me?.name, me?.key, me?.photo, setMyPhoto, removePhoto, setChurchLogo, expired, role, can, people, songs, events, confirmadas, propuestas, proponer, rechazarPropuesta, error, saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples, myShares, shareSong, unshareSong, loadLibrary, favorites, toggleFavorite, prayers, pray, updateMyName, setMyTeams, person?.teams?.join('|'), isTest, fillTestData, resetTestChurch, getAccessCode, setAccessCode, restoreBackup, myNotes, setMyNotes, live, publishLive, stopLive, user.uid, (mySession?.perfiles || []).join('|')]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }

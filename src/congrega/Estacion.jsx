@@ -1,17 +1,23 @@
 // Estación de asistencia: pantalla completa para un teléfono o tablet en la entrada.
+// Se abre desde la pestaña Estación con el botón "Iniciar" (/congrega/estacion/marcar?ev=ID).
 // Letra grande, fotos y un toque para marcar. Si la persona tiene familia, se abre su familia.
+// Avisa los cumpleaños y aniversarios de la semana.
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { formatLong } from '../lib/dates.js';
+import { Link, useSearchParams } from 'react-router-dom';
+import { formatLong, todayISO } from '../lib/dates.js';
 import { activo, nombreDe, norm, useCongrega } from './datos.jsx';
-import { coincide, marcadoDe } from './marcado.js';
+import { celebraciones, coincide, marcadoDe } from './marcado.js';
 import { Contador, Familia, useEvento } from './Asistencia.jsx';
 import { Avatar } from '../components/Avatares.jsx';
 
 export default function Estacion() {
   const ctx = useCongrega();
   const { people, familias, marca, registrarVisita, sinTipo } = ctx;
-  const { ev, opciones, setEventId } = useEvento();
+  const [params] = useSearchParams();
+  const elegido = ctx.events?.find((e) => e.id === params.get('ev'));
+  const porDefecto = useEvento();
+  const ev = elegido || (ctx.asisAdmin ? porDefecto.ev : null);
+  const { opciones, setEventId } = porDefecto;
   const [buscar, setBuscar] = useState('');
   const [filtro, setFiltro] = useState('todos');
   const [familia, setFamilia] = useState(null);
@@ -25,10 +31,10 @@ export default function Estacion() {
   }, []);
 
   if (!marca) {
-    return <div className="cg-estacion"><div className="card"><p>Para marcar asistencia, pide al Administrador que te habilite en <strong>Congrega → Ajustes</strong>.</p><Link className="btn" to="/congrega">Volver</Link></div></div>;
+    return <div className="cg-estacion"><div className="card"><p>Para marcar asistencia necesitas estar en el equipo de estación.</p><Link className="btn" to="/congrega">Volver</Link></div></div>;
   }
   if (!ev) {
-    return <div className="cg-estacion"><div className="card"><p>Todavía no hay un evento para hoy. Ábrelo desde Asistencia.</p><Link className="btn" to="/congrega/asistencia">Ir a Asistencia</Link></div></div>;
+    return <div className="cg-estacion"><div className="card"><p>Elige el evento y toca <strong>Iniciar</strong> en la pestaña Estación.</p><Link className="btn" to="/congrega/estacion">Ir a Estación</Link></div></div>;
   }
 
   const m = marcadoDe(ctx, ev, setError);
@@ -43,16 +49,21 @@ export default function Estacion() {
     if (!m.presentes.has(p.key) && parientes.length) { m.marcarVarios([p.key, ...parientes.map((x) => x.key)]); setFamilia(p); return; }
     m.toggle(p);
   };
+  const hoy = todayISO();
+  const fiesta = (p) => celebraciones(p, ev.date || hoy);
+  const festejados = people.filter((p) => activo(p) && fiesta(p).length);
   const pantallaCompleta = () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.())?.catch?.(() => {});
 
   return (
     <div className="cg-estacion">
       <header className="cg-estacion-head">
-        <Link className="btn ghost" to="/congrega/asistencia">← Salir</Link>
+        <Link className="btn ghost" to="/congrega/estacion" onClick={() => document.fullscreenElement && document.exitFullscreen().catch(() => {})}>← Salir</Link>
         <div className="cg-grow">
-          <select value={ev.id} onChange={(e) => setEventId(e.target.value)} aria-label="Evento">
-            {opciones.map((e) => <option key={e.id} value={e.id}>{e.name || 'Evento'} · {e.date}</option>)}
-          </select>
+          {ctx.asisAdmin && !elegido ? (
+            <select value={ev.id} onChange={(e) => setEventId(e.target.value)} aria-label="Evento">
+              {opciones.map((e) => <option key={e.id} value={e.id}>{e.name || 'Evento'} · {e.date}</option>)}
+            </select>
+          ) : <strong className="cg-estacion-evento">{ev.name || 'Evento'}</strong>}
           <div className="muted">{formatLong(ev.date)}</div>
         </div>
         <Contador m={m} />
@@ -67,6 +78,15 @@ export default function Estacion() {
           ))}
         </div>
       </div>
+      {festejados.length > 0 && (
+        <div className="cg-fiestas" aria-label="Cumpleaños y aniversarios de la semana">
+          {festejados.map((p) => fiesta(p).map((f) => (
+            <button key={p.key + f.tipo} type="button" className={`cg-fiesta${f.dias === 0 ? ' hoy' : ''}`} onClick={() => setBuscar(nombreDe(p))}>
+              {f.icono} <strong>{nombreDe(p)}</strong> · {f.cuando}
+            </button>
+          )))}
+        </div>
+      )}
       {error && <div className="cg-aviso" role="alert">{error}</div>}
       {sinTipo && <div className="cg-aviso">Falta publicar las reglas nuevas en Firebase (tipo de asistencia). Si ya las publicaste, recarga la app.</div>}
       <div className="cg-estacion-grid">
@@ -78,6 +98,7 @@ export default function Estacion() {
               <Avatar name={nombreDe(p)} personKey={p.key} photo={p.photo || ''} size="xl" />
               <span className="cg-tarjeta-nombre">{nombreDe(p)}</span>
               <span className="cg-tarjeta-meta">{presente ? '✓ Presente' : fam ? fam.name : ' '}</span>
+              {fiesta(p).map((f) => <span key={f.tipo} className={`cg-tarjeta-fiesta${f.dias === 0 ? ' hoy' : ''}`}>{f.icono} {f.texto}</span>)}
             </button>
           );
         })}
@@ -89,6 +110,7 @@ export default function Estacion() {
         <div className="modal-fondo" role="dialog" aria-modal="true" aria-label="Familia" onClick={(e) => e.target === e.currentTarget && setFamilia(null)}>
           <div className="modal cg-stack cg-estacion-modal">
             <h2>¡Hola, {familia.nombre || nombreDe(familia)}!</h2>
+            {[familia, ...m.familiaDe(familia)].flatMap((x) => fiesta(x).map((f) => <div key={x.key + f.tipo} className="cg-aviso info">{f.icono} {nombreDe(x)}: {f.texto}</div>))}
             <p className="muted">Marcamos a la familia {familias.get(familia.familiaId)?.name || ''}. Si alguien no vino, tócalo para quitarlo.</p>
             <Familia p={familia} m={m} />
             <button type="button" className="btn primary" onClick={() => { setFamilia(null); setBuscar(''); }}>Listo</button>

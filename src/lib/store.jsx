@@ -19,6 +19,7 @@ export const ROLES = {
   admin: { label: 'Administrador', edit: true, delete: true, events: true, users: true },
   director: { label: 'Director musical', edit: true, delete: false, events: true, users: false },
   colaborador: { label: 'Colaborador', edit: false, delete: false, events: false, users: false },
+  miembro: { label: 'Miembro', edit: false, delete: false, events: false, users: false },
 };
 const LOCAL_CAN = { edit: true, delete: true, events: true, users: false };
 

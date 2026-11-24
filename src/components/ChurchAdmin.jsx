@@ -30,6 +30,7 @@ function MenuPersona({ p, onSave, onRemove, onRemovePhoto, onClose }) {
     try { await fn(); onClose(); } catch (er) { setMsg(`No se pudo: ${er.message}`); }
   };
   const director = p.role === 'director';
+  const colaborador = !p.role || p.role === 'colaborador';
   const nombre = p.name.split(' ')[0];
 
   return (
@@ -37,8 +38,11 @@ function MenuPersona({ p, onSave, onRemove, onRemovePhoto, onClose }) {
       <button role="menuitemradio" aria-checked={director} onClick={() => hacer(() => onSave(p.key, 'director'))}>
         Hacer Director musical {director && <span aria-hidden="true">✓</span>}
       </button>
-      <button role="menuitemradio" aria-checked={!director} onClick={() => hacer(() => onSave(p.key, 'colaborador'))}>
-        Dejar como Colaborador {!director && <span aria-hidden="true">✓</span>}
+      <button role="menuitemradio" aria-checked={colaborador} onClick={() => hacer(() => onSave(p.key, 'colaborador'))}>
+        Dejar como Colaborador {colaborador && <span aria-hidden="true">✓</span>}
+      </button>
+      <button role="menuitemradio" aria-checked={p.role === 'miembro'} onClick={() => hacer(() => onSave(p.key, 'miembro'))}>
+        Dejar como Miembro {p.role === 'miembro' && <span aria-hidden="true">✓</span>}
       </button>
       {p.photo && onRemovePhoto && (
         <button role="menuitem" onClick={() => hacer(() => onRemovePhoto(p.key))}>Quitar su foto</button>

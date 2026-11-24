@@ -1669,7 +1669,7 @@ h1 .beta-pill { font-size: 0.4em; }
 .menu-persona > button.peligro { color: var(--danger); border-bottom: 0; }
 .menu-confirmar { padding: 0.8rem 1rem; display: grid; gap: 0.6rem; font-size: 0.92rem; }
 .menu-persona .error { margin: 0; padding: 0 1rem 0.8rem; }
-.role-pill.role-colaborador { background: var(--surface-2); color: var(--muted); }
+.role-pill.role-colaborador, .role-pill.role-miembro { background: var(--surface-2); color: var(--muted); }
 
 /* Listas como tarjetas: Participación y Top repertorio (23-nov) */
 .lista-tarjetas { list-style: none; margin: 0.6rem 0 0.8rem; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.5rem; }

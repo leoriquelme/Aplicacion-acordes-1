@@ -61,3 +61,33 @@ export function resumenJornada(events, asistencia, people, hasta) {
   r.eventos = [...evs].map(([id, n]) => ({ ev: events.find((e) => e.id === id) || { id, name: 'Evento' }, n })).sort((a, b) => b.n - a.n);
   return r;
 }
+
+const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+/** Días desde `hoy` ("AAAA-MM-DD") hasta el "MM-DD" más cercano (negativo si ya pasó). */
+export function diasHasta(md, hoy) {
+  if (!/^\d{2}-\d{2}$/.test(md || '')) return null;
+  const [y, m, d] = hoy.split('-').map(Number);
+  const base = Date.UTC(y, m - 1, d);
+  const [mm, dd] = md.split('-').map(Number);
+  let mejor = null;
+  [y - 1, y, y + 1].forEach((a) => { const n = Math.round((Date.UTC(a, mm - 1, dd) - base) / 86400000); if (mejor == null || Math.abs(n) < Math.abs(mejor)) mejor = n; });
+  return mejor;
+}
+
+/**
+ * Cumpleaños y aniversario de matrimonio cerca de `hoy` (desde 6 días antes hasta 6 días después).
+ * Usa people.birthday y people.aniversarioMD ("MM-DD"). Devuelve [{ tipo, dias, texto, icono }].
+ */
+export function celebraciones(p, hoy) {
+  const out = [];
+  const [y, m, d] = hoy.split('-').map(Number);
+  const dia = (n) => DIAS[new Date(Date.UTC(y, m - 1, d + n)).getUTCDay()];
+  const cuando = (n) => (n === 0 ? 'hoy' : n === 1 ? 'mañana' : n === -1 ? 'ayer' : n > 0 ? `el ${dia(n)}` : `el ${dia(n)} pasado`);
+  [['cumple', p.birthday, '🎂', 'cumpleaños'], ['aniversario', p.aniversarioMD, '💍', 'aniversario']].forEach(([tipo, md, icono, que]) => {
+    const n = diasHasta(md, hoy);
+    if (n == null || n < -6 || n > 6) return;
+    const texto = n === 0 ? `¡Hoy está de ${que}!` : n > 0 ? `Está de ${que} ${cuando(n)}` : `Estuvo de ${que} ${cuando(n)}`;
+    out.push({ tipo, dias: n, texto, icono, cuando: cuando(n) });
+  });
+  return out;
+}
