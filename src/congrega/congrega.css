@@ -174,8 +174,8 @@ a.cg-item:hover { background: var(--surface-2); text-decoration: none; }
 .cg-menu { position: relative; }
 .cg-menu-fondo { position: fixed; inset: 0; z-index: 20; }
 .cg-menu-panel { position: absolute; right: 0; top: calc(100% + 0.35rem); z-index: 21; min-width: 14rem; display: flex; flex-direction: column; padding: 0.35rem; background: var(--surface, var(--bg, #fff)); border: 1px solid var(--border, #ddd); border-radius: 12px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18); }
-.cg-menu-panel button { text-align: left; background: none; border: 0; padding: 0.7rem 0.8rem; border-radius: 8px; font: inherit; color: inherit; cursor: pointer; }
-.cg-menu-panel button:hover, .cg-menu-panel button:focus-visible { background: var(--surface-2); }
+.cg-menu-panel button, .cg-menu-panel a { text-decoration: none; text-align: left; background: none; border: 0; padding: 0.7rem 0.8rem; border-radius: 8px; font: inherit; color: inherit; cursor: pointer; }
+.cg-menu-panel button:hover, .cg-menu-panel button:focus-visible, .cg-menu-panel a:hover { background: var(--surface-2); }
 
 /* Estación: pestañas Todos / Ausentes / Presentes, grandes y a lo ancho */
 .cg-estacion-filtros { display: flex; flex: 1 1 100%; }
@@ -205,3 +205,21 @@ a.cg-item:hover { background: var(--surface-2); text-decoration: none; }
 .cg-que-hace summary { cursor: pointer; font-weight: 600; }
 .cg-boton-iniciar { font-size: 1.3rem; min-height: 3.6rem; }
 .cg select.cg-habitual { width: auto; min-height: 2.2rem; padding: 0.35rem 0.8rem; border-radius: 999px; font-size: 0.9rem; }
+
+/* Personas agrupadas por familia */
+.cg-familia-fila { border-bottom: 1px solid var(--border); }
+.cg-familia-fila:last-child { border-bottom: 0; }
+.cg-familia-cabeza { width: 100%; border: 0; background: none; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.cg-familia-fila .cg-familia-cabeza { border-bottom: 0; }
+.cg-familia-avatares { display: flex; flex: none; }
+.cg-familia-avatares > * + * { margin-left: -0.9rem; }
+.cg-familia-avatares > * { box-shadow: 0 0 0 2px var(--surface); border-radius: 50%; }
+.cg-flecha { color: var(--muted); font-size: 1.1rem; padding: 0 0.3rem; }
+.cg-familia-integrantes { margin: 0 0 0.6rem 1.2rem; padding-left: 0.8rem; border-left: 3px solid var(--primary-soft, var(--border)); }
+.cg-familia-ver { display: inline-block; padding: 0.5rem 0.2rem; font-weight: 600; }
+.cg-familia-avatares.grande > * + * { margin-left: -1.2rem; }
+.cg select.cg-rol-familia { width: auto; min-height: 2.2rem; padding: 0.25rem 0.5rem; font-size: 0.85rem; }
+.cg-link-familia { text-decoration: none; color: inherit; }
+.cg-integrante { flex-wrap: wrap; }
+.cg-integrante .cg-quien { flex: 1 1 10rem; min-width: 0; text-decoration: none; color: inherit; }
+.cg-integrante-acciones { display: flex; gap: 0.5rem; align-items: center; margin-left: auto; }
