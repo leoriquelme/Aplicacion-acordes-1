@@ -26,3 +26,13 @@ export function relativeDay(iso) {
 export function sortEvents(events, dir = 1) {
   return [...events].sort((a, b) => dir * ((a.date + (a.time || '')).localeCompare(b.date + (b.time || ''))));
 }
+
+/** "Hoy", "Ayer", "Mañana" o "dom 22 nov" (para listas de eventos). */
+export function fechaCorta(iso) {
+  if (!iso) return '';
+  const diff = Math.round((parseISO(iso) - parseISO(todayISO())) / 86400000);
+  if (diff === 0) return 'Hoy';
+  if (diff === -1) return 'Ayer';
+  if (diff === 1) return 'Mañana';
+  return parseISO(iso).toLocaleDateString('es', { weekday: 'short', day: 'numeric', month: 'short' }).replace(/\./g, '').replace(',', '');
+}

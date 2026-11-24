@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { APP_NOMBRE } from '../lib/marca.js';
-import { useStore } from '../lib/store.jsx';
+import { conCuenta, useStore } from '../lib/store.jsx';
 import { formatLong, relativeDay, sortEvents, todayISO } from '../lib/dates.js';
 import Avatares from '../components/Avatares.jsx';
 import Icon from '../components/Icon.jsx';
@@ -14,7 +14,7 @@ import { AvisosEstacion } from '../congrega/estacion.jsx';
 const MAX_EVENTOS = 4;
 
 export default function Inicio() {
-  const { events, songs, mode, church, people = [], participations = [], propuestas = [], me, joinEvent, rechazarPropuesta, can } = useStore();
+  const { events, songs, mode, church, people = [], participations = [], propuestas = [], me, joinEvent, rechazarPropuesta, can, isTest } = useStore();
   const today = todayISO();
   const upcoming = sortEvents(events.filter((e) => e.date >= today)).slice(0, MAX_EVENTOS);
   const misPropuestas = propuestas
@@ -32,7 +32,7 @@ export default function Inicio() {
           <h1>{mode === 'cloud' ? church?.name : APP_NOMBRE}</h1>
           <p className="muted">
             {mode === 'cloud'
-              ? `${people.length} ${people.length === 1 ? 'miembro participando' : 'miembros participando'}`
+              ? `${conCuenta(people, isTest).length} ${conCuenta(people, isTest).length === 1 ? 'persona usa la app' : 'personas usan la app'}`
               : `${songs.length} canciones en este equipo`}
           </p>
         </div>

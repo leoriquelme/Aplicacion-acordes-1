@@ -47,13 +47,15 @@ export function resumenJornada(events, asistencia, people, hasta) {
   if (!fecha) return null;
   const evs = new Map(); const quienes = new Map(); const primera = new Map();
   asistencia.forEach((a) => {
-    if (!a.date) return;
-    if (!primera.has(a.personKey) || a.date < primera.get(a.personKey)) primera.set(a.personKey, a.date);
+    if (a.date && (!primera.has(a.personKey) || a.date < primera.get(a.personKey))) primera.set(a.personKey, a.date);
+  });
+  asistencia.forEach((a) => {
     if (a.date !== fecha) return;
     evs.set(a.eventId, (evs.get(a.eventId) || 0) + 1);
     // Si vino a dos eventos ese día, cuenta una vez con el tipo "más fuerte" (colaborador > visita > regular).
     const peso = { colaborador: 3, visita: 2, regular: 1 };
-    const t = a.tipo || 'regular';
+    // Sin tipo guardado (asistencia antigua o importada): la primera vez cuenta como visita.
+    const t = a.tipo || (primera.get(a.personKey) === fecha ? 'visita' : 'regular');
     if (!quienes.has(a.personKey) || peso[t] > peso[quienes.get(a.personKey)]) quienes.set(a.personKey, t);
   });
   const r = { fecha, eventos: [], personas: quienes.size, regular: 0, visita: 0, colaborador: 0, primeraVez: 0 };

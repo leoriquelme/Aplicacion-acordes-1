@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { todayISO, formatLong, sortEvents } from '../lib/dates.js';
+import { fechaCorta, todayISO, formatLong, sortEvents } from '../lib/dates.js';
 import { activo, nombreDe, norm, useCongrega } from './datos.jsx';
 import { TIPOS_ASISTENCIA } from './unir.js';
 import { coincide, marcadoDe, resumenJornada } from './marcado.js';
@@ -105,7 +105,7 @@ export default function Asistencia() {
               <Contador m={m} />
             </div>
             <select value={ev.id} onChange={(e) => setEventId(e.target.value)} aria-label="Evento">
-              {opciones.map((e) => <option key={e.id} value={e.id}>{e.date} · {e.name || 'Evento'}</option>)}
+              {opciones.map((e) => <option key={e.id} value={e.id}>{fechaCorta(e.date)} · {e.name || 'Evento'}</option>)}
             </select>
           </section>
           <div className="cg-row">

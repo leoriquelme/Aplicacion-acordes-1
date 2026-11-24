@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { ROLES, useStore } from '../lib/store.jsx';
+import { ROLES, conCuenta, useStore } from '../lib/store.jsx';
 import { Avatar } from './Avatares.jsx';
 
 /** "Activo hoy", "hace 3 días" o la fecha. */
 export function ultimaVez(ms, now = Date.now()) {
   if (!ms) return '';
   const dias = Math.floor((new Date(now).setHours(0, 0, 0, 0) - new Date(ms).setHours(0, 0, 0, 0)) / 86400000);
+  if (ms < 946684800000) return ''; // fecha inválida (antes del 2000)
   if (dias <= 0) return 'activo hoy';
   if (dias === 1) return 'hace 1 día';
   if (dias < 30) return `hace ${dias} días`;
@@ -65,7 +66,9 @@ function MenuPersona({ p, onSave, onRemove, onRemovePhoto, onClose }) {
 
 /** Miembros como tarjetas (lo ve el Administrador): foto, equipos, perfil y menú ⋯. */
 export function UsersCard() {
-  const { people, me, setPersonRole, removePerson, removePhoto } = useStore();
+  const { people: todas, me, setPersonRole, removePerson, removePhoto, isTest } = useStore();
+  // Solo quienes usan la app: a las personas sin cuenta se les cambia todo desde Congrega (sacarlas aquí borraría su ficha).
+  const people = conCuenta(todas, isTest);
   const [abierto, setAbierto] = useState(null);
   const sorted = [...people].sort((a, b) => (b.role === 'admin') - (a.role === 'admin') || (b.role === 'director') - (a.role === 'director') || (a.name || '').localeCompare(b.name || '', 'es'));
 

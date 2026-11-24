@@ -204,3 +204,4 @@ a.cg-item:hover { background: var(--surface-2); text-decoration: none; }
 .cg-que-hace dd { margin: 0.1rem 0 0; color: var(--muted); }
 .cg-que-hace summary { cursor: pointer; font-weight: 600; }
 .cg-boton-iniciar { font-size: 1.3rem; min-height: 3.6rem; }
+.cg select.cg-habitual { width: auto; min-height: 2.2rem; padding: 0.35rem 0.8rem; border-radius: 999px; font-size: 0.9rem; }

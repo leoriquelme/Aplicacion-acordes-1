@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { ROLES, useStore } from '../lib/store.jsx';
+import { ROLES, conCuenta, useStore } from '../lib/store.jsx';
 import { UsersCard } from '../components/ChurchAdmin.jsx';
 import { Avatar } from '../components/Avatares.jsx';
 import Icon from '../components/Icon.jsx';
@@ -11,7 +11,9 @@ import ElegirFoto from '../components/ElegirFoto.jsx';
 
 /** Nombre de la iglesia arriba y sus usuarios abajo. El administrador además cambia perfiles. */
 export default function Miembros() {
-  const { mode, church, people = [], me, can, setChurchLogo } = useStore();
+  const { mode, church, people: todas = [], me, can, setChurchLogo, isTest } = useStore();
+  const people = conCuenta(todas, isTest);
+  const sinCuenta = todas.length - people.length;
   const desdeAjustes = useLocation().state?.from === 'ajustes';
   if (mode !== 'cloud') {
     return (
@@ -39,7 +41,7 @@ export default function Miembros() {
         <h1>{church?.name}</h1>
         {can.users && church?.logo && <button className="btn ghost small" onClick={() => setChurchLogo(null)}>Quitar logo</button>}
       </header>
-      <p className="muted">{people.length} {people.length === 1 ? 'miembro' : 'miembros'}</p>
+      <p className="muted">{people.length} {people.length === 1 ? 'persona usa' : 'personas usan'} la app{sinCuenta > 0 ? <> · las otras {sinCuenta} están en <Link to="/congrega/personas">Congrega</Link></> : ''}</p>
       {/* Invitar y código de acceso: solo el Administrador. */}
       {can.users && (
         <Grupo>
