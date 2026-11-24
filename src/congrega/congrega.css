@@ -181,3 +181,9 @@ a.cg-item:hover { background: var(--surface-2); text-decoration: none; }
 .cg-estacion-filtros { display: flex; flex: 1 1 100%; }
 .cg-estacion-filtros button { flex: 1; font-size: 1.15rem; padding: 0.8rem 0.5rem; }
 .cg-filtro-n { opacity: 0.65; font-weight: 600; margin-left: 0.25rem; }
+
+/* Tipo de asistencia: un botón pequeño que despliega Regular / Visita / Colaborador */
+.cg-chip-tipo { flex: none; border: 1px solid var(--border); background: var(--surface); color: var(--muted); border-radius: 999px; padding: 0.3rem 0.7rem; font: inherit; font-size: 0.82rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.cg-chip-tipo.visita { color: var(--primary); border-color: var(--primary); }
+.cg-chip-tipo.colaborador { color: var(--cg-ok); border-color: var(--cg-ok); }
+.cg-chip-tipo[aria-expanded='true'] { background: var(--surface-2); }
