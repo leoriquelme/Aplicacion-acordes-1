@@ -404,6 +404,10 @@ describe('Congrega: familias, fichas privadas y asistencia', () => {
     await assertSucceeds(marca(cuenta('juan'), 'juan', 'ana', '2025-01-05'));
     await assertSucceeds(setDoc(doc(cuenta('juan'), 'churches', C, 'events', 'ev2'), { name: 'Culto', date: hoy, items: [] }));
     await assertFails(getDocs(collection(cuenta('juan'), 'churches', C, 'notas')));
+    // Sugerencias del Inicio: el Administrativo corrige tipo y rango de edad, nada más.
+    await assertSucceeds(updateDoc(doc(cuenta('juan'), 'churches', C, 'people', 'v1'), { tipo: 'Regular', rangoEdad: 'Adolescente', esNino: false }));
+    await assertFails(updateDoc(doc(cuenta('juan'), 'churches', C, 'people', 'v1'), { tipo: 'Jefe' }));
+    await assertFails(updateDoc(doc(cuenta('juan'), 'churches', C, 'people', 'v1'), { name: 'Otro' }));
   });
   it('perfiles: el Administrador no nombra Administradores; el Súper admin sí; al Súper admin nadie lo toca', async () => {
     await env.withSecurityRulesDisabled(async (ctx) => {

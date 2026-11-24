@@ -242,3 +242,34 @@ a.cg-item:hover { background: var(--surface-2); text-decoration: none; }
 .cg-op.on::before { content: '✓ '; }
 .cg-mini-foto { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; vertical-align: middle; }
 .cg-google { display: inline-flex; flex-wrap: wrap; gap: 0.3rem; align-items: center; overflow-wrap: anywhere; }
+
+/* Inicio: círculo para ver a las personas de cada gráfico y filtro por edad */
+.cg-panel-head { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.cg-panel-head h3 { margin: 0; flex: 1 1 auto; }
+.cg-ver-quienes { width: 2rem; height: 2rem; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); display: inline-grid; place-items: center; cursor: pointer; font-size: 0.95rem; padding: 0; flex: none; }
+.cg-ver-quienes:hover, .cg-ver-quienes:focus-visible { background: var(--primary-soft); border-color: var(--primary); }
+.cg-dato-ver { position: relative; }
+.cg-dato-ver .cg-ver-quienes { position: absolute; top: 0.6rem; right: 0.6rem; }
+.cg-filtro-edad button { min-height: 2.1rem; padding: 0.3rem 0.7rem; font-size: 0.85rem; }
+.cg-quienes { max-width: 32rem; text-align: left; max-height: 85vh; overflow-y: auto; }
+.cg-quienes h2 { margin: 0; font-size: 1.15rem; }
+.cg-quienes summary { cursor: pointer; padding: 0.5rem 0; text-align: left; }
+.cg-quienes details { text-align: left; }
+.cg-quienes .cg-quien { text-decoration: none; color: inherit; flex: 1 1 auto; min-width: 0; }
+.cg-sugerencia { flex-wrap: wrap; }
+.cg-sugerencia .cg-quien { flex: 1 1 12rem; min-width: 0; text-decoration: none; color: inherit; }
+.cg-sug-acciones { flex-wrap: wrap; gap: 0.4rem; margin-left: auto; }
+@media (max-width: 520px) { .cg-sug-acciones { flex-basis: 100%; padding-left: 0; } .cg-filtro-edad { flex-basis: 100%; } }
+
+/* Asistencia: últimos 4 eventos en tarjetas */
+.cg-tarjetas-eventos { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr)); gap: 0.8rem; }
+@media (max-width: 520px) { .cg-tarjetas-eventos { grid-template-columns: 1fr 1fr; } }
+.cg-tarjeta-evento { display: flex; flex-direction: column; gap: 0.25rem; margin: 0; text-decoration: none; color: var(--text); min-width: 0; }
+.cg-tarjeta-evento:hover { border-color: var(--primary); }
+.cg-te-fecha { font-size: 0.8rem; color: var(--muted); text-transform: capitalize; }
+.cg-te-nombre { font-size: 1rem; overflow-wrap: anywhere; }
+.cg-te-num { color: var(--muted); font-size: 0.9rem; }
+.cg-te-num b { font-size: 1.8rem; color: var(--primary); line-height: 1.1; margin-right: 0.15rem; }
+.cg-te-btn { align-self: flex-start; margin-top: 0.3rem; }
+.cg-anteriores summary { cursor: pointer; font-weight: 600; }
+.cg-anteriores .cg-lista { margin-top: 0.6rem; }

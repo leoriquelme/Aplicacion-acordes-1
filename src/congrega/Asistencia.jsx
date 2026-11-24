@@ -73,19 +73,31 @@ export default function Asistencia() {
           Abrir registro de hoy
         </button>
       )}
-      <section className="card cg-stack">
-        <h2>Eventos</h2>
-        <p className="muted">Toca Revisar para ver y corregir quién vino a cada evento.</p>
-        <div className="cg-lista">
-          {lista.map((e) => (
-            <div key={e.id} className="cg-item">
-              <span className="cg-quien"><span className="cg-nombre">{e.name || 'Evento'}</span><span className="cg-meta">{fechaCorta(e.date)} · {plural(conteo.get(e.id) || 0, 'presente', 'presentes')}</span></span>
-              <Link className="btn small" to={`/congrega/asistencia/${e.id}`}>Revisar ›</Link>
-            </div>
-          ))}
-          {!lista.length && <div className="muted cg-vacio">Todavía no hay eventos. {puedeAbrir ? 'Abre el registro de hoy para empezar.' : 'Un Administrador debe crear el evento.'}</div>}
-        </div>
-      </section>
+      <h2 className="cg-h3">Últimos eventos</h2>
+      <div className="cg-tarjetas-eventos">
+        {lista.slice(0, 4).map((e) => (
+          <Link key={e.id} className="card cg-tarjeta-evento" to={`/congrega/asistencia/${e.id}`}>
+            <span className="cg-te-fecha">{fechaCorta(e.date)}</span>
+            <strong className="cg-te-nombre">{e.name || 'Evento'}</strong>
+            <span className="cg-te-num"><b>{conteo.get(e.id) || 0}</b> {(conteo.get(e.id) || 0) === 1 ? 'presente' : 'presentes'}</span>
+            <span className="btn small cg-te-btn">Revisar ›</span>
+          </Link>
+        ))}
+      </div>
+      {!lista.length && <div className="card muted cg-vacio">Todavía no hay eventos. {puedeAbrir ? 'Abre el registro de hoy para empezar.' : 'Un Administrador debe crear el evento.'}</div>}
+      {lista.length > 4 && (
+        <details className="card cg-anteriores">
+          <summary>Eventos anteriores ({lista.length - 4})</summary>
+          <div className="cg-lista">
+            {lista.slice(4).map((e) => (
+              <div key={e.id} className="cg-item">
+                <span className="cg-quien"><span className="cg-nombre">{e.name || 'Evento'}</span><span className="cg-meta">{fechaCorta(e.date)} · {plural(conteo.get(e.id) || 0, 'presente', 'presentes')}</span></span>
+                <Link className="btn small" to={`/congrega/asistencia/${e.id}`}>Revisar ›</Link>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
     </div>
   );
 }
