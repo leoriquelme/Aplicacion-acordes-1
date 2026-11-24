@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { todayISO, formatLong, sortEvents } from '../lib/dates.js';
 import { activo, asistenciaId, nombreDe, norm, useCongrega } from './datos.jsx';
 import { TIPOS_ASISTENCIA, tipoPorDefecto } from './unir.js';
+import { Avatar } from '../components/Avatares.jsx';
 
 export default function Asistencia() {
   const { events = [], people, familias, asistencia, marca, can, saveEvent, marcar, registrarVisita, listo, participations = [], sinTipo } = useCongrega();
@@ -112,6 +113,7 @@ export default function Asistencia() {
                 const t = a && new Date(a.at);
                 return (
                   <div key={p.key} className={`cg-item${a ? ' presente' : ''}`} role="listitem">
+                    <Avatar name={nombreDe(p)} personKey={p.key} photo={p.photo || ''} size="lg" />
                     <button type="button" className="cg-quien" onClick={() => navigate(`/congrega/personas/${p.key}`)}>
                       <span className="cg-nombre">{nombreDe(p)}</span>
                       <span className="cg-meta">

@@ -122,3 +122,9 @@ a.cg-item:hover { background: var(--surface-2); text-decoration: none; }
 .cg-item .cg-tipo { order: 5; flex: 1 1 100%; display: flex; }
 .cg-item .cg-tipo button { flex: 1; min-height: 2.2rem; padding: 0.3rem 0.4rem; font-size: 0.85rem; }
 .cg-item .cg-tipo button[aria-pressed='true'] { background: var(--cg-ok); color: #fff; }
+
+/* Foto de perfil */
+.cg-perfil { display: flex; align-items: center; gap: 1rem; }
+.cg-perfil .cg-titulo { font-size: 1.6rem; overflow-wrap: anywhere; }
+.cg-item .avatar { flex: none; }
+.cg-entre { justify-content: space-between; flex-wrap: nowrap; }

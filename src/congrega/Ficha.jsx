@@ -1,5 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { doc, deleteField, updateDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase.js';
+import { Avatar } from '../components/Avatares.jsx';
+import ElegirFoto from '../components/ElegirFoto.jsx';
 import { CIVIL, RANGOS, ROLES_FAMILIA, TIPOS, activo, esMiembro, nombreDe, norm, useCongrega } from './datos.jsx';
 
 const fmt = (s) => (s ? new Date(`${s}T12:00:00`).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' }) : '');
@@ -40,10 +44,24 @@ export default function Ficha() {
 
   return (
     <div className="cg-stack">
-      <div className="cg-row">
+      <div className="cg-row cg-entre">
         <Link className="btn ghost" to="/congrega/personas">← Personas</Link>
-        <h2 className="cg-grow">{nombreDe(p)}</h2>
         {isAdmin && <button type="button" className="btn primary" onClick={() => setEditar(true)}>Editar</button>}
+      </div>
+      <div className="cg-perfil">
+        <Avatar name={nombreDe(p)} personKey={key} photo={p.photo || ''} size="xl" />
+        <div className="cg-stack cg-grow">
+          <h1 className="cg-titulo">{nombreDe(p)}</h1>
+          {isAdmin && (
+            <div className="cg-row">
+              <ElegirFoto className="btn small" label="Subir foto" onFoto={(foto) => updateDoc(doc(db, 'churches', c.churchId, 'people', key), { photo: foto })}>
+                {p.photo ? 'Cambiar foto' : 'Subir foto'}
+              </ElegirFoto>
+              {p.photo && <button type="button" className="btn small ghost" onClick={() => updateDoc(doc(db, 'churches', c.churchId, 'people', key), { photo: deleteField() })}>Quitar foto</button>}
+            </div>
+          )}
+          {p.uid && p.photo && <span className="muted small">Si la persona tiene su propia foto en Adora, al entrar se vuelve a poner la suya.</span>}
+        </div>
       </div>
       {isAdmin && !nueva && <UnirCon p={p} />}
       {isAdmin && !d.consentimiento && <div className="cg-aviso">Falta registrar el consentimiento de esta persona para guardar sus datos (Ley 21.719).</div>}
