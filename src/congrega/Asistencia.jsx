@@ -61,6 +61,7 @@ export default function Asistencia() {
   const [filtro, setFiltro] = useState('todos');
   const [visita, setVisita] = useState(null);
   const [abierta, setAbierta] = useState('');
+  const [tipoAbierto, setTipoAbierto] = useState('');
   const [error, setError] = useState('');
 
   if (!marca) {
@@ -157,15 +158,21 @@ export default function Asistencia() {
                         {a && <span>{String(t.getHours()).padStart(2, '0')}:{String(t.getMinutes()).padStart(2, '0')} · por {quien(a.por)}</span>}
                       </span>
                     </button>
+                    {a && (
+                      <button type="button" className={`cg-chip-tipo ${m.tipoDe(p)}`} aria-expanded={tipoAbierto === p.key} aria-label={`Cómo vino ${nombreDe(p)}: ${TIPOS_ASISTENCIA.find(([k]) => k === m.tipoDe(p))?.[1]}. Cambiar`}
+                        onClick={() => setTipoAbierto(tipoAbierto === p.key ? '' : p.key)}>
+                        {TIPOS_ASISTENCIA.find(([k]) => k === m.tipoDe(p))?.[1]} {tipoAbierto === p.key ? '▴' : '▾'}
+                      </button>
+                    )}
                     <button type="button" className="cg-check" aria-pressed={Boolean(a)} aria-label={`${a ? 'Quitar' : 'Marcar'} asistencia de ${nombreDe(p)}`} onClick={() => {
                       // Al marcar a alguien con familia se marca a toda la familia; el panel queda abierto para desmarcar a quien no vino.
                       if (!a && parientes.length) { m.marcarVarios([p.key, ...parientes.map((x) => x.key)]); setAbierta(p.key); } else m.toggle(p);
                     }}>
                       <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>
                     </button>
-                    {a && (
+                    {a && tipoAbierto === p.key && (
                       <div className="cg-seg cg-tipo" role="group" aria-label={`Cómo vino ${nombreDe(p)}`}>
-                        {TIPOS_ASISTENCIA.map(([k, l]) => <button key={k} type="button" aria-pressed={m.tipoDe(p) === k} disabled={sinTipo} onClick={() => m.cambiarTipo(p, k)}>{l}</button>)}
+                        {TIPOS_ASISTENCIA.map(([k, l]) => <button key={k} type="button" aria-pressed={m.tipoDe(p) === k} disabled={sinTipo} onClick={() => { m.cambiarTipo(p, k); setTipoAbierto(''); }}>{l}</button>)}
                       </div>
                     )}
                     {abierto && <Familia p={p} m={m} onFicha={() => navigate(`/congrega/personas/${p.key}`)} />}
