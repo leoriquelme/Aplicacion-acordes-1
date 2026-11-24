@@ -296,7 +296,12 @@ service cloud.firestore {
           && request.resource.data.keys().hasOnly(['name', 'nombre', 'apellido', 'uid', 'role', 'tipo', 'estado', 'miembro', 'creadoEn', 'creadoPor', 'primeraVisita'])
           && validName(request.resource.data.name) && request.resource.data.get('role', 'colaborador') == 'colaborador';
         // El Administrador puede cambiar cualquier ficha (por ejemplo, quitar una foto inapropiada).
+        // El Administrativo de asistencia corrige el tipo de asistencia y el rango de edad (sugerencias del Inicio).
         allow update: if (isAdmin(c) && photoOk(request.resource.data))
+          || (isAsisAdmin(c) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['tipo', 'rangoEdad', 'esNino'])
+              && request.resource.data.get('tipo', '') in ['', 'Activo', 'Regular', 'Ocasional', 'Visita']
+              && request.resource.data.get('rangoEdad', '') in ['', 'Bebé', 'Niño', 'Adolescente', 'Joven', 'Adulto', 'Adulto Mayor']
+              && request.resource.data.get('esNino', false) is bool)
           // Cada uno actualiza su "última vez", su nombre, sus equipos y su foto.
           || (isMember(c) && key == request.auth.uid
               && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastSeen', 'name', 'teams', 'photo', 'birthday', 'aniversarioMD'])

@@ -227,8 +227,8 @@ function Editar({ p, k, onListo, soloFicha = false }) {
         <Campo label="Asistencia habitual"><Opciones value={f.tipo} onChange={set('tipo')} options={TIPOS} /></Campo>
         <Campo label="Rango de edad"><Opciones value={f.rangoEdad} onChange={set('rangoEdad')} options={RANGOS} /></Campo>
         <Campo label="Es niño/a"><Opciones value={f.esNino ? 'Sí' : 'No'} onChange={(v) => set('esNino')(v === 'Sí')} options={['Sí', 'No']} /></Campo>
-        <Campo label="Estado"><Opciones value={f.estado === 'inactivo' ? 'Inactivo' : 'Activo'} onChange={(v) => set('estado')(v === 'Inactivo' ? 'inactivo' : 'activo')} options={['Activo', 'Inactivo']} /></Campo>
-        <Campo label="Motivo de inactividad"><Opciones value={f.motivoInactivo} onChange={set('motivoInactivo')} options={['Cambio de iglesia', 'Cambio de domicilio', 'No volvió a asistir', 'Fallecido/a', 'Otro']} /></Campo>
+        <Campo label="Estado"><Opciones value={f.estado !== 'inactivo' ? 'Activo' : f.motivoInactivo === 'Fallecido/a' ? 'Fallecido/a' : 'Inactivo'} onChange={(v) => setF({ ...f, estado: v === 'Activo' ? 'activo' : 'inactivo', ...(v === 'Fallecido/a' ? { motivoInactivo: 'Fallecido/a' } : v === 'Inactivo' && f.motivoInactivo === 'Fallecido/a' ? { motivoInactivo: '' } : {}) })} options={['Activo', 'Inactivo', 'Fallecido/a']} /></Campo>
+        <Campo label="Motivo de inactividad"><Opciones value={f.motivoInactivo} onChange={(v) => setF({ ...f, motivoInactivo: v, ...(v === 'Fallecido/a' ? { estado: 'inactivo' } : {}) })} options={['Cambio de iglesia', 'Cambio de domicilio', 'No volvió a asistir', 'Fallecido/a', 'Otro']} /></Campo>
         <Campo label="Inactivo desde"><input type="date" value={f.fechaInactivo || ''} onChange={set('fechaInactivo')} /></Campo>
       </fieldset>
       <fieldset className="card cg-grid"><legend>Familia y ministerios</legend>

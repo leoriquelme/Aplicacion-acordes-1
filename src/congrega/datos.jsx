@@ -78,6 +78,7 @@ export function CongregaProvider({ children }) {
       const p = people.find((x) => x.key === k);
       if (!p) return;
       const cambio = {};
+      if (f.motivoInactivo === 'Fallecido/a' && p.estado !== 'inactivo') cambio.estado = 'inactivo'; // quien falleció queda inactivo
       if (/^\d{4}-\d{2}-\d{2}$/.test(f.fechaNacimiento || '') && !p.birthday) cambio.birthday = f.fechaNacimiento.slice(5);
       if (/^\d{4}-\d{2}-\d{2}$/.test(f.aniversario || '') && p.aniversarioMD !== f.aniversario.slice(5)) cambio.aniversarioMD = f.aniversario.slice(5);
       if (Object.keys(cambio).length) { b.update(doc(db, 'churches', churchId, 'people', k), cambio); n++; }
@@ -223,6 +224,12 @@ export function CongregaProvider({ children }) {
     return kq;
   }, [people, fichas, notas, asistencia, ref, myUid, churchId, anotar]);
 
+  /** Aplica una sugerencia del Inicio (tipo de asistencia o rango de edad). Administrador o Administrativo de asistencia. */
+  const aplicarCambio = useCallback(async (p, cambio) => {
+    await setDoc(ref('people', p.key), cambio, { merge: true });
+    anotar('Aplicó una sugerencia', nombreDe(p), Object.entries(cambio).map(([k, v]) => `${k}: ${v}`).join(', '));
+  }, [ref, anotar]);
+
   /** Cambia el perfil principal y los perfiles extra de alguien con cuenta. */
   const cambiarPerfiles = useCallback(async (uid, nuevoRol, perfiles) => {
     const b = writeBatch(db);
@@ -234,8 +241,8 @@ export function CongregaProvider({ children }) {
 
   const value = useMemo(() => ({
     ...store, ...perms, isAdmin, marca, familias, fichas, notas, asistencia, cuentas, listo, people, sinTipo, equipo, anotar,
-    marcar, registrarVisita, guardarPersona, guardarMisDatos, crearFamilia, eliminarPersona, unirPersonas, cambiarPerfiles,
-  }), [store, perms, isAdmin, marca, familias, fichas, notas, asistencia, cuentas, listo, people, sinTipo, equipo, anotar, marcar, registrarVisita, guardarPersona, guardarMisDatos, crearFamilia, eliminarPersona, unirPersonas, cambiarPerfiles]);
+    marcar, registrarVisita, guardarPersona, guardarMisDatos, crearFamilia, eliminarPersona, unirPersonas, cambiarPerfiles, aplicarCambio,
+  }), [store, perms, isAdmin, marca, familias, fichas, notas, asistencia, cuentas, listo, people, sinTipo, equipo, anotar, marcar, registrarVisita, guardarPersona, guardarMisDatos, crearFamilia, eliminarPersona, unirPersonas, cambiarPerfiles, aplicarCambio]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
