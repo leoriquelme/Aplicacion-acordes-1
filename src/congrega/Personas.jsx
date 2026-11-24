@@ -59,7 +59,7 @@ export default function Personas() {
     cuerpo = (
       <div className="card cg-lista" role="list">
         {filas.length ? filas.map((p) => <Fila key={p.key} p={p} familias={familias} />)
-          : <div className="muted cg-vacio">{people.length ? 'Nadie coincide con la búsqueda.' : `Todavía no hay personas.${isAdmin ? ' Impórtalas desde Planning Center en Ajustes.' : ''}`}</div>}
+          : <div className="muted cg-vacio">{people.length ? 'Nadie coincide con la búsqueda.' : `Todavía no hay personas.${isAdmin ? ' Agrégalas con + Nueva persona.' : ''}`}</div>}
       </div>
     );
   }
