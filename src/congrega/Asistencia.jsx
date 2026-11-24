@@ -87,13 +87,13 @@ export default function Asistencia() {
         <Link className="btn" to="/congrega/estacion">Abrir estación</Link>
       </div>
       <ResumenJornada />
-      {!ctx.events?.some((e) => e.date === hoy) && can?.events && (
+      {!ctx.events?.some((e) => e.date === hoy) && (ctx.asisAdmin || can?.events) && (
         <button type="button" className="btn primary" onClick={() => setEventId(saveEvent({ name: 'Culto dominical', date: hoy, time: '', items: [] }))}>
           Abrir registro de hoy
         </button>
       )}
       {!ev ? (
-        <div className="card muted">Todavía no hay eventos. {can?.events ? 'Abre el registro de hoy para empezar.' : 'Un Administrador o Director debe crear el evento.'}</div>
+        <div className="card muted">Todavía no hay eventos. {(ctx.asisAdmin || can?.events) ? 'Abre el registro de hoy para empezar.' : 'Un Administrador debe crear el evento.'}</div>
       ) : (
         <>
           <section className="card cg-evento">

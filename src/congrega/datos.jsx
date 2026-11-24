@@ -1,11 +1,14 @@
 // Datos de Congrega: se apoyan en la misma iglesia de Adora (personas, eventos, miembros)
-// y agregan familias, fichas privadas (solo Administrador) y asistencia.
+// y agregan familias, fichas privadas (Administrador y Pastor), notas sensibles aparte y asistencia.
+// Qué ve cada uno lo decide permisos.js (y lo hacen cumplir las reglas de Firebase).
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { collection, deleteDoc, doc, getDocs, onSnapshot, query, setDoc, updateDoc, where, writeBatch } from 'firebase/firestore';
+import { collection, deleteDoc, deleteField, doc, getDocs, onSnapshot, query, setDoc, where, writeBatch } from 'firebase/firestore';
 import { db } from '../lib/firebase.js';
 import { useStore } from '../lib/store.jsx';
 import { fusionarDatos } from './importarPco.js';
 import { ordenarUnion, personaUnida } from './unir.js';
+import { permisosDe } from './permisos.js';
+import { registrar, useEquipoEstacion } from './estacion.jsx';
 
 const Ctx = createContext(null);
 
@@ -22,19 +25,17 @@ export const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, 
 
 export function CongregaProvider({ children }) {
   const store = useStore();
-  const { churchId, role, myUid, people = [] } = store;
-  const isAdmin = role === 'admin';
-  const [miembro, setMiembro] = useState(null);
+  const { churchId, role, myUid, people = [], misPerfiles = [], church, me } = store;
+  const equipo = useEquipoEstacion(churchId);
+  const perms = useMemo(() => permisosDe({ role, perfiles: misPerfiles, enEquipo: equipo.get(myUid)?.estado === 'aceptado', esDueno: church?.ownerUid === myUid }),
+    [role, misPerfiles, equipo, myUid, church?.ownerUid]);
+  const { admin: isAdmin, marca, verPrivado, verAsistencia } = perms;
   const [familias, setFamilias] = useState(new Map());
   const [fichas, setFichas] = useState(new Map());
+  const [notas, setNotas] = useState(new Map());
   const [asistencia, setAsistencia] = useState(new Map());
   const [listo, setListo] = useState({ familias: false, asistencia: false });
-
-  useEffect(() => {
-    if (!churchId || !myUid) return undefined;
-    return onSnapshot(doc(db, 'churches', churchId, 'members', myUid), (s) => setMiembro(s.data() || null), () => setMiembro(null));
-  }, [churchId, myUid]);
-  const marca = role === 'admin' || role === 'director' || miembro?.asistencia === true;
+  const anotar = useCallback((accion, persona, detalle) => registrar(churchId, myUid, me?.name, accion, persona, detalle), [churchId, myUid, me?.name]);
 
   useEffect(() => {
     if (!churchId) return undefined;
@@ -43,17 +44,47 @@ export function CongregaProvider({ children }) {
       setListo((l) => ({ ...l, familias: true }));
     }, () => setListo((l) => ({ ...l, familias: true })));
   }, [churchId]);
+  // Fichas privadas: Administrador y Pastor ven todas; los demás, solo la suya.
   useEffect(() => {
-    if (!churchId || !isAdmin) { setFichas(new Map()); return undefined; }
+    if (!churchId || !myUid) { setFichas(new Map()); return undefined; }
+    if (!verPrivado) return onSnapshot(doc(db, 'churches', churchId, 'fichas', myUid), (s) => setFichas(new Map(s.exists() ? [[myUid, s.data()]] : [])), () => setFichas(new Map()));
     return onSnapshot(collection(db, 'churches', churchId, 'fichas'), (s) => setFichas(new Map(s.docs.map((d) => [d.id, d.data()]))), () => {});
-  }, [churchId, isAdmin]);
+  }, [churchId, verPrivado, myUid]);
+  // Notas pastorales y de salud (datos sensibles): solo Administrador y Pastor.
   useEffect(() => {
-    if (!churchId || !marca) { setAsistencia(new Map()); setListo((l) => ({ ...l, asistencia: true })); return undefined; }
+    if (!churchId || !verPrivado) { setNotas(new Map()); return undefined; }
+    return onSnapshot(collection(db, 'churches', churchId, 'notas'), (s) => setNotas(new Map(s.docs.map((d) => [d.id, d.data()]))), () => setNotas(new Map()));
+  }, [churchId, verPrivado]);
+  // Una sola vez: las notas que todavía estén dentro de la ficha pasan a notas/ (aparte), y el cumpleaños
+  // y aniversario (día y mes) quedan en la ficha visible, para avisarlos en la estación.
+  useEffect(() => {
+    if (!isAdmin || !fichas.size) return;
+    const b = writeBatch(db); let n = 0;
+    fichas.forEach((f, k) => {
+      if (n > 400) return;
+      if (f.notas != null || f.notasMedicas != null) {
+        const nota = { ...(notas.get(k) || {}) };
+        if (f.notas) nota.notas = [nota.notas, f.notas].filter(Boolean).join('\n\n').slice(0, 5000);
+        if (f.notasMedicas) nota.notasMedicas = [nota.notasMedicas, f.notasMedicas].filter(Boolean).join('\n\n').slice(0, 3000);
+        if (nota.notas || nota.notasMedicas) b.set(doc(db, 'churches', churchId, 'notas', k), nota);
+        b.update(doc(db, 'churches', churchId, 'fichas', k), { notas: deleteField(), notasMedicas: deleteField() }); n += 2;
+      }
+      const p = people.find((x) => x.key === k);
+      if (!p) return;
+      const cambio = {};
+      if (/^\d{4}-\d{2}-\d{2}$/.test(f.fechaNacimiento || '') && !p.birthday) cambio.birthday = f.fechaNacimiento.slice(5);
+      if (/^\d{4}-\d{2}-\d{2}$/.test(f.aniversario || '') && p.aniversarioMD !== f.aniversario.slice(5)) cambio.aniversarioMD = f.aniversario.slice(5);
+      if (Object.keys(cambio).length) { b.update(doc(db, 'churches', churchId, 'people', k), cambio); n++; }
+    });
+    if (n) b.commit().catch(() => {});
+  }, [isAdmin, fichas, notas, people, churchId]);
+  useEffect(() => {
+    if (!churchId || !verAsistencia) { setAsistencia(new Map()); setListo((l) => ({ ...l, asistencia: true })); return undefined; }
     return onSnapshot(collection(db, 'churches', churchId, 'asistencia'), (s) => {
       setAsistencia(new Map(s.docs.map((d) => [d.id, d.data()])));
       setListo((l) => ({ ...l, asistencia: true }));
     }, () => setListo((l) => ({ ...l, asistencia: true })));
-  }, [churchId, marca]);
+  }, [churchId, verAsistencia]);
 
   const ref = useCallback((...p) => doc(db, 'churches', churchId, ...p), [churchId]);
 
@@ -80,19 +111,36 @@ export function CongregaProvider({ children }) {
     return r.id;
   }, [churchId, myUid, marcar]);
 
-  /** Guarda la ficha visible y la privada de una persona (solo Administrador). key null = persona nueva. */
+  /**
+   * Guarda una persona: la ficha visible (solo Administrador), la privada y las notas (Administrador y Pastor).
+   * key null = persona nueva. `persona` null = no se toca la ficha visible.
+   */
   const guardarPersona = useCallback(async (key, persona, ficha, cambios) => {
     const r = key ? ref('people', key) : doc(collection(db, 'churches', churchId, 'people'));
     const b = writeBatch(db);
-    b.set(r, { ...persona, name: (persona.name || nombreDe(persona)).slice(0, 60), ...(key ? {} : { uid: '', role: 'colaborador', creadoEn: Date.now() }) }, { merge: true });
+    if (persona && isAdmin) b.set(r, { ...persona, name: (persona.name || nombreDe(persona)).slice(0, 60), ...(key ? {} : { uid: '', role: 'colaborador', creadoEn: Date.now() }) }, { merge: true });
     const anterior = fichas.get(r.id) || {};
+    const { notas: n1, notasMedicas: n2, ...resto } = ficha;
     b.set(ref('fichas', r.id), {
-      ...ficha, actualizadoEn: Date.now(), actualizadoPor: myUid,
+      ...resto, actualizadoEn: Date.now(), actualizadoPor: myUid,
       cambios: [...(anterior.cambios || []), ...(cambios?.length ? [{ at: Date.now(), by: myUid, campos: cambios }] : [])].slice(-50),
     }, { merge: true });
+    if (n1 !== undefined || n2 !== undefined) b.set(ref('notas', r.id), { notas: String(n1 || '').slice(0, 5000), notasMedicas: String(n2 || '').slice(0, 3000) });
     await b.commit();
+    const quien = persona ? nombreDe(persona) : nombreDe(people.find((p) => p.key === r.id));
+    anotar(key ? 'Editó una ficha' : 'Agregó una persona', quien, (cambios || []).join(', '));
     return r.id;
-  }, [ref, churchId, fichas, myUid]);
+  }, [ref, churchId, fichas, myUid, isAdmin, people, anotar]);
+
+  /** Cada persona actualiza sus propios datos de contacto y su consentimiento (fichas/{su uid}). */
+  const guardarMisDatos = useCallback(async (datos, cambios) => {
+    const anterior = fichas.get(myUid) || {};
+    await setDoc(ref('fichas', myUid), {
+      ...datos, actualizadoEn: Date.now(), actualizadoPor: myUid,
+      cambios: [...(anterior.cambios || []), ...(cambios?.length ? [{ at: Date.now(), by: myUid, campos: cambios }] : [])].slice(-50),
+    }, { merge: true });
+    anotar('Actualizó sus datos', me?.name, (cambios || []).join(', '));
+  }, [fichas, myUid, ref, anotar, me?.name]);
 
   const crearFamilia = useCallback(async (name) => {
     const r = doc(collection(db, 'churches', churchId, 'families'));
@@ -104,9 +152,11 @@ export function CongregaProvider({ children }) {
     const b = writeBatch(db);
     asistencia.forEach((a, id) => { if (a.personKey === key) b.delete(ref('asistencia', id)); });
     b.delete(ref('fichas', key));
+    b.delete(ref('notas', key));
     b.delete(ref('people', key));
     await b.commit();
-  }, [asistencia, ref]);
+    anotar('Eliminó una persona', nombreDe(people.find((p) => p.key === key)));
+  }, [asistencia, ref, anotar, people]);
 
   /** Une a personas repetidas en una sola (solo Administrador). `otras`: una key o una lista. Devuelve la key de quien queda. */
   const unirPersonas = useCallback(async (keyQueda, otras) => {
@@ -114,6 +164,7 @@ export function CongregaProvider({ children }) {
     let queda = people.find((p) => p.key === keyQueda);
     const fichaDe = (k) => fichas.get(k) || {};
     let ficha = fichaDe(queda.key);
+    let nota = { ...(notas.get(queda.key) || {}) };
     const unidas = [];
     for (const k of [].concat(otras)) {
       const orden = ordenarUnion(queda, people.find((p) => p.key === k));
@@ -122,6 +173,8 @@ export function CongregaProvider({ children }) {
       const fq = q.key === queda.key ? ficha : fichaDe(q.key); const fo = o.key === queda.key ? ficha : fichaDe(o.key);
       const { cambios: c1 = [], ...restoQ } = fq; const { cambios: c2 = [], ...restoO } = fo;
       ficha = { ...fusionarDatos(restoO, restoQ), cambios: [...c1, ...c2, { at: ahora, by: myUid, campos: [`unida con ${nombreDe(o)}`] }].sort((x, y) => x.at - y.at).slice(-50) };
+      const no = notas.get(o.key) || {};
+      nota = { notas: [nota.notas, no.notas].filter(Boolean).join('\n\n').slice(0, 5000), notasMedicas: [nota.notasMedicas, no.notasMedicas].filter(Boolean).join('\n\n').slice(0, 3000) };
       queda = { ...personaUnida(q, o), key: q.key };
       unidas.push(o.key);
     }
@@ -129,6 +182,7 @@ export function CongregaProvider({ children }) {
     const b = writeBatch(db);
     b.set(ref('people', kq), persona);
     b.set(ref('fichas', kq), { ...ficha, actualizadoEn: ahora, actualizadoPor: myUid });
+    if (nota.notas || nota.notasMedicas) b.set(ref('notas', kq), nota);
     await b.commit();
     // Asistencia y participaciones pasan a quien queda (una por una: las reglas revisan cada evento).
     const mover = [];
@@ -147,17 +201,25 @@ export function CongregaProvider({ children }) {
     }
     await Promise.all(mover);
     const b2 = writeBatch(db);
-    unidas.forEach((k) => { b2.delete(ref('fichas', k)); b2.delete(ref('people', k)); });
+    unidas.forEach((k) => { b2.delete(ref('fichas', k)); b2.delete(ref('notas', k)); b2.delete(ref('people', k)); });
     await b2.commit();
+    anotar('Unió perfiles', nombreDe(persona), `${unidas.length + 1} fichas en una`);
     return kq;
-  }, [people, fichas, asistencia, ref, myUid, churchId]);
+  }, [people, fichas, notas, asistencia, ref, myUid, churchId, anotar]);
 
-  const habilitarAsistencia = useCallback((uid, si) => updateDoc(ref('members', uid), { asistencia: si }), [ref]);
+  /** Cambia el perfil principal y los perfiles extra de alguien con cuenta. */
+  const cambiarPerfiles = useCallback(async (uid, nuevoRol, perfiles) => {
+    const b = writeBatch(db);
+    b.update(ref('members', uid), { role: nuevoRol, perfiles });
+    if (uid !== myUid) b.update(ref('people', uid), { role: nuevoRol });
+    await b.commit();
+    anotar('Cambió perfiles', nombreDe(people.find((p) => p.key === uid)), [nuevoRol, ...perfiles].join(', '));
+  }, [ref, myUid, anotar, people]);
 
   const value = useMemo(() => ({
-    ...store, isAdmin, marca, familias, fichas, asistencia, listo, people, sinTipo,
-    marcar, registrarVisita, guardarPersona, crearFamilia, eliminarPersona, unirPersonas, habilitarAsistencia,
-  }), [store, isAdmin, marca, familias, fichas, asistencia, listo, people, sinTipo, marcar, registrarVisita, guardarPersona, crearFamilia, eliminarPersona, unirPersonas, habilitarAsistencia]);
+    ...store, ...perms, isAdmin, marca, familias, fichas, notas, asistencia, listo, people, sinTipo, equipo, anotar,
+    marcar, registrarVisita, guardarPersona, guardarMisDatos, crearFamilia, eliminarPersona, unirPersonas, cambiarPerfiles,
+  }), [store, perms, isAdmin, marca, familias, fichas, notas, asistencia, listo, people, sinTipo, equipo, anotar, marcar, registrarVisita, guardarPersona, guardarMisDatos, crearFamilia, eliminarPersona, unirPersonas, cambiarPerfiles]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

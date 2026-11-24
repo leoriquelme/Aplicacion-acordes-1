@@ -187,3 +187,20 @@ a.cg-item:hover { background: var(--surface-2); text-decoration: none; }
 .cg-chip-tipo.visita { color: var(--primary); border-color: var(--primary); }
 .cg-chip-tipo.colaborador { color: var(--cg-ok); border-color: var(--cg-ok); }
 .cg-chip-tipo[aria-expanded='true'] { background: var(--surface-2); }
+
+/* Estación: cumpleaños y aniversarios de la semana */
+.cg-fiestas { display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.2rem; }
+.cg-fiesta { flex: none; border: 1px solid var(--border); background: var(--surface); color: inherit; border-radius: 999px; padding: 0.45rem 0.85rem; font: inherit; cursor: pointer; white-space: nowrap; }
+.cg-fiesta.hoy, .cg-tarjeta-fiesta.hoy { background: #fff4d6; border-color: #f0c34a; color: #6b4b00; }
+.cg-tarjeta-fiesta { font-size: 0.85rem; font-weight: 600; border-radius: 8px; padding: 0.2rem 0.45rem; background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
+.cg-estacion-evento { font-size: 1.2rem; display: block; }
+
+/* Ajustes: perfiles de acceso */
+.cg-perfil-acceso { flex-wrap: wrap; }
+.cg-perfil-editar { flex: 1 1 100%; display: grid; gap: 0.7rem; padding: 0.4rem 0 0.2rem; }
+.cg-etiquetas { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.cg-que-hace dl { display: grid; gap: 0.6rem; margin: 0.8rem 0 0; }
+.cg-que-hace dt { font-weight: 700; }
+.cg-que-hace dd { margin: 0.1rem 0 0; color: var(--muted); }
+.cg-que-hace summary { cursor: pointer; font-weight: 600; }
+.cg-boton-iniciar { font-size: 1.3rem; min-height: 3.6rem; }

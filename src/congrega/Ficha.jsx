@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { doc, deleteField, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase.js';
 import { Avatar } from '../components/Avatares.jsx';
@@ -30,15 +30,17 @@ export default function Ficha() {
   const { key } = useParams();
   const nueva = key === 'nueva';
   const c = useCongrega();
-  const { people, familias, fichas, asistencia, events = [], isAdmin } = c;
+  const { people, familias, fichas, notas, asistencia, events = [], isAdmin, verPrivado, editarFicha, myUid } = c;
   const p = nueva ? { tipo: 'Activo', estado: 'activo', teams: [] } : people.find((x) => x.key === key);
   const [editar, setEditar] = useState(nueva);
   const [menu, setMenu] = useState(false);
   const [unir, setUnir] = useState(false);
+  if (!c.verPersonas) return <Navigate to="/congrega/mificha" replace />;
   if (!p) return <div className="card">No encontramos a esta persona. <Link to="/congrega/personas">Volver a Personas</Link></div>;
-  if (editar && isAdmin) return <Editar p={p} k={nueva ? null : key} onListo={() => setEditar(false)} />;
+  if (editar && (isAdmin || (editarFicha && !nueva))) return <Editar p={p} k={nueva ? null : key} soloFicha={!isAdmin} onListo={() => setEditar(false)} />;
 
-  const d = fichas.get(key) || {};
+  const d = { ...(fichas.get(key) || {}), ...(notas.get(key) || {}) };
+  const basico = !verPrivado && !c.asisAdmin; // Director musical: solo nombre, foto y ministerios
   const fam = p.familiaId && familias.get(p.familiaId);
   const vino = new Set(); asistencia.forEach((a) => { if (a.personKey === key) vino.add(a.eventId); });
   const ultimos = [...events].filter((e) => e.date).sort((a, b) => b.date.localeCompare(a.date)).filter((e) => [...asistencia.values()].some((a) => a.eventId === e.id)).slice(0, 8).reverse();
@@ -48,6 +50,7 @@ export default function Ficha() {
     <div className="cg-stack">
       <div className="cg-row cg-entre">
         <Link className="btn ghost" to="/congrega/personas">← Personas</Link>
+        {!isAdmin && editarFicha && <button type="button" className="btn primary" onClick={() => setEditar(true)}>Editar datos</button>}
         {isAdmin && (
           <div className="cg-menu">
             <button type="button" className="btn primary" aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu(!menu)}>Editar ▾</button>
@@ -79,14 +82,17 @@ export default function Ficha() {
         </div>
       </div>
       {isAdmin && !nueva && unir && <UnirCon p={p} onCerrar={() => setUnir(false)} />}
-      {isAdmin && !d.consentimiento && <div className="cg-aviso">Falta registrar el consentimiento de esta persona para guardar sus datos (Ley 21.719).</div>}
-      {c.marca && (
+      {verPrivado && !d.consentimiento && <div className="cg-aviso">Falta registrar el consentimiento de esta persona para guardar sus datos (Ley 21.719).</div>}
+      {c.verAsistencia && (
         <fieldset className="card cg-grid"><legend>Asistencia</legend>
           <div className="cg-dato full"><span>Últimos eventos con registro · {vino.size} en total</span>
             {ultimos.length ? <div className="cg-dots">{ultimos.map((e) => <span key={e.id} className={`cg-dot${vino.has(e.id) ? ' on' : ''}`} title={`${e.date} ${e.name || ''}`}>{Number(e.date.slice(8))}</span>)}</div> : <div className="muted">Sin registros todavía</div>}
           </div>
         </fieldset>
       )}
+      {basico ? (
+        <fieldset className="card cg-grid"><legend>Iglesia</legend><Dato label="Ministerios y equipos" value={p.teams || []} full /></fieldset>
+      ) : (
       <fieldset className="card cg-grid"><legend>Iglesia</legend>
         <Dato label="Miembro" value={sino(p.miembro)} />
         <Dato label="Asistencia habitual" value={p.tipo} />
@@ -100,7 +106,8 @@ export default function Ficha() {
           </div>
         )}
       </fieldset>
-      {!isAdmin ? <div className="cg-aviso info">Los datos de contacto, cumpleaños y notas privadas solo los ven los administradores.</div> : (
+      )}
+      {!verPrivado ? <div className="cg-aviso info">Los datos de contacto, cumpleaños y notas privadas solo los ven el Administrador y el Pastor.</div> : (
         <>
           <fieldset className="card cg-grid"><legend>Datos personales</legend>
             <Dato label="Nombre completo" value={[p.nombre || p.name, d.segundoNombre, p.apellido].filter(Boolean).join(' ')} />
@@ -123,7 +130,7 @@ export default function Ficha() {
             <Dato label="Bautizado/a" value={d.bautizado ? `Sí${d.fechaBautismo ? `, ${fmt(d.fechaBautismo)}` : ''}` : sino(d.bautizado)} />
             {!activo(p) && <Dato label="Motivo de inactividad" value={[d.motivoInactivo, d.fechaInactivo && `desde ${fmt(d.fechaInactivo)}`].filter(Boolean).join(', ')} />}
           </fieldset>
-          <fieldset className="card cg-grid"><legend>Notas privadas <span className="muted">· solo administradores</span></legend>
+          <fieldset className="card cg-grid"><legend>Notas privadas <span className="muted">· solo Administrador y Pastor</span></legend>
             <Dato label="Notas pastorales" value={d.notas} full />
             <Dato label="Notas médicas" value={d.notasMedicas} full />
           </fieldset>
@@ -133,7 +140,7 @@ export default function Ficha() {
             <Dato label="Última modificación" value={d.actualizadoEn ? new Date(d.actualizadoEn).toLocaleString('es-CL') : ''} />
             {(d.cambios || []).length > 0 && <Dato full label="Historial de cambios" value={(d.cambios || []).slice(-5).reverse().map((x) => `${new Date(x.at).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' })} · ${(x.campos || []).join(', ')}`).join('\n')} />}
           </fieldset>
-          {!p.uid && <Eliminar k={key} nombre={nombreDe(p)} />}
+          {isAdmin && !p.uid && <Eliminar k={key} nombre={nombreDe(p)} />}
         </>
       )}
     </div>
@@ -163,10 +170,11 @@ function Opciones({ value, onChange, options, vacio = '—' }) {
 
 const PERSONA = ['nombre', 'apellido', 'apodo', 'tipo', 'miembro', 'rangoEdad', 'esNino', 'estado', 'familiaId', 'rolFamilia', 'teams'];
 
-function Editar({ p, k, onListo }) {
-  const { fichas, familias, guardarPersona, crearFamilia, people } = useCongrega();
+/** Formulario de una persona. `soloFicha`: el Pastor edita solo datos privados (contacto, vida en la iglesia y notas). */
+function Editar({ p, k, onListo, soloFicha = false }) {
+  const { fichas, notas, familias, guardarPersona, crearFamilia, people } = useCongrega();
   const navigate = useNavigate();
-  const d0 = (k && fichas.get(k)) || {};
+  const d0 = (k && { ...(fichas.get(k) || {}), ...(notas.get(k) || {}) }) || {};
   const [f, setF] = useState({ ...d0, ...Object.fromEntries(PERSONA.map((x) => [x, p[x]])), nombre: p.nombre || (!p.apellido ? p.name : '') || '', teams: p.teams || [] });
   const [famNueva, setFamNueva] = useState('');
   const [error, setError] = useState('');
@@ -185,9 +193,10 @@ function Editar({ p, k, onListo }) {
       Object.assign(persona, { nombre: f.nombre.trim(), apellido: (f.apellido || '').trim(), familiaId, estado: f.estado || 'activo', esNino: Boolean(f.esNino) });
       persona.name = `${persona.nombre} ${persona.apellido}`.trim();
       if (/^\d{4}-\d{2}-\d{2}$/.test(f.fechaNacimiento || '')) persona.birthday = f.fechaNacimiento.slice(5);
+      persona.aniversarioMD = /^\d{4}-\d{2}-\d{2}$/.test(f.aniversario || '') ? f.aniversario.slice(5) : null;
       const ficha = Object.fromEntries(Object.entries(f).filter(([x]) => !PERSONA.includes(x) && !['cambios', 'actualizadoEn', 'actualizadoPor'].includes(x)));
       const cambios = Object.keys(f).filter((x) => !['cambios', 'actualizadoEn', 'actualizadoPor'].includes(x) && JSON.stringify(f[x] ?? '') !== JSON.stringify((PERSONA.includes(x) ? p[x] : d0[x]) ?? ''));
-      const id = await guardarPersona(k, persona, ficha, cambios);
+      const id = await guardarPersona(k, soloFicha ? null : persona, ficha, soloFicha ? cambios.filter((x) => !PERSONA.includes(x)) : cambios);
       if (k) onListo(); else navigate(`/congrega/personas/${id}`, { replace: true });
     } catch (err) { setError(`No se pudo guardar: ${err.message}`); }
   };
@@ -196,6 +205,8 @@ function Editar({ p, k, onListo }) {
     <form className="cg-stack" onSubmit={guardar}>
       <div className="cg-row"><h2 className="cg-grow">{k ? `Editar a ${nombreDe(p)}` : 'Nueva persona'}</h2></div>
       {p.uid && <div className="cg-aviso info">Esta persona tiene cuenta en la app: su nombre, foto y equipos también los puede cambiar ella misma.</div>}
+      {!soloFicha && (
+        <>
       <fieldset className="card cg-grid"><legend>Identificación</legend>
         <Campo label="Nombre"><input value={f.nombre || ''} onChange={set('nombre')} /></Campo>
         <Campo label="Segundo nombre"><input value={f.segundoNombre || ''} onChange={set('segundoNombre')} /></Campo>
@@ -228,6 +239,8 @@ function Editar({ p, k, onListo }) {
           </div>
         </div>
       </fieldset>
+        </>
+      )}
       <fieldset className="card cg-grid"><legend>Datos personales y contacto</legend>
         <Campo label="Fecha de nacimiento"><input type="date" value={f.fechaNacimiento || ''} onChange={set('fechaNacimiento')} /></Campo>
         <Campo label="Género"><Opciones value={f.genero} onChange={set('genero')} options={['Femenino', 'Masculino', 'Prefiere no decir']} /></Campo>
@@ -245,7 +258,7 @@ function Editar({ p, k, onListo }) {
         <Campo label="Bautizado/a"><Opciones value={sino(f.bautizado)} onChange={(v) => set('bautizado')(bool(v))} options={['Sí', 'No']} /></Campo>
         <Campo label="Fecha de bautismo"><input type="date" value={f.fechaBautismo || ''} onChange={set('fechaBautismo')} /></Campo>
       </fieldset>
-      <fieldset className="card cg-grid"><legend>Notas privadas <span className="muted">· solo administradores</span></legend>
+      <fieldset className="card cg-grid"><legend>Notas privadas <span className="muted">· solo Administrador y Pastor</span></legend>
         <Campo label="Notas pastorales" full><textarea value={f.notas || ''} onChange={set('notas')} rows={4} /></Campo>
         <Campo label="Notas médicas (alergias, enfermedades)" full><textarea value={f.notasMedicas || ''} onChange={set('notasMedicas')} rows={3} /></Campo>
       </fieldset>

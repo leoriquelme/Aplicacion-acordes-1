@@ -1,12 +1,16 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { useStore } from '../lib/store.jsx';
-import { CongregaProvider } from './datos.jsx';
+import { CongregaProvider, useCongrega } from './datos.jsx';
 import Inicio from './Inicio.jsx';
 import Asistencia from './Asistencia.jsx';
 import Personas from './Personas.jsx';
 import Ficha from './Ficha.jsx';
 import Ajustes from './Ajustes.jsx';
 import Estacion from './Estacion.jsx';
+import EstacionInicio from './EstacionInicio.jsx';
+import MiFicha from './MiFicha.jsx';
+import { AvisosEstacion } from './estacion.jsx';
+import { pestanasCongrega } from './permisos.js';
 import './congrega.css';
 
 /** Congrega: personas y asistencia de la iglesia abierta, con los mismos datos de Adora. */
@@ -17,17 +21,32 @@ export default function Congrega() {
   }
   return (
     <CongregaProvider>
-      <div className="cg page">
-        <Routes>
-          <Route index element={<Inicio />} />
-          <Route path="asistencia" element={<Asistencia />} />
-          <Route path="estacion" element={<Estacion />} />
-          <Route path="personas" element={<Personas />} />
-          <Route path="personas/:key" element={<Ficha />} />
-          <Route path="ajustes" element={<Ajustes />} />
-          <Route path="*" element={<Navigate to="/congrega" replace />} />
-        </Routes>
-      </div>
+      <Paginas />
     </CongregaProvider>
+  );
+}
+
+function Paginas() {
+  const c = useCongrega();
+  const { pathname } = useLocation();
+  const tabs = pestanasCongrega(c);
+  const si = (ok, el) => (ok ? el : <Navigate to="/congrega" replace />);
+  if (pathname.startsWith('/congrega/estacion/marcar')) {
+    return <div className="cg"><Routes><Route path="estacion/marcar" element={si(c.marca, <Estacion />)} /></Routes></div>;
+  }
+  return (
+    <div className="cg page">
+      <AvisosEstacion />
+      <Routes>
+        <Route index element={tabs.includes('inicio') ? <Inicio /> : <MiFicha />} />
+        <Route path="asistencia" element={si(c.asisAdmin, <Asistencia />)} />
+        <Route path="estacion" element={si(c.marca || c.equipo.has(c.myUid), <EstacionInicio />)} />
+        <Route path="personas" element={si(c.verPersonas, <Personas />)} />
+        <Route path="personas/:key" element={<Ficha />} />
+        <Route path="mificha" element={<MiFicha />} />
+        <Route path="ajustes" element={si(c.admin, <Ajustes />)} />
+        <Route path="*" element={<Navigate to="/congrega" replace />} />
+      </Routes>
+    </div>
   );
 }

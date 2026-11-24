@@ -9,6 +9,7 @@ import IglesiaLogo from '../components/IglesiaLogo.jsx';
 import { TuPropuesta } from '../components/Participacion.jsx';
 import Cumpleanos from '../components/Cumpleanos.jsx';
 import Consejos from '../components/Consejos.jsx';
+import { AvisosEstacion } from '../congrega/estacion.jsx';
 
 const MAX_EVENTOS = 4;
 
@@ -49,6 +50,9 @@ export default function Inicio() {
           ))}
         </section>
       )}
+
+      {/* Equipo de estación: invitación, ofrecerse para tomar asistencia o aprobar ofrecimientos */}
+      <AvisosEstacion />
 
       {/* Bloque 2: próximos eventos */}
       <h2 className="bloque-titulo">Próximos eventos</h2>
