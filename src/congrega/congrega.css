@@ -223,3 +223,9 @@ a.cg-item:hover { background: var(--surface-2); text-decoration: none; }
 .cg-integrante { flex-wrap: wrap; }
 .cg-integrante .cg-quien { flex: 1 1 10rem; min-width: 0; text-decoration: none; color: inherit; }
 .cg-integrante-acciones { display: flex; gap: 0.5rem; align-items: center; margin-left: auto; }
+/* Tipo de asistencia: en pantallas angostas, debajo del nombre para no apretarlo */
+.cg-item:has(.cg-chip-tipo) { flex-wrap: wrap; }
+.cg-item:has(.cg-chip-tipo) .cg-quien { flex: 1 1 8rem; min-width: 0; }
+@media (max-width: 520px) {
+  .cg-item .cg-chip-tipo { order: 4; margin-left: 4.3rem; margin-top: -0.3rem; }
+}
