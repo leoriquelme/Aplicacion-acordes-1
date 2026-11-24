@@ -70,6 +70,7 @@ const TABS = [
 const TABS_CONGREGA = [
   { to: '/congrega', label: 'Inicio', icon: 'home', end: true },
   { to: '/congrega/asistencia', label: 'Asistencia', icon: 'hand' },
+  { to: '/congrega/estacion', label: 'Estación', icon: 'laptop' },
   { to: '/congrega/personas', label: 'Personas', icon: 'users' },
   { to: '/congrega/ajustes', label: 'Ajustes', icon: 'settings', admin: true },
 ];
@@ -78,7 +79,8 @@ export default function App() {
   const { pathname, state } = useLocation();
   // Páginas abiertas desde Ajustes (ej. la página de la iglesia): la pestaña Ajustes sigue marcada.
   const desdeAjustes = state?.from === 'ajustes';
-  const presenting = pathname.startsWith('/presentar');
+  // Presentación y Estación de asistencia usan la pantalla completa, sin barra ni menú.
+  const presenting = pathname.startsWith('/presentar') || pathname.startsWith('/congrega/estacion');
   const { mode, church, me, live, myUid, role, events = [] } = useStore();
   const liveEvent = enVivoActivo(live) ? events.find((e) => e.id === live.eventId) : null;
   const personal = mode === 'personal';

@@ -6,6 +6,7 @@ import Asistencia from './Asistencia.jsx';
 import Personas from './Personas.jsx';
 import Ficha from './Ficha.jsx';
 import Ajustes from './Ajustes.jsx';
+import Estacion from './Estacion.jsx';
 import './congrega.css';
 
 /** Congrega: personas y asistencia de la iglesia abierta, con los mismos datos de Adora. */
@@ -20,6 +21,7 @@ export default function Congrega() {
         <Routes>
           <Route index element={<Inicio />} />
           <Route path="asistencia" element={<Asistencia />} />
+          <Route path="estacion" element={<Estacion />} />
           <Route path="personas" element={<Personas />} />
           <Route path="personas/:key" element={<Ficha />} />
           <Route path="ajustes" element={<Ajustes />} />
