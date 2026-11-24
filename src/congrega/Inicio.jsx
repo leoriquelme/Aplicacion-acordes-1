@@ -5,18 +5,24 @@ import { RANGOS, TIPOS, activo, esMiembro, nombreDe, useCongrega } from './datos
 const corto = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString('es-CL', { day: 'numeric', month: 'short' }).replace('.', '');
 
 /** Próximas fechas (cumpleaños o aniversarios) dentro de `dias`, a partir de "AAAA-MM-DD" o "MM-DD". */
-export function proximas(lista, dias, hoy = new Date()) {
+/** Fechas (cumpleaños, aniversarios) desde `atras` días antes de hoy hasta `dias` días después. */
+export function proximas(lista, dias, hoy = new Date(), atras = 0) {
   const base = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
   return lista.map((x) => {
     const m = /(?:(\d{4})-)?(\d{2})-(\d{2})$/.exec(x.fecha || '');
     if (!m) return null;
-    let next = new Date(base.getFullYear(), Number(m[2]) - 1, Number(m[3]));
-    if (next < base) next = new Date(base.getFullYear() + 1, Number(m[2]) - 1, Number(m[3]));
+    const y = base.getFullYear();
+    const next = [y - 1, y, y + 1].map((a) => new Date(a, Number(m[2]) - 1, Number(m[3])))
+      .find((d) => { const n = Math.round((d - base) / 86400000); return n >= -atras && n <= dias; });
+    if (!next) return null;
     const diff = Math.round((next - base) / 86400000);
-    return diff <= dias ? { ...x, next, diff, anos: m[1] ? next.getFullYear() - Number(m[1]) : null } : null;
+    return { ...x, next, diff, anos: m[1] ? next.getFullYear() - Number(m[1]) : null };
   }).filter(Boolean).sort((a, b) => a.diff - b.diff);
 }
-const cuando = (d) => (d === 0 ? 'Hoy' : d === 1 ? 'Mañana' : `En ${d} días`);
+const cuando = (d) => (d === 0 ? 'Hoy' : d === 1 ? 'Mañana' : d === -1 ? 'Ayer' : d < 0 ? `Hace ${-d} días` : `En ${d} días`);
+// Ventanas del Inicio: cumpleaños desde ayer hasta 7 días más; aniversarios desde ayer hasta 15 días más.
+export const VENTANA_CUMPLE = 7;
+export const VENTANA_ANIVERSARIO = 15;
 
 function Barras({ items, vacio = 'Sin datos todavía.' }) {
   if (!items.length) return <div className="muted cg-vacio">{vacio}</div>;
@@ -68,7 +74,7 @@ function Recordatorio({ r, titulo, sub, onClick }) {
 }
 
 export default function Inicio() {
-  const { people, events = [], asistencia, fichas, familias, verPrivado: isAdmin, verAsistencia: marca } = useCongrega();
+  const { people, events = [], asistencia, fichas, familias, verPrivado: isAdmin, verAsistencia: marca, pastor } = useCongrega();
   const navigate = useNavigate();
   const hoy = todayISO();
   const activos = people.filter(activo);
@@ -83,8 +89,8 @@ export default function Inicio() {
   const proxEventos = events.filter((e) => e.date && e.date >= hoy).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 5);
 
   // Cumpleaños: la fecha completa (ficha privada) o el "MM-DD" visible que cada uno pone en Adora.
-  const cumple = proximas(activos.map((p) => ({ p, fecha: fichas.get(p.key)?.fechaNacimiento || p.birthday })), 30);
-  const anivRaw = isAdmin ? proximas(activos.map((p) => ({ p, fecha: fichas.get(p.key)?.aniversario })), 60) : [];
+  const cumple = proximas(activos.map((p) => ({ p, fecha: fichas.get(p.key)?.fechaNacimiento || p.birthday })), VENTANA_CUMPLE, new Date(), 1);
+  const anivRaw = isAdmin ? proximas(activos.map((p) => ({ p, fecha: fichas.get(p.key)?.aniversario })), VENTANA_ANIVERSARIO, new Date(), 1) : [];
   const parejas = new Map();
   anivRaw.forEach((a) => { const k = `${a.p.familiaId || a.p.key}|${a.next.getTime()}`; if (!parejas.has(k)) parejas.set(k, { ...a, nombres: [] }); parejas.get(k).nombres.push(a.p.nombre || a.p.name); });
 
@@ -117,15 +123,15 @@ export default function Inicio() {
         <div className="card dato"><strong>{visitasMes}</strong><span>Visitas nuevas este mes</span></div>
       </div>
       <div className="cg-dash">
-        <section className="card cg-panel"><h3>Cumpleaños próximos</h3><p className="muted">Próximos 30 días</p>
-          {cumple.length ? cumple.slice(0, 8).map((c) => <Recordatorio key={c.p.key} r={c} titulo={nombreDe(c.p)} sub={`${cuando(c.diff)}${c.anos ? ` · cumple ${c.anos}` : ''}`} onClick={() => ir(c.p.key)} />) : <div className="muted cg-vacio">Nadie está de cumpleaños en los próximos 30 días.</div>}
+        <section className="card cg-panel"><h3>Cumpleaños próximos</h3><p className="muted">Desde ayer hasta los próximos {VENTANA_CUMPLE} días</p>
+          {cumple.length ? cumple.slice(0, 8).map((c) => <Recordatorio key={c.p.key} r={c} titulo={nombreDe(c.p)} sub={`${cuando(c.diff)}${c.anos ? ` · ${c.diff < 0 ? 'cumplió' : 'cumple'} ${c.anos}` : ''}`} onClick={() => ir(c.p.key)} />) : <div className="muted cg-vacio">Nadie está de cumpleaños esta semana.</div>}
         </section>
         {isAdmin && (
-          <section className="card cg-panel"><h3>Aniversarios de matrimonio</h3><p className="muted">Próximos 60 días</p>
+          <section className="card cg-panel"><h3>Aniversarios de matrimonio</h3><p className="muted">Desde ayer hasta los próximos {VENTANA_ANIVERSARIO} días</p>
             {parejas.size ? [...parejas.values()].slice(0, 8).map((a) => {
               const fam = a.p.familiaId && familias.get(a.p.familiaId);
               return <Recordatorio key={`${a.p.key}${a.diff}`} r={a} titulo={`${a.nombres.join(' y ')}${fam ? ` · ${fam.name}` : ''}`} sub={`${cuando(a.diff)}${a.anos ? ` · ${a.anos} ${a.anos === 1 ? 'año' : 'años'} de casados` : ''}`} onClick={() => ir(a.p.key)} />;
-            }) : <div className="muted cg-vacio">No hay aniversarios en los próximos 60 días.</div>}
+            }) : <div className="muted cg-vacio">No hay aniversarios en los próximos 15 días.</div>}
           </section>
         )}
         <section className="card cg-panel"><h3>Próximos eventos</h3><p className="muted">Los mismos eventos de Adora</p>
@@ -136,25 +142,28 @@ export default function Inicio() {
             </button>
           )) : <div className="muted cg-vacio">No hay eventos próximos.</div>}
         </section>
-        {marca && (
-          <section className="card cg-panel ancho"><h3>Asistencia por evento</h3><p className="muted">Últimos {Math.min(12, evs.length)} eventos con registro</p>
-            {evs.length ? <Linea puntos={evs.slice(0, 12).reverse().map((e) => ({ id: e.id, v: conteo.get(e.id), label: `${e.name || 'Evento'} ${e.date}`, corto: corto(e.date) }))} /> : <div className="muted cg-vacio">Aún no hay asistencia registrada.</div>}
-          </section>
-        )}
-        {constancia && <section className="card cg-panel"><h3>Constancia</h3><p className="muted">Personas activas según cuántas veces vinieron en los últimos {recientes.length} eventos</p><Barras items={constancia} /></section>}
-        <section className="card cg-panel"><h3>Edades</h3><p className="muted">Personas activas por rango de edad</p><Barras items={rangos} /></section>
-        <section className="card cg-panel"><h3>Ministerios y equipos</h3><p className="muted">Personas que sirven en cada uno</p>
-          <Barras items={[...ministerios].map(([label, v]) => ({ label, v })).sort((a, b) => b.v - a.v).slice(0, 10)} vacio="Nadie tiene ministerios asignados." /></section>
-        <section className="card cg-panel"><h3>Asistencia habitual</h3><p className="muted">Cómo está clasificada cada persona activa</p>
-          <Barras items={TIPOS.map((t) => ({ label: t, v: activos.filter((p) => p.tipo === t).length })).concat([{ label: 'Sin clasificar', v: activos.filter((p) => !p.tipo).length }]).filter((x) => x.v)} /></section>
-        {isAdmin && <section className="card cg-panel"><h3>Dónde viven</h3><p className="muted">Personas activas por comuna</p>
-          <Barras items={[...comunas].map(([label, v]) => ({ label, v })).sort((a, b) => b.v - a.v).slice(0, 8)} vacio="Falta la comuna en las fichas." /></section>}
-        {isAdmin && <section className="card cg-panel"><h3>Consentimiento de datos</h3><p className="muted">Ley 21.719: personas activas con autorización registrada</p>
-          <Barras items={[{ label: 'Con consentimiento', v: activos.filter((p) => fichas.get(p.key)?.consentimiento).length }, { label: 'Falta registrar', v: activos.filter((p) => !fichas.get(p.key)?.consentimiento).length }]} /></section>}
-        {marca && ult3.length === 3 && (
-          <section className="card cg-panel"><h3>Para hacer seguimiento</h3><p className="muted">Faltaron a los últimos 3 eventos con registro</p>
-            {seguimiento.length ? seguimiento.slice(0, 8).map((p) => <button type="button" key={p.key} className="cg-rec" onClick={() => ir(p.key)}><span className="cg-quien"><span className="cg-nombre">{nombreDe(p)}</span><span className="cg-meta">{p.tipo || (esMiembro(p) ? 'Miembro' : '')}</span></span></button>) : <div className="muted cg-vacio">Nadie lleva 3 eventos sin venir.</div>}
-          </section>
+        {/* Reportes: solo Pastor y Administrador */}
+        {pastor && (
+          <>
+            {marca && (
+              <section className="card cg-panel ancho"><h3>Asistencia por evento</h3><p className="muted">Últimos {Math.min(12, evs.length)} eventos con registro</p>
+                {evs.length ? <Linea puntos={evs.slice(0, 12).reverse().map((e) => ({ id: e.id, v: conteo.get(e.id), label: `${e.name || 'Evento'} ${e.date}`, corto: corto(e.date) }))} /> : <div className="muted cg-vacio">Aún no hay asistencia registrada.</div>}
+              </section>
+            )}
+            {constancia && <section className="card cg-panel"><h3>Constancia</h3><p className="muted">Personas activas según cuántas veces vinieron en los últimos {recientes.length} eventos</p><Barras items={constancia} /></section>}
+            <section className="card cg-panel"><h3>Edades</h3><p className="muted">Personas activas por rango de edad</p><Barras items={rangos} /></section>
+            <section className="card cg-panel"><h3>Ministerios y equipos</h3><p className="muted">Personas que sirven en cada uno</p>
+              <Barras items={[...ministerios].map(([label, v]) => ({ label, v })).sort((a, b) => b.v - a.v).slice(0, 10)} vacio="Nadie tiene ministerios asignados." /></section>
+            <section className="card cg-panel"><h3>Asistencia habitual</h3><p className="muted">Cómo está clasificada cada persona activa</p>
+              <Barras items={TIPOS.map((t) => ({ label: t, v: activos.filter((p) => p.tipo === t).length })).concat([{ label: 'Sin clasificar', v: activos.filter((p) => !p.tipo).length }]).filter((x) => x.v)} /></section>
+            {isAdmin && <section className="card cg-panel"><h3>Dónde viven</h3><p className="muted">Personas activas por comuna</p>
+              <Barras items={[...comunas].map(([label, v]) => ({ label, v })).sort((a, b) => b.v - a.v).slice(0, 8)} vacio="Falta la comuna en las fichas." /></section>}
+            {marca && ult3.length === 3 && (
+              <section className="card cg-panel"><h3>Para hacer seguimiento</h3><p className="muted">Faltaron a los últimos 3 eventos con registro</p>
+                {seguimiento.length ? seguimiento.slice(0, 8).map((p) => <button type="button" key={p.key} className="cg-rec" onClick={() => ir(p.key)}><span className="cg-quien"><span className="cg-nombre">{nombreDe(p)}</span><span className="cg-meta">{p.tipo || (esMiembro(p) ? 'Miembro' : '')}</span></span></button>) : <div className="muted cg-vacio">Nadie lleva 3 eventos sin venir.</div>}
+              </section>
+            )}
+          </>
         )}
       </div>
     </div>

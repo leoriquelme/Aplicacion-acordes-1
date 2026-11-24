@@ -9,6 +9,7 @@ import Ajustes from './Ajustes.jsx';
 import Estacion from './Estacion.jsx';
 import EstacionInicio from './EstacionInicio.jsx';
 import MiFicha from './MiFicha.jsx';
+import Familia from './Familia.jsx';
 import { AvisosEstacion } from './estacion.jsx';
 import { pestanasCongrega } from './permisos.js';
 import './congrega.css';
@@ -43,6 +44,7 @@ function Paginas() {
         <Route path="estacion" element={si(c.marca || c.equipo.has(c.myUid), <EstacionInicio />)} />
         <Route path="personas" element={si(c.verPersonas, <Personas />)} />
         <Route path="personas/:key" element={<Ficha />} />
+        <Route path="familias/:id" element={<Familia />} />
         <Route path="mificha" element={<MiFicha />} />
         <Route path="ajustes" element={si(c.admin, <Ajustes />)} />
         <Route path="*" element={<Navigate to="/congrega" replace />} />

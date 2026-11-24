@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { doc, deleteField, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase.js';
 import { Avatar } from '../components/Avatares.jsx';
@@ -32,7 +32,8 @@ export default function Ficha() {
   const c = useCongrega();
   const { people, familias, fichas, notas, asistencia, events = [], isAdmin, verPrivado, editarFicha, myUid } = c;
   const p = nueva ? { tipo: 'Activo', estado: 'activo', teams: [] } : people.find((x) => x.key === key);
-  const [editar, setEditar] = useState(nueva);
+  const [params] = useSearchParams();
+  const [editar, setEditar] = useState(nueva || params.get('editar') === '1');
   const [menu, setMenu] = useState(false);
   const [unir, setUnir] = useState(false);
   if (!c.verPersonas) return <Navigate to="/congrega/mificha" replace />;
@@ -59,6 +60,7 @@ export default function Ficha() {
                 <div className="cg-menu-fondo" onClick={() => setMenu(false)} />
                 <div className="cg-menu-panel" role="menu">
                   <button type="button" role="menuitem" onClick={() => { setMenu(false); setEditar(true); }}>✏️ Editar datos</button>
+                  {p.familiaId && familias.get(p.familiaId) && <Link role="menuitem" to={`/congrega/familias/${p.familiaId}`}>👪 Perfil familiar</Link>}
                   <button type="button" role="menuitem" onClick={() => { setMenu(false); setUnir(true); }}>🔗 Unir con otra ficha</button>
                 </div>
               </>
@@ -99,10 +101,10 @@ export default function Ficha() {
         <Dato label="Rango de edad" value={p.rangoEdad} />
         <Dato label="Estado" value={activo(p) ? 'Activo' : 'Inactivo'} />
         <Dato label="Ministerios y equipos" value={p.teams || []} full />
-        <Dato label="Familia" value={fam ? `${fam.name}${p.rolFamilia ? ` · ${p.rolFamilia}` : ''}` : ''} />
+        <div className="cg-dato"><span>Familia</span>{fam ? <Link to={`/congrega/familias/${p.familiaId}`}>Familia {fam.name}{p.rolFamilia ? ` · ${p.rolFamilia}` : ''} ›</Link> : <div className="muted">—</div>}</div>
         {fam && (
           <div className="cg-dato full"><span>Integrantes de la familia</span>
-            <div className="cg-tags">{people.filter((m) => m.familiaId === p.familiaId && m.key !== key).map((m) => <Link key={m.key} className="cg-tag" to={`/congrega/personas/${m.key}`}>{nombreDe(m)}{m.rolFamilia ? ` · ${m.rolFamilia}` : ''}</Link>)}</div>
+            <div className="cg-tags">{people.filter((m) => m.familiaId === p.familiaId && m.key !== key && activo(m)).map((m) => <Link key={m.key} className="cg-tag" to={`/congrega/personas/${m.key}`}>{nombreDe(m)}{m.rolFamilia ? ` · ${m.rolFamilia}` : ''}</Link>)}</div>
           </div>
         )}
       </fieldset>
@@ -204,6 +206,11 @@ function Editar({ p, k, onListo, soloFicha = false }) {
   return (
     <form className="cg-stack" onSubmit={guardar}>
       <div className="cg-row"><h2 className="cg-grow">{k ? `Editar a ${nombreDe(p)}` : 'Nueva persona'}</h2></div>
+      {k && p.familiaId && familias.get(p.familiaId) && (
+        <Link className="card cg-row cg-entre cg-link-familia" to={`/congrega/familias/${p.familiaId}`}>
+          <span><span className="muted small">Perfil familiar</span><br /><strong>👪 Familia {familias.get(p.familiaId).name}</strong></span><span aria-hidden="true">›</span>
+        </Link>
+      )}
       {p.uid && <div className="cg-aviso info">Esta persona tiene cuenta en la app: su nombre, foto y equipos también los puede cambiar ella misma.</div>}
       {!soloFicha && (
         <>

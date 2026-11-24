@@ -4,7 +4,7 @@ import { TIPOS, activo, esMiembro, nombreDe, norm, useCongrega } from './datos.j
 import { Repetidos } from './UnirPerfiles.jsx';
 import { Avatar } from '../components/Avatares.jsx';
 
-const FILTROS = [['activos', 'Todos'], ['familias', 'Por familia'], ['miembros', 'Miembros'], ['ninos', 'Niños'], ['inactivos', 'Inactivos']];
+const FILTROS = [['activos', 'Todos'], ['miembros', 'Miembros'], ['ninos', 'Niños'], ['inactivos', 'Inactivos']];
 const ORDEN_ROL = { 'Contacto principal': 0, 'Cónyuge': 1, 'Hijo/a': 2 };
 
 function Fila({ p, familias }) {
@@ -26,11 +26,37 @@ function Fila({ p, familias }) {
   );
 }
 
+/** Fila de una familia: al tocarla se despliegan sus integrantes (solo activos). */
+function FilaFamilia({ fam, ms, familias, abierta, onToggle }) {
+  return (
+    <div className={`cg-familia-fila${abierta ? ' abierta' : ''}`} role="listitem">
+      <button type="button" className="cg-item cg-familia-cabeza" aria-expanded={abierta} onClick={onToggle}>
+        <span className="cg-familia-avatares" aria-hidden="true">
+          {ms.slice(0, 3).map((p) => <Avatar key={p.key} name={nombreDe(p)} personKey={p.key} photo={p.photo || ''} size="md" />)}
+        </span>
+        <span className="cg-quien">
+          <span className="cg-nombre">Familia {fam.name}</span>
+          <span className="cg-meta">{ms.length} {ms.length === 1 ? 'integrante' : 'integrantes'} · {ms.map((p) => p.nombre || nombreDe(p).split(' ')[0]).join(', ')}</span>
+        </span>
+        <span className="cg-flecha" aria-hidden="true">{abierta ? '▴' : '▾'}</span>
+      </button>
+      {abierta && (
+        <div className="cg-familia-integrantes">
+          {ms.map((p) => <Fila key={p.key} p={p} familias={familias} />)}
+          <Link className="cg-familia-ver" to={`/congrega/familias/${fam.id}`}>Ver perfil familiar ›</Link>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Personas() {
   const { people, familias, isAdmin } = useCongrega();
   const [filtro, setFiltro] = useState('activos');
   const [buscar, setBuscar] = useState('');
   const [habitual, setHabitual] = useState('');
+  const [abiertas, setAbiertas] = useState(() => new Set());
+  const alternar = (id) => setAbiertas((a) => { const n = new Set(a); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const q = norm(buscar);
   const filas = people.filter((p) => {
     if (filtro === 'inactivos' ? activo(p) : !activo(p)) return false;
@@ -43,19 +69,21 @@ export default function Personas() {
   }).sort((a, b) => norm(nombreDe(a)).localeCompare(norm(nombreDe(b))));
 
   let cuerpo;
-  if (filtro === 'familias') {
-    const grupos = new Map();
-    filas.forEach((p) => { const k = p.familiaId && familias.has(p.familiaId) ? p.familiaId : ''; if (!grupos.has(k)) grupos.set(k, []); grupos.get(k).push(p); });
-    const claves = [...grupos.keys()].sort((a, b) => (a === '' ? 1 : b === '' ? -1 : norm(familias.get(a).name).localeCompare(norm(familias.get(b).name))));
-    cuerpo = claves.map((k) => {
-      const ms = grupos.get(k).sort((a, b) => ((ORDEN_ROL[a.rolFamilia] ?? 3) - (ORDEN_ROL[b.rolFamilia] ?? 3)));
-      return (
-        <section key={k || 'sin'} className="cg-stack">
-          <h3 className="cg-h3">{k ? `Familia ${familias.get(k).name}` : 'Sin familia asignada'} <span className="muted">· {ms.length}</span></h3>
-          <div className="card cg-lista" role="list">{ms.map((p) => <Fila key={p.key} p={p} familias={familias} />)}</div>
-        </section>
-      );
-    });
+  if (filtro === 'activos' && !habitual) {
+    // Agrupadas por familia: cada familia es una fila que se despliega; quien no tiene familia aparece sola.
+    const grupos = new Map(); const solos = [];
+    filas.forEach((p) => { if (p.familiaId && familias.has(p.familiaId)) { if (!grupos.has(p.familiaId)) grupos.set(p.familiaId, []); grupos.get(p.familiaId).push(p); } else solos.push(p); });
+    const items = [
+      ...[...grupos].map(([id, ms]) => ({ orden: norm(familias.get(id).name), id, ms: ms.sort((a, b) => ((ORDEN_ROL[a.rolFamilia] ?? 3) - (ORDEN_ROL[b.rolFamilia] ?? 3))) })),
+      ...solos.map((p) => ({ orden: norm(p.apellido || nombreDe(p)), p })),
+    ].sort((a, b) => a.orden.localeCompare(b.orden));
+    cuerpo = (
+      <div className="card cg-lista" role="list">
+        {items.length ? items.map((x) => (x.p ? <Fila key={x.p.key} p={x.p} familias={familias} />
+          : <FilaFamilia key={x.id} fam={familias.get(x.id)} ms={x.ms} familias={familias} abierta={Boolean(q) || abiertas.has(x.id)} onToggle={() => alternar(x.id)} />))
+          : <div className="muted cg-vacio">{people.length ? 'Nadie coincide con la búsqueda.' : `Todavía no hay personas.${isAdmin ? ' Agrégalas con + Nueva persona.' : ''}`}</div>}
+      </div>
+    );
   } else {
     cuerpo = (
       <div className="card cg-lista" role="list">
@@ -84,7 +112,7 @@ export default function Personas() {
       </div>
       {filtro === 'repetidos' ? <><p className="muted">Elige qué perfil queda y presiona Unir. Si alguno es otra persona, toca "Es otra". También puedes unir dos perfiles cualquiera en Ajustes → Unir perfiles.</p><Repetidos /></> : (
         <>
-          <div className="muted">{filas.length} {filas.length === 1 ? 'persona' : 'personas'}</div>
+          <div className="muted">{filas.length} {filas.length === 1 ? 'persona' : 'personas'}{filtro === 'activos' && !habitual ? ' · toca una familia para ver a sus integrantes' : ''}</div>
           {cuerpo}
         </>
       )}
