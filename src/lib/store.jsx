@@ -162,7 +162,7 @@ export function LocalStoreProvider({ children }) {
   }, []);
 
   const value = useMemo(
-    () => ({ ...data, participations: [], favorites, toggleFavorite, myNotes, setMyNotes, mode: 'local', can: LOCAL_CAN, saveSong, deleteSong, saveEvent, deleteEvent, importData, restoreExamples, deleteAll }),
+    () => ({ ...data, participations: [], favorites, toggleFavorite, myNotes, setMyNotes, mode: 'local', eventsReady: true, can: LOCAL_CAN, saveSong, deleteSong, saveEvent, deleteEvent, importData, restoreExamples, deleteAll }),
     [data, favorites, toggleFavorite, myNotes, setMyNotes, saveSong, deleteSong, saveEvent, deleteEvent, importData, restoreExamples, deleteAll]
   );
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

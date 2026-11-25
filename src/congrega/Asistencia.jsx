@@ -3,7 +3,7 @@ import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { fechaCorta, todayISO, formatLong, sortEvents } from '../lib/dates.js';
 import { activo, nombreDe, norm, useCongrega } from './datos.jsx';
 import { TIPOS_ASISTENCIA } from './unir.js';
-import { coincide, marcadoDe, resumenJornada } from './marcado.js';
+import { coincide, marcadoDe } from './marcado.js';
 import { Avatar } from '../components/Avatares.jsx';
 
 const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
@@ -29,25 +29,44 @@ export function Contador({ m }) {
   );
 }
 
+function resumenUltimasJornadas(events, asistencia, hoy) {
+  const fechas = [...new Set([...asistencia.values()].map((a) => a.date).filter((d) => d && d <= hoy))]
+    .sort((a, b) => b.localeCompare(a)).slice(0, 3);
+  const porEvento = new Map(events.map((e) => [e.id, e]));
+  return fechas.map((fecha) => {
+    const servicios = new Map();
+    asistencia.forEach((a) => {
+      if (a.date !== fecha) return;
+      const servicio = servicios.get(a.eventId) || { ev: porEvento.get(a.eventId) || { id: a.eventId, name: 'Servicio' }, total: 0, regular: 0, visita: 0, colaborador: 0 };
+      servicio.total++;
+      const tipo = ['regular', 'visita', 'colaborador'].includes(a.tipo) ? a.tipo : 'regular';
+      servicio[tipo]++;
+      servicios.set(a.eventId, servicio);
+    });
+    return { fecha, servicios: [...servicios.values()].sort((a, b) => (b.ev.time || '').localeCompare(a.ev.time || '')) };
+  });
+}
+
 function ResumenJornada() {
-  const { events = [], asistencia, people } = useCongrega();
-  const r = resumenJornada(events, asistencia, people, todayISO());
-  if (!r) return null;
+  const { events = [], asistencia } = useCongrega();
+  const jornadas = resumenUltimasJornadas(events, asistencia, todayISO());
+  if (!jornadas.length) return null;
   return (
     <section className="card cg-stack cg-resumen">
-      <div className="cg-evento-head">
-        <div><h2>Última jornada</h2><div className="muted">{formatLong(r.fecha)}</div></div>
-        <div className="cg-contador">{r.personas}<small>{r.personas === 1 ? 'persona' : 'personas'}</small></div>
-      </div>
-      <div className="datos-grid">
-        <div className="card dato"><strong>{r.regular}</strong><span>{r.regular === 1 ? 'regular' : 'regulares'}</span></div>
-        <div className="card dato"><strong>{r.colaborador}</strong><span>{r.colaborador === 1 ? 'colaborador' : 'colaboradores'}</span></div>
-        <div className="card dato"><strong>{r.visita}</strong><span>{r.visita === 1 ? 'visita' : 'visitas'}</span></div>
-        <div className="card dato"><strong>{r.primeraVez}</strong><span>por primera vez</span></div>
-      </div>
-      {r.eventos.length > 1 && (
-        <div className="cg-meta">{r.eventos.map(({ ev, n }) => <span key={ev.id} className="cg-chip">{ev.name || 'Evento'}: {n}</span>)}</div>
-      )}
+      <div><h2>Últimas 3 jornadas</h2><div className="muted">Asistencia desglosada por servicio</div></div>
+      {jornadas.map((j) => (
+        <div key={j.fecha} className="cg-stack">
+          <h3>{formatLong(j.fecha)}</h3>
+          {j.servicios.map((s) => (
+            <div key={s.ev.id} className="cg-row cg-entre">
+              <span className="cg-quien"><Link className="cg-nombre" to={`/congrega/asistencia/${s.ev.id}`}>{s.ev.name || 'Servicio'}</Link>
+                <span className="cg-meta">{s.regular} regulares · {s.visita} visitas · {s.colaborador} colaboradores</span>
+              </span>
+              <span className="cg-chip">{s.total} {s.total === 1 ? 'persona' : 'personas'}</span>
+            </div>
+          ))}
+        </div>
+      ))}
     </section>
   );
 }
