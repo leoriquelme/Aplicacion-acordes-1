@@ -85,12 +85,27 @@ export default function App() {
   const desdeAjustes = state?.from === 'ajustes';
   // Presentación y Estación de asistencia usan la pantalla completa, sin barra ni menú.
   const presenting = pathname.startsWith('/presentar') || pathname.startsWith('/congrega/estacion/marcar');
-  const { mode, church, me, live, myUid, role, events = [], churchId, misPerfiles = [] } = useStore();
+  const { mode, church, me, live, myUid, role, events = [], eventsReady = true, saveEvent, can, churchId, misPerfiles = [] } = useStore();
   const equipoEstacion = useEquipoEstacion(mode === 'cloud' && pathname.startsWith('/congrega') ? churchId : null);
   const pestanas = pestanasCongrega(permisosDe({ role, perfiles: misPerfiles, enEquipo: equipoEstacion.get(myUid)?.estado === 'aceptado', esDueno: church?.ownerUid === myUid }));
   const liveEvent = enVivoActivo(live) ? events.find((e) => e.id === live.eventId) : null;
   const personal = mode === 'personal';
   usePrecargarPaginas();
+  // Asegura que la iglesia tenga el culto de este domingo aunque se abra desde Adora o Congrega.
+  const cultoCreadoEnSemana = useRef('');
+  useEffect(() => {
+    if (!eventsReady || mode === 'personal' || !can?.events) return;
+    const hoy = new Date();
+    const diasHastaDomingo = (7 - hoy.getDay()) % 7;
+    const domingo = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + diasHastaDomingo);
+    const pad = (n) => String(n).padStart(2, '0');
+    const fecha = `${domingo.getFullYear()}-${pad(domingo.getMonth() + 1)}-${pad(domingo.getDate())}`;
+    if (cultoCreadoEnSemana.current === fecha) return;
+    const yaHayCulto = events.some((e) => e.date === fecha && /culto|adoraci[oó]n|servicio/i.test(e.name || ''));
+    if (yaHayCulto) { cultoCreadoEnSemana.current = fecha; return; }
+    cultoCreadoEnSemana.current = fecha;
+    saveEvent({ id: `culto-dominical-${fecha}`, name: 'Culto dominical', date: fecha, time: '11:45', notes: '', items: [] });
+  }, [eventsReady, mode, can?.events, events, saveEvent]);
   // Selector de apps (como Planning Center): la primera vez se pregunta qué app usar; después se abre la última elegida.
   const navigate = useNavigate();
   const yaElegido = useRef(false);

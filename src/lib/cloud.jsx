@@ -383,6 +383,7 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
   const [mySession, setMySession] = useState(undefined);
   const [songs, setSongs] = useState([]);
   const [events, setEvents] = useState([]);
+  const [eventsReady, setEventsReady] = useState(false);
   const [peopleDocs, setPeople] = useState([]);
   const [members, setMembers] = useState([]);
   const [participations, setParticipations] = useState([]);
@@ -405,7 +406,10 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
     const fail = (e) => (e.code === 'permission-denied' ? setExpired(true) : setError(e.message));
     const subs = [
       onSnapshot(collection(base, 'songs'), (s) => setSongs(s.docs.map((d) => ({ ...d.data(), id: d.id }))), fail),
-      onSnapshot(collection(base, 'events'), (s) => setEvents(s.docs.map((d) => ({ items: [], ...d.data(), id: d.id }))), fail),
+      onSnapshot(collection(base, 'events'), { includeMetadataChanges: true }, (s) => {
+        setEvents(s.docs.map((d) => ({ items: [], ...d.data(), id: d.id })));
+        if (!s.metadata.fromCache) setEventsReady(true);
+      }, fail),
       onSnapshot(collection(base, 'people'), (s) => setPeople(s.docs.map((d) => ({ ...d.data(), key: d.id }))), fail),
       onSnapshot(collection(base, 'members'), (s) => setMembers(s.docs.map((d) => ({ ...d.data(), uid: d.id }))), fail),
       onSnapshot(
@@ -709,11 +713,11 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
   const church = { id: churchId, name: churchDoc?.name || churchName, ownerUid: churchDoc?.ownerUid, logo: churchDoc?.logo || '' };
 
   const value = useMemo(() => ({
-    mode: 'cloud', churchId, church, me, role, can, people, songs, events, participations: confirmadas, propuestas, proponer, rechazarPropuesta, error,
+    mode: 'cloud', churchId, church, me, role, can, people, songs, events, eventsReady, participations: confirmadas, propuestas, proponer, rechazarPropuesta, error,
     clearError: () => setError(''), saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples, myShares, shareSong, unshareSong, loadLibrary,
     favorites, toggleFavorite, prayers, pray, updateMyName, setMyTeams, setMyPhoto, removePhoto, setChurchLogo, isTest, fillTestData, resetTestChurch, getAccessCode, setAccessCode, restoreBackup, myNotes, setMyNotes, live, publishLive, stopLive, myUid: user.uid,
     misPerfiles: mySession?.perfiles || [],
-  }), [churchId, church.name, church.logo, me?.name, me?.key, me?.photo, setMyPhoto, removePhoto, setChurchLogo, expired, role, can, people, songs, events, confirmadas, propuestas, proponer, rechazarPropuesta, error, saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples, myShares, shareSong, unshareSong, loadLibrary, favorites, toggleFavorite, prayers, pray, updateMyName, setMyTeams, person?.teams?.join('|'), isTest, fillTestData, resetTestChurch, getAccessCode, setAccessCode, restoreBackup, myNotes, setMyNotes, live, publishLive, stopLive, user.uid, (mySession?.perfiles || []).join('|')]); // eslint-disable-line react-hooks/exhaustive-deps
+  }), [churchId, church.name, church.logo, me?.name, me?.key, me?.photo, setMyPhoto, removePhoto, setChurchLogo, expired, role, can, people, songs, events, eventsReady, confirmadas, propuestas, proponer, rechazarPropuesta, error, saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples, myShares, shareSong, unshareSong, loadLibrary, favorites, toggleFavorite, prayers, pray, updateMyName, setMyTeams, person?.teams?.join('|'), isTest, fillTestData, resetTestChurch, getAccessCode, setAccessCode, restoreBackup, myNotes, setMyNotes, live, publishLive, stopLive, user.uid, (mySession?.perfiles || []).join('|')]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }

@@ -104,6 +104,42 @@ function Sugerencias({ lista, porKey, aplicar }) {
   );
 }
 
+const CERRAR_DATOS_MIEMBROS = 'congrega.datosMiembros.cerrado';
+const camposPendientes = (p, ficha = {}) => [
+  ...(!p.rangoEdad ? ['Rango de edad'] : []),
+  ...(!ficha.telefono?.trim() ? ['Celular'] : []),
+  ...(!ficha.email?.trim() ? ['Correo'] : []),
+  ...(!ficha.comuna?.trim() ? ['Comuna'] : []),
+  ...(!ficha.region?.trim() ? ['Región'] : []),
+  ...(!ficha.fechaLlegada ? ['Fecha de llegada'] : []),
+].slice(0, 6);
+
+/** Sugerencia privada para que Administración complete una ficha y pueda saltar a otra. */
+function SugerirDatosMiembros({ people, fichas, churchId, myUid }) {
+  const claveCierre = `${CERRAR_DATOS_MIEMBROS}:${churchId || 'iglesia'}:${myUid || 'admin'}`;
+  const [cerrado, setCerrado] = useState(() => { try { return localStorage.getItem(claveCierre) === '1'; } catch { return false; } });
+  const [saltados, setSaltados] = useState(() => new Set());
+  const pendientes = people.filter((p) => activo(p) && esMiembro(p)).map((p) => ({ p, campos: camposPendientes(p, fichas.get(p.key) || {}) })).filter((x) => x.campos.length);
+  const visibles = pendientes.filter((x) => !saltados.has(x.p.key));
+  const actual = visibles[0];
+  if (cerrado || !actual) return null;
+  const cerrar = () => { try { localStorage.setItem(claveCierre, '1'); } catch { /* sin almacenamiento */ } setCerrado(true); };
+  return (
+    <section className="card cg-panel">
+      <div className="cg-panel-head"><h3>Completar datos de miembros</h3><button type="button" className="btn small ghost" onClick={cerrar}>Cerrar</button></div>
+      <p className="muted">Hay datos sin completar en esta ficha. Agrega solo lo que conozcas.</p>
+      <div className="cg-rec">
+        <span className="cg-quien"><span className="cg-nombre">{nombreDe(actual.p)}</span><span className="cg-meta">Falta: {actual.campos.join(' · ')}</span></span>
+      </div>
+      <div className="cg-row">
+        <Link className="btn small primary" to={`/congrega/personas/${actual.p.key}?editar=1`}>Agregar datos</Link>
+        <button type="button" className="btn small ghost" onClick={() => setSaltados((s) => new Set([...s, actual.p.key]))}>Saltar</button>
+        <span className="muted small">{saltados.size + 1} de {pendientes.length}</span>
+      </div>
+    </section>
+  );
+}
+
 function Panel({ titulo, sub, grupos, ver, onAbrir, ancho, children, extra }) {
   return (
     <section className={`card cg-panel${ancho ? ' ancho' : ''}`}>
@@ -164,7 +200,7 @@ function Recordatorio({ r, titulo, sub, onClick }) {
 }
 
 export default function Inicio() {
-  const { people, events = [], asistencia, fichas, familias, verPrivado: isAdmin, verAsistencia: marca, pastor, asisAdmin, aplicarCambio } = useCongrega();
+  const { people, events = [], asistencia, fichas, familias, churchId, myUid, verPrivado: isAdmin, verAsistencia: marca, pastor, asisAdmin, aplicarCambio } = useCongrega();
   const [quienes, setQuienes] = useState(null);
   const [filtroEdad, setFiltroEdad] = useState('todos');
   // El círculo para ver y editar a las personas de cada gráfico: Administrativo de asistencia, Pastor y Administrador.
@@ -201,12 +237,13 @@ export default function Inicio() {
   const vinieronA = (id, f = 'todos') => [...asistencia.values()].filter((a) => a.eventId === id).map((a) => porKey.get(a.personKey)).filter((p) => p && pasaFiltro(p, f));
   const grafico = evs.slice(0, 12).reverse().map((e) => ({ e, ps: vinieronA(e.id, filtroEdad) }));
 
-  let seguimiento = [];
-  const ult3 = evs.slice(0, 3);
-  if (marca && ult3.length === 3) {
-    const vinieron = new Set(); asistencia.forEach((a) => { if (ult3.some((e) => e.id === a.eventId)) vinieron.add(a.personKey); });
-    seguimiento = activos.filter((p) => (esMiembro(p) || p.tipo === 'Activo' || p.tipo === 'Regular') && !vinieron.has(p.key));
-  }
+  const [anio, mesNum, diaNum] = hoy.split('-').map(Number);
+  const limiteSeguimiento = new Date(anio, mesNum - 1, diaNum - 21);
+  const padFecha = (n) => String(n).padStart(2, '0');
+  const desdeSeguimiento = `${limiteSeguimiento.getFullYear()}-${padFecha(limiteSeguimiento.getMonth() + 1)}-${padFecha(limiteSeguimiento.getDate())}`;
+  const asistioReciente = new Set();
+  asistencia.forEach((a) => { if (a.date && a.date >= desdeSeguimiento && a.date <= hoy) asistioReciente.add(a.personKey); });
+  const seguimiento = activos.filter((p) => (esMiembro(p) || p.tipo === 'Activo' || p.tipo === 'Regular') && !asistioReciente.has(p.key));
   let constancia = null;
   if (marca && recientes.length) {
     const veces = new Map(); asistencia.forEach((a) => { if (recientes.some((e) => e.id === a.eventId)) veces.set(a.personKey, (veces.get(a.personKey) || 0) + 1); });
@@ -226,6 +263,7 @@ export default function Inicio() {
         <div className="card dato cg-dato-ver">{ver && visitasMes > 0 && <VerQuienes titulo="Visitas nuevas este mes" grupos={[{ label: 'Visitas', ps: people.filter((p) => p.tipo === 'Visita' && (p.primeraVisita || '').slice(0, 7) === mes) }]} onAbrir={setQuienes} />}<strong>{visitasMes}</strong><span>Visitas nuevas este mes</span></div>
       </div>
       <div className="cg-dash">
+        {isAdmin && <SugerirDatosMiembros people={people} fichas={fichas} churchId={churchId} myUid={myUid} />}
         {ver && <Sugerencias lista={sugerencias({ people, fichas, asistencia, events, hoy })} porKey={porKey} aplicar={aplicarCambio} />}
         <section className="card cg-panel"><h3>Cumpleaños próximos</h3><p className="muted">Desde ayer hasta los próximos {VENTANA_CUMPLE} días</p>
           {cumple.length ? cumple.slice(0, 8).map((c) => <Recordatorio key={c.p.key} r={c} titulo={nombreDe(c.p)} sub={`${cuando(c.diff)}${c.anos ? ` · ${c.diff < 0 ? 'cumplió' : 'cumple'} ${c.anos}` : ''}`} onClick={() => ir(c.p.key)} />) : <div className="muted cg-vacio">Nadie está de cumpleaños esta semana.</div>}
@@ -267,9 +305,9 @@ export default function Inicio() {
             <Panel titulo="Asistencia habitual" sub="Cómo está clasificada cada persona activa" ver={ver} onAbrir={setQuienes} grupos={tipos}><Barras items={tipos} /></Panel>
             {isAdmin && <Panel titulo="Dónde viven" sub="Personas activas por comuna" ver={ver} onAbrir={setQuienes} grupos={listaComunas}>
               <Barras items={listaComunas} vacio="Falta la comuna en las fichas." /></Panel>}
-            {marca && ult3.length === 3 && (
-              <Panel titulo="Para hacer seguimiento" sub="Faltaron a los últimos 3 eventos con registro" ver={ver} onAbrir={setQuienes} grupos={[{ label: 'Faltaron a los últimos 3', ps: seguimiento }]}>
-                {seguimiento.length ? seguimiento.slice(0, 8).map((p) => <button type="button" key={p.key} className="cg-rec" onClick={() => ir(p.key)}><span className="cg-quien"><span className="cg-nombre">{nombreDe(p)}</span><span className="cg-meta">{p.tipo || (esMiembro(p) ? 'Miembro' : '')}</span></span></button>) : <div className="muted cg-vacio">Nadie lleva 3 eventos sin venir.</div>}
+            {marca && (
+              <Panel titulo="Para hacer seguimiento" sub="Personas sin asistencia en las últimas 3 semanas" ver={ver} onAbrir={setQuienes} grupos={[{ label: 'Sin asistencia en 3 semanas', ps: seguimiento }]}>
+                {seguimiento.length ? seguimiento.slice(0, 8).map((p) => <button type="button" key={p.key} className="cg-rec" onClick={() => ir(p.key)}><span className="cg-quien"><span className="cg-nombre">{nombreDe(p)}</span><span className="cg-meta">{p.tipo || (esMiembro(p) ? 'Miembro' : '')}</span></span></button>) : <div className="muted cg-vacio">Todos registran asistencia en las últimas 3 semanas.</div>}
               </Panel>
             )}
           </>
