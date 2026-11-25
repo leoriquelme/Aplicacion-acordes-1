@@ -273,3 +273,31 @@ a.cg-item:hover { background: var(--surface-2); text-decoration: none; }
 .cg-te-btn { align-self: flex-start; margin-top: 0.3rem; }
 .cg-anteriores summary { cursor: pointer; font-weight: 600; }
 .cg-anteriores .cg-lista { margin-top: 0.6rem; }
+
+
+/* Componentes de Congrega comparten el sistema pastel de Adora. */
+.cg { --cg-ok: var(--ok); --cg-warn: #a87948; }
+.cg .card {
+  border-color: color-mix(in srgb, var(--primary) 7%, var(--border));
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.cg .btn { border-radius: 12px; }
+.cg .btn.primary {
+  background: linear-gradient(135deg, var(--primary), color-mix(in srgb, var(--primary) 76%, #e5a9d2));
+  border-color: transparent;
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--primary) 22%, transparent);
+}
+.cg .cg-seg { border-color: color-mix(in srgb, var(--primary) 12%, var(--border)); border-radius: 12px; }
+.cg .cg-seg button[aria-pressed="true"] {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+.cg .cg-check[aria-pressed="true"] { background: var(--primary); }
+.cg .cg-rec {
+  border-radius: 12px;
+  transition: background-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+}
+@media (hover: hover) {
+  .cg .cg-rec:hover { background: color-mix(in srgb, var(--primary-soft) 65%, transparent); }
+}

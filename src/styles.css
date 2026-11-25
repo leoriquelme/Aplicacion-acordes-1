@@ -1,50 +1,51 @@
 :root {
-  --bg: #f3f5f9;
+  --bg: #f8f7fc;
   --surface: #ffffff;
-  --surface-2: #f7f8fb;
-  --text: #111827;
-  --muted: #6b7280;
-  --border: #e4e7ee;
-  --primary: #3f51b5;
-  --primary-soft: #eceffb;
+  --surface-2: #f4f1fb;
+  --text: #29263b;
+  --muted: #79758f;
+  --border: #e8e4f1;
+  --primary: #8876d8;
+  --primary-soft: #eeeaff;
   --primary-text: #ffffff;
-  --chord: #3f51b5;
-  --chorus-bg: #f1f3f8;
-  --danger: #d93a3a;
-  --ok: #138a52;
-  --radius: 14px;
-  --shadow: 0 1px 2px rgba(17, 24, 39, 0.05), 0 4px 14px rgba(17, 24, 39, 0.05);
-  /* Colores de las secciones */
-  --sec-verse: #a8d5f2;        /* celeste */
-  --sec-intro: #b5e3c4;        /* verde menta */
-  --sec-prechorus: #ffd6a5;    /* durazno */
-  --sec-chorus: #f7b2bd;       /* rosado */
-  --sec-bridge: #cbb8f0;       /* lavanda */
-  --sec-interlude: #b3e5df;    /* aguamarina */
-  --sec-instrumental: #efc3e6; /* lila */
-  --sec-final: #cfd6df;        /* gris perla */
-  --sec-coda: #d6e8a6;         /* pistacho */
-  --sec-custom: #fbe3a0;       /* amarillo crema */
+  --chord: #7765c4;
+  --chorus-bg: #f1eef9;
+  --danger: #ce6e86;
+  --ok: #4d9b86;
+  --radius: 20px;
+  --shadow: 0 8px 26px rgba(73, 58, 125, 0.075);
+  --sec-verse: #a8d5f2;
+  --sec-intro: #b5e3c4;
+  --sec-prechorus: #ffd6a5;
+  --sec-chorus: #f7b2bd;
+  --sec-bridge: #cbb8f0;
+  --sec-interlude: #b3e5df;
+  --sec-instrumental: #efc3e6;
+  --sec-final: #cfd6df;
+  --sec-coda: #d6e8a6;
+  --sec-custom: #fbe3a0;
   font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   color: var(--text);
   background: var(--bg);
+  color-scheme: light;
 }
 
 :root[data-theme='oscuro'] {
-  --bg: #0f1218;
-  --surface: #181c24;
-  --surface-2: #1d222b;
-  --text: #e8eaf0;
-  --muted: #9aa1ad;
-  --border: #2a303b;
-  --primary: #8c9eff;
-  --primary-soft: #232a40;
-  --primary-text: #0f1218;
-  --chord: #a5b4ff;
-  --chorus-bg: #222833;
-  --danger: #ff6b6b;
-  --ok: #4cc37a;
-  --shadow: none;
+  --bg: #151421;
+  --surface: #201e2d;
+  --surface-2: #29263a;
+  --text: #f2effa;
+  --muted: #aaa5bd;
+  --border: #3b374f;
+  --primary: #b5a7f3;
+  --primary-soft: #342e4d;
+  --primary-text: #201e2d;
+  --chord: #c4b8ff;
+  --chorus-bg: #302b40;
+  --danger: #ee9aae;
+  --ok: #7cc9ad;
+  --shadow: 0 10px 32px rgba(0, 0, 0, 0.24);
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -1729,3 +1730,143 @@ a.tf-cabeza:hover { text-decoration: none; background: color-mix(in srgb, var(--
 .editor-sin-guardar { align-items: center; }
 .modal-botones { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; }
 .modal-botones .btn { width: 100%; justify-content: center; }
+
+
+/* Adora: una misma identidad visual para música y Congrega. */
+.app {
+  min-height: 100vh;
+  background:
+    radial-gradient(900px 540px at 4% -8%, color-mix(in srgb, var(--primary) 9%, transparent), transparent 68%),
+    radial-gradient(720px 480px at 96% 20%, color-mix(in srgb, #e8a8d2 8%, transparent), transparent 68%),
+    var(--bg);
+}
+.topbar {
+  background: color-mix(in srgb, var(--surface) 86%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--primary) 12%, var(--border));
+  box-shadow: 0 8px 28px rgba(68, 54, 115, 0.055);
+  backdrop-filter: blur(18px) saturate(145%);
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.58rem;
+  color: var(--text);
+  font-size: 1.08rem;
+  letter-spacing: -0.035em;
+  white-space: nowrap;
+}
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid color-mix(in srgb, var(--primary) 22%, var(--border));
+  border-radius: 0.72rem;
+  color: #fff;
+  background: linear-gradient(145deg, #a99be9, #d69fc9);
+  box-shadow: 0 5px 14px color-mix(in srgb, var(--primary) 20%, transparent);
+  font-size: 1rem;
+  font-weight: 800;
+}
+.brand-name { font-weight: 800; }
+.brand-context {
+  padding: 0.25rem 0.58rem;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.025em;
+}
+.brand-cambiar { color: var(--muted); font-size: 0.75rem; }
+.tabs {
+  gap: 0.2rem;
+  padding: 0.23rem;
+  border: 1px solid color-mix(in srgb, var(--primary) 9%, var(--border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-2) 82%, transparent);
+}
+.tab {
+  position: relative;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  transition: color 180ms ease, background 180ms ease, border-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+}
+.tab.active {
+  background: linear-gradient(135deg, var(--primary-soft), color-mix(in srgb, #f4ddef 34%, var(--primary-soft)));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 10%, transparent);
+}
+.tab-icon { transition: transform 180ms ease; }
+.card {
+  border-color: color-mix(in srgb, var(--primary) 7%, var(--border));
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.btn, button {
+  transition: color 180ms ease, background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease, filter 180ms ease;
+}
+.btn { border-radius: 12px; }
+.btn.primary {
+  background: linear-gradient(135deg, var(--primary), color-mix(in srgb, var(--primary) 76%, #e5a9d2));
+  border-color: transparent;
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--primary) 22%, transparent);
+}
+.btn:focus-visible, button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--primary) 52%, transparent);
+  outline-offset: 3px;
+}
+@media (hover: hover) {
+  .btn:not(:disabled):hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px color-mix(in srgb, var(--primary) 13%, transparent);
+  }
+  .btn.primary:not(:disabled):hover { filter: saturate(1.08) brightness(1.03); }
+  .tab:hover { transform: translateY(-1px); }
+  .tab.active .tab-icon { transform: scale(1.06); }
+  .song-row:hover, .event-card:hover, .cg-rec:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 9px 22px color-mix(in srgb, var(--primary) 10%, transparent);
+  }
+}
+.btn:not(:disabled):active, button:not(:disabled):active { transform: scale(0.975); }
+main.content {
+  animation: adora-route-enter 260ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+@keyframes adora-route-enter {
+  from { opacity: 0; transform: translateY(7px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .topbar { gap: 0.55rem; padding: 0.55rem 0.85rem; }
+  .brand { gap: 0.42rem; font-size: 0.96rem; }
+  .brand-mark { width: 1.8rem; height: 1.8rem; border-radius: 0.65rem; }
+  .brand-context { padding: 0.22rem 0.5rem; font-size: 0.66rem; }
+  .beta-pill { display: none; }
+  .topbar .church-chip { max-width: 9.5rem; font-size: 0.78rem; }
+  .tabs {
+    left: 0.65rem; right: 0.65rem;
+    bottom: calc(0.45rem + env(safe-area-inset-bottom));
+    justify-content: space-around;
+    padding: 0.3rem;
+    border: 1px solid color-mix(in srgb, var(--primary) 14%, var(--border));
+    border-radius: 22px;
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    box-shadow: 0 8px 28px rgba(68, 54, 115, 0.14);
+    backdrop-filter: blur(18px) saturate(145%);
+  }
+  .tab { flex: 1; min-width: 0; }
+  .content { padding-bottom: calc(6.4rem + env(safe-area-inset-bottom)); }
+}
+@media (max-width: 400px) {
+  .brand-context { display: none; }
+  .topbar .church-chip { max-width: 7rem; }
+}
