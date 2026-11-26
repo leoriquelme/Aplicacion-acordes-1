@@ -140,7 +140,7 @@ const CAMPOS_MASIVOS = [
 
 function EdicionMasiva() {
   const c = useCongrega();
-  const { people, familias, fichas, asistencia, churchId, church, myUid, eliminarPersona, guardarPersona } = c;
+  const { people, familias, fichas, notas, asistencia, churchId, church, myUid, eliminarPersona, guardarPersona } = c;
   const [miembros, setMiembros] = useState(null);
   const [buscar, setBuscar] = useState('');
   const [filtro, setFiltro] = useState('todas');
@@ -240,7 +240,7 @@ function EdicionMasiva() {
     for (const p of seleccion) {
       try {
         if (def.grupo === 'ficha') {
-          const anterior = fichas.get(p.key) || {};
+          const anterior = { ...(fichas.get(p.key) || {}), ...(notas.get(p.key) || {}) };
           let personaPublica = null;
           if (def.key === 'fechaNacimiento' || def.key === 'aniversario') {
             const campoPublico = def.key === 'fechaNacimiento' ? 'birthday' : 'aniversarioMD';
