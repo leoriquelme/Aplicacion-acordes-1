@@ -38,8 +38,8 @@ export function CongregaProvider({ children }) {
   const [estadoPersonas, setEstadoPersonas] = useState(new Map());
   const [listo, setListo] = useState({ familias: false, asistencia: false });
   const people = useMemo(() => peoplePublic.map((p) => {
-    const { miembro, estado, ...publico } = p;
-    const estadoPrivado = estadoPersonas.get(p.key) || { miembro, estado };
+    const { miembro, estado, motivoInactivo, fechaInactivo, ...publico } = p;
+    const estadoPrivado = estadoPersonas.get(p.key) || { miembro, estado, motivoInactivo, fechaInactivo };
     return { ...publico, ...(verPrivado ? estadoPrivado : {}) };
   }), [peoplePublic, estadoPersonas, verPrivado]);
   const anotar = useCallback((accion, persona, detalle) => registrar(churchId, myUid, me?.name, accion, persona, detalle), [churchId, myUid, me?.name]);
@@ -89,7 +89,7 @@ export function CongregaProvider({ children }) {
       const p = people.find((x) => x.key === k);
       if (!p) return;
       const cambio = {};
-      if (f.motivoInactivo === 'Fallecido/a' && p.estado !== 'inactivo') {
+      if ((f.motivoInactivo || p.motivoInactivo) === 'Fallecido/a' && p.estado !== 'inactivo') {
         b.set(doc(db, 'churches', churchId, 'estadoPersonas', k), { estado: 'inactivo' }, { merge: true }); n++;
       }
       if (/^\d{4}-\d{2}-\d{2}$/.test(f.fechaNacimiento || '') && !p.birthday) cambio.birthday = f.fechaNacimiento.slice(5);
@@ -140,11 +140,13 @@ export function CongregaProvider({ children }) {
     const r = key ? ref('people', key) : doc(collection(db, 'churches', churchId, 'people'));
     const b = writeBatch(db);
     if (persona && isAdmin) {
-      const { miembro, estado, ...personaPublica } = persona;
+      const { miembro, estado, motivoInactivo, fechaInactivo, ...personaPublica } = persona;
       b.set(r, { ...personaPublica, name: (persona.name || nombreDe(persona)).slice(0, 60), ...(key ? {} : { uid: '', role: 'colaborador', creadoEn: Date.now() }) }, { merge: true });
       const estadoPrivado = {};
       if (miembro !== undefined) estadoPrivado.miembro = miembro === true;
       if (estado !== undefined) estadoPrivado.estado = estado === 'inactivo' ? 'inactivo' : 'activo';
+      if (motivoInactivo !== undefined) estadoPrivado.motivoInactivo = String(motivoInactivo || '').slice(0, 60);
+      if (fechaInactivo !== undefined) estadoPrivado.fechaInactivo = String(fechaInactivo || '').slice(0, 10);
       if (Object.keys(estadoPrivado).length) b.set(ref('estadoPersonas', r.id), estadoPrivado, { merge: true });
     }
     const anterior = fichas.get(r.id) || {};
@@ -243,12 +245,14 @@ export function CongregaProvider({ children }) {
       });
       unidas.push(o.key);
     }
-    const { key: kq, miembro, estado, ...persona } = queda;
+    const { key: kq, miembro, estado, motivoInactivo, fechaInactivo, ...persona } = queda;
     const b = writeBatch(db);
     b.set(ref('people', kq), persona);
     const estadoPrivado = {};
     if (miembro !== undefined) estadoPrivado.miembro = miembro === true;
     if (estado !== undefined) estadoPrivado.estado = estado === 'inactivo' ? 'inactivo' : 'activo';
+    if (motivoInactivo !== undefined) estadoPrivado.motivoInactivo = String(motivoInactivo || '').slice(0, 60);
+    if (fechaInactivo !== undefined) estadoPrivado.fechaInactivo = String(fechaInactivo || '').slice(0, 10);
     if (Object.keys(estadoPrivado).length) b.set(ref('estadoPersonas', kq), estadoPrivado, { merge: true });
     b.set(ref('fichas', kq), { ...ficha, actualizadoEn: ahora, actualizadoPor: myUid });
     if (nota.notas || nota.notasMedicas) b.set(ref('notas', kq), nota);
@@ -278,11 +282,13 @@ export function CongregaProvider({ children }) {
 
   /** Aplica una sugerencia del Inicio (tipo de asistencia o rango de edad). Administrador o Administrativo de asistencia. */
   const aplicarCambio = useCallback(async (p, cambio) => {
-    const { miembro, estado, ...publico } = cambio;
+    const { miembro, estado, motivoInactivo, fechaInactivo, ...publico } = cambio;
     if (Object.keys(publico).length) await setDoc(ref('people', p.key), publico, { merge: true });
     const privado = {};
     if (miembro !== undefined) privado.miembro = miembro === true;
     if (estado !== undefined) privado.estado = estado === 'inactivo' ? 'inactivo' : 'activo';
+    if (motivoInactivo !== undefined) privado.motivoInactivo = String(motivoInactivo || '').slice(0, 60);
+    if (fechaInactivo !== undefined) privado.fechaInactivo = String(fechaInactivo || '').slice(0, 10);
     if (Object.keys(privado).length) await setDoc(ref('estadoPersonas', p.key), privado, { merge: true });
     anotar('Aplicó una sugerencia', nombreDe(p), Object.entries(cambio).map(([k, v]) => `${k}: ${v}`).join(', '));
   }, [ref, anotar]);
