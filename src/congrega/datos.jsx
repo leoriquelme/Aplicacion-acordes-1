@@ -147,6 +147,7 @@ export function CongregaProvider({ children }) {
       if (estado !== undefined) estadoPrivado.estado = estado === 'inactivo' ? 'inactivo' : 'activo';
       if (motivoInactivo !== undefined) estadoPrivado.motivoInactivo = String(motivoInactivo || '').slice(0, 60);
       if (fechaInactivo !== undefined) estadoPrivado.fechaInactivo = String(fechaInactivo || '').slice(0, 10);
+      if (estadoPrivado.motivoInactivo === 'Fallecido/a') estadoPrivado.estado = 'inactivo';
       if (Object.keys(estadoPrivado).length) b.set(ref('estadoPersonas', r.id), estadoPrivado, { merge: true });
     }
     const anterior = fichas.get(r.id) || {};
@@ -253,6 +254,7 @@ export function CongregaProvider({ children }) {
     if (estado !== undefined) estadoPrivado.estado = estado === 'inactivo' ? 'inactivo' : 'activo';
     if (motivoInactivo !== undefined) estadoPrivado.motivoInactivo = String(motivoInactivo || '').slice(0, 60);
     if (fechaInactivo !== undefined) estadoPrivado.fechaInactivo = String(fechaInactivo || '').slice(0, 10);
+    if (estadoPrivado.motivoInactivo === 'Fallecido/a') estadoPrivado.estado = 'inactivo';
     if (Object.keys(estadoPrivado).length) b.set(ref('estadoPersonas', kq), estadoPrivado, { merge: true });
     b.set(ref('fichas', kq), { ...ficha, actualizadoEn: ahora, actualizadoPor: myUid });
     if (nota.notas || nota.notasMedicas) b.set(ref('notas', kq), nota);
@@ -289,6 +291,7 @@ export function CongregaProvider({ children }) {
     if (estado !== undefined) privado.estado = estado === 'inactivo' ? 'inactivo' : 'activo';
     if (motivoInactivo !== undefined) privado.motivoInactivo = String(motivoInactivo || '').slice(0, 60);
     if (fechaInactivo !== undefined) privado.fechaInactivo = String(fechaInactivo || '').slice(0, 10);
+    if (privado.motivoInactivo === 'Fallecido/a') privado.estado = 'inactivo';
     if (Object.keys(privado).length) await setDoc(ref('estadoPersonas', p.key), privado, { merge: true });
     anotar('Aplicó una sugerencia', nombreDe(p), Object.entries(cambio).map(([k, v]) => `${k}: ${v}`).join(', '));
   }, [ref, anotar]);
