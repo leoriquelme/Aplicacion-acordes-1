@@ -257,11 +257,11 @@ function EdicionMasiva() {
           await guardarPersona(p.key, persona, fichas.get(p.key) || {}, [def.label]);
         }
         exitos++;
-      } catch (e) { fallidos.push(nombreDe(p) + ': ' + e.message); }
+      } catch (e) { fallidos.push({ key: p.key, texto: nombreDe(p) + ': ' + e.message }); }
     }
     setProcesando(false); setConfirmarEdicion(false);
-    setResultado('Se actualizaron ' + exitos + ' de ' + seleccion.length + ' fichas.' + (fallidos.length ? ' Fallaron: ' + fallidos.slice(0, 3).join('; ') + (fallidos.length > 3 ? '; y ' + (fallidos.length - 3) + ' más.' : '.') : ''));
-    setSeleccionados(new Set(seleccion.filter((p) => fallidos.some((f) => f.startsWith(nombreDe(p) + ':'))).map((p) => p.key)));
+    setResultado('Se actualizaron ' + exitos + ' de ' + seleccion.length + ' fichas.' + (fallidos.length ? ' Fallaron: ' + fallidos.slice(0, 3).map((f) => f.texto).join('; ') + (fallidos.length > 3 ? '; y ' + (fallidos.length - 3) + ' más.' : '.') : ''));
+    setSeleccionados(new Set(fallidos.map((f) => f.key)));
     setValor(''); setConfirmoConsentimiento(false);
   };
   const iniciarBorrado = () => {
@@ -275,14 +275,15 @@ function EdicionMasiva() {
     let exitos = 0;
     for (const p of seleccion) {
       try { await eliminarPersona(p.key); exitos++; }
-      catch (e) { fallidos.push(nombreDe(p) + ': ' + e.message); }
+      catch (e) { fallidos.push({ key: p.key, texto: nombreDe(p) + ': ' + e.message }); }
     }
     setProcesando(false); setConfirmarBorrado(false); setPalabraBorrado('');
-    setResultado('Se eliminaron ' + exitos + ' de ' + seleccion.length + ' perfiles.' + (fallidos.length ? ' No se pudieron eliminar: ' + fallidos.slice(0, 3).join('; ') + (fallidos.length > 3 ? '; y ' + (fallidos.length - 3) + ' más.' : '.') : ''));
-    setSeleccionados(new Set(fallidos.map((nombre) => seleccion.find((p) => nombre.startsWith(nombreDe(p) + ':'))?.key).filter(Boolean)));
+    setResultado('Se eliminaron ' + exitos + ' de ' + seleccion.length + ' perfiles.' + (fallidos.length ? ' No se pudieron eliminar: ' + fallidos.slice(0, 3).map((f) => f.texto).join('; ') + (fallidos.length > 3 ? '; y ' + (fallidos.length - 3) + ' más.' : '.') : ''));
+    setSeleccionados(new Set(fallidos.map((f) => f.key)));
   };
   const cuentasSeleccionadas = seleccion.filter((p) => p.uid).length;
   const visitasSeleccionadas = seleccion.filter((p) => p.tipo === 'Visita' || p.miembro === false).length;
+  const visitasDeUnaVez = seleccion.filter((p) => p.tipo === 'Visita' && asistenciasPorPersona.get(p.key) === 1).length;
 
   return (
     <section className="card cg-stack">
@@ -350,7 +351,7 @@ function EdicionMasiva() {
             <div className="cg-edicion-preview cg-confirmar-borrado">
               <strong>Confirma la eliminación permanente</strong>
               <p>Se eliminarán {seleccion.length} perfiles, incluyendo datos personales y registros de asistencia; esta acción no se puede deshacer.</p>
-              <p>{visitasSeleccionadas} visita(s) · {cuentasSeleccionadas} usuario(s) con cuenta. Las cuentas de Google/Firebase no se eliminan; se les quitará acceso a esta iglesia.</p>
+              <p>{visitasSeleccionadas} visita(s), de ellas {visitasDeUnaVez} con una sola asistencia · {cuentasSeleccionadas} usuario(s) con cuenta. Las cuentas de Google/Firebase no se eliminan; se les quitará acceso a esta iglesia.</p>
               <p className="muted small">{seleccion.slice(0, 8).map(nombreDe).join(', ')}{seleccion.length > 8 ? ' y ' + (seleccion.length - 8) + ' más.' : ''}</p>
               <label className="cg-dato"><span>Escribe ELIMINAR para confirmar</span><input value={palabraBorrado} onChange={(e) => setPalabraBorrado(e.target.value)} autoComplete="off" /></label>
               <div className="cg-row">
