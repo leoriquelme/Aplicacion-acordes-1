@@ -1865,6 +1865,13 @@ main.content {
   }
   .tab { flex: 1; min-width: 0; }
   .content { padding-bottom: calc(6.4rem + env(safe-area-inset-bottom)); }
+  /* En el teléfono la barra de arriba no puede tener backdrop-filter: en Safari
+     hace que la barra de pestañas (fixed, que vive adentro) quede pegada arriba y cortada. */
+  .topbar {
+    -webkit-backdrop-filter: none; backdrop-filter: none;
+    background: color-mix(in srgb, var(--surface) 97%, var(--bg));
+  }
+  .tabs { -webkit-backdrop-filter: blur(18px) saturate(145%); }
 }
 @media (max-width: 400px) {
   .brand-context { display: none; }

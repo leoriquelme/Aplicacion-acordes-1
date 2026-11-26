@@ -50,7 +50,7 @@ function IniciarAdmin({ events, hoy, iniciar, saveEvent }) {
     <section className="card cg-stack cg-iniciar">
       <h2>Iniciar estación</h2>
       {!deHoy.length && (
-        <button type="button" className="btn" onClick={() => setId(saveEvent({ name: 'Culto dominical', date: hoy, time: '', items: [] }))}>+ Abrir registro de hoy</button>
+        <button type="button" className="btn" onClick={() => setId(saveEvent({ name: 'Servicio de Adoración', date: hoy, time: '', items: [] }))}>+ Abrir registro de hoy</button>
       )}
       {ev ? (
         <>

@@ -88,7 +88,7 @@ export default function Asistencia() {
       </div>
       <ResumenJornada />
       {!events.some((e) => e.date === hoy) && puedeAbrir && (
-        <button type="button" className="btn primary" onClick={() => navigate(`/congrega/asistencia/${saveEvent({ name: 'Culto dominical', date: hoy, time: '', items: [] })}`)}>
+        <button type="button" className="btn primary" onClick={() => navigate(`/congrega/asistencia/${saveEvent({ name: 'Servicio de Adoración', date: hoy, time: '', items: [] })}`)}>
           Abrir registro de hoy
         </button>
       )}

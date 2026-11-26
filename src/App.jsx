@@ -91,7 +91,7 @@ export default function App() {
   const liveEvent = enVivoActivo(live) ? events.find((e) => e.id === live.eventId) : null;
   const personal = mode === 'personal';
   usePrecargarPaginas();
-  // Asegura que la iglesia tenga el culto de este domingo aunque se abra desde Adora o Congrega.
+  // Asegura que la iglesia tenga el servicio de este domingo aunque se abra desde Adora o Congrega.
   const cultoCreadoEnSemana = useRef('');
   useEffect(() => {
     if (!eventsReady || mode === 'personal' || !can?.events) return;
@@ -104,7 +104,7 @@ export default function App() {
     const yaHayCulto = events.some((e) => e.date === fecha && /culto|adoraci[oó]n|servicio/i.test(e.name || ''));
     if (yaHayCulto) { cultoCreadoEnSemana.current = fecha; return; }
     cultoCreadoEnSemana.current = fecha;
-    saveEvent({ id: `culto-dominical-${fecha}`, name: 'Culto dominical', date: fecha, time: '11:45', notes: '', items: [] });
+    saveEvent({ id: `culto-dominical-${fecha}`, name: 'Servicio de Adoración', date: fecha, time: '11:45', notes: '', items: [] });
   }, [eventsReady, mode, can?.events, events, saveEvent]);
   // Selector de apps (como Planning Center): la primera vez se pregunta qué app usar; después se abre la última elegida.
   const navigate = useNavigate();
