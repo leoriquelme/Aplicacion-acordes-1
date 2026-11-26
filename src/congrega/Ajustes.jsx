@@ -384,7 +384,7 @@ function MigrarEstadosPrivados() {
       const pendientes = new Map();
       peopleSnap.docs.forEach((d) => {
         const x = d.data();
-        if (['miembro', 'estado', 'motivoInactivo', 'fechaInactivo'].some((k) => Object.prototype.hasOwnProperty.call(x, k))) {
+        if (['miembro', 'estado', 'motivoInactivo', 'fechaInactivo', 'tipo'].some((k) => Object.prototype.hasOwnProperty.call(x, k))) {
           pendientes.set(d.id, { ...(pendientes.get(d.id) || {}), persona: d, personaDatos: x });
         }
       });
@@ -396,23 +396,25 @@ function MigrarEstadosPrivados() {
       });
       const filas = [...pendientes.values()];
       if (!filas.length) { setMensaje('La migración ya está completa.'); return; }
-      const confirmada = window.confirm(`Se moverán los estados, motivos y fechas de ${filas.length} perfiles a datos privados. Se conservarán los valores y se quitarán de las fichas visibles. ¿Continuar?`);
+      const confirmada = window.confirm(`Se moverán estados, motivos, fechas y categorías de ${filas.length} perfiles a datos privados. Se conservarán los valores y se quitarán de las fichas visibles. ¿Continuar?`);
       if (!confirmada) return;
-      for (let i = 0; i < filas.length; i += 150) {
+      for (let i = 0; i < filas.length; i += 100) {
         const lote = writeBatch(db);
-        filas.slice(i, i + 150).forEach(({ persona, personaDatos = {}, ficha, fichaDatos = {} }) => {
+        filas.slice(i, i + 100).forEach(({ persona, personaDatos = {}, ficha, fichaDatos = {} }) => {
           const key = persona?.id || ficha.id;
-          const privado = {};
+          const privado = {}; const clasificacion = {};
           const estado = { ...fichaDatos, ...personaDatos };
           if (Object.prototype.hasOwnProperty.call(estado, 'miembro')) privado.miembro = estado.miembro === true;
           if (Object.prototype.hasOwnProperty.call(estado, 'estado')) privado.estado = estado.estado === 'inactivo' ? 'inactivo' : 'activo';
           if (Object.prototype.hasOwnProperty.call(estado, 'motivoInactivo')) privado.motivoInactivo = String(estado.motivoInactivo || '').slice(0, 60);
           if (Object.prototype.hasOwnProperty.call(estado, 'fechaInactivo')) privado.fechaInactivo = /^\d{4}-\d{2}-\d{2}$/.test(estado.fechaInactivo || '') ? estado.fechaInactivo : '';
+          if (Object.prototype.hasOwnProperty.call(estado, 'tipo')) clasificacion.tipo = String(estado.tipo || '').slice(0, 20);
           if (privado.motivoInactivo === 'Fallecido/a') privado.estado = 'inactivo';
-          lote.set(doc(db, 'churches', churchId, 'estadoPersonas', key), privado, { merge: true });
+          if (Object.keys(privado).length) lote.set(doc(db, 'churches', churchId, 'estadoPersonas', key), privado, { merge: true });
+          if (Object.keys(clasificacion).length) lote.set(doc(db, 'churches', churchId, 'clasificacionPersonas', key), clasificacion, { merge: true });
           if (persona) {
             const borrar = {};
-            ['miembro', 'estado', 'motivoInactivo', 'fechaInactivo'].forEach((k) => {
+            ['miembro', 'estado', 'motivoInactivo', 'fechaInactivo', 'tipo'].forEach((k) => {
               if (Object.prototype.hasOwnProperty.call(personaDatos, k)) borrar[k] = deleteField();
             });
             if (Object.keys(borrar).length) lote.update(persona.ref, borrar);
@@ -435,7 +437,7 @@ function MigrarEstadosPrivados() {
   return (
     <section className="card cg-stack">
       <h2>Privacidad de membresía</h2>
-      <p className="muted">Mueve el estado de miembro y actividad, su motivo y la fecha de inactividad fuera de las fichas visibles. Publica primero las reglas temporales; después ejecuta esta migración y, al terminar, publica las reglas finales.</p>
+      <p className="muted">Mueve el estado de miembro y actividad, su motivo, la fecha de inactividad y la categoría de asistencia habitual fuera de las fichas visibles. Publica primero las reglas temporales; después ejecuta esta migración y, al terminar, publica las reglas finales.</p>
       <button type="button" className="btn" onClick={migrar} disabled={procesando}>{procesando ? 'Migrando…' : 'Migrar datos de privacidad'}</button>
       {mensaje && <div className="cg-aviso info" role="status">{mensaje}</div>}
     </section>
