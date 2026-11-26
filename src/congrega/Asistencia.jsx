@@ -5,6 +5,8 @@ import { activo, nombreDe, norm, useCongrega } from './datos.jsx';
 import { TIPOS_ASISTENCIA } from './unir.js';
 import { coincide, marcadoDe } from './marcado.js';
 import { Avatar } from '../components/Avatares.jsx';
+import { AbrirEvento, EditarEvento } from './AbrirEvento.jsx';
+import { etiquetaTipo, tipoEvento } from './eventos.js';
 
 const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
 
@@ -87,10 +89,8 @@ export default function Asistencia() {
         <Link className="btn" to="/congrega/estacion">Abrir estación</Link>
       </div>
       <ResumenJornada />
-      {!events.some((e) => e.date === hoy) && puedeAbrir && (
-        <button type="button" className="btn primary" onClick={() => navigate(`/congrega/asistencia/${saveEvent({ name: 'Servicio de Adoración', date: hoy, time: '', items: [] })}`)}>
-          Abrir registro de hoy
-        </button>
+      {puedeAbrir && (
+        <AbrirEvento saveEvent={saveEvent} principal={!events.some((e) => e.date === hoy)} onCreado={(id) => navigate(`/congrega/asistencia/${id}`)} />
       )}
       <h2 className="cg-h3">Últimos eventos</h2>
       <div className="cg-tarjetas-eventos">
@@ -98,19 +98,20 @@ export default function Asistencia() {
           <Link key={e.id} className="card cg-tarjeta-evento" to={`/congrega/asistencia/${e.id}`}>
             <span className="cg-te-fecha">{fechaCorta(e.date)}</span>
             <strong className="cg-te-nombre">{e.name || 'Evento'}</strong>
+            <span className="cg-chip tipo-evento">{etiquetaTipo(tipoEvento(e))}</span>
             <span className="cg-te-num"><b>{conteo.get(e.id) || 0}</b> {(conteo.get(e.id) || 0) === 1 ? 'presente' : 'presentes'}</span>
             <span className="btn small cg-te-btn">Revisar ›</span>
           </Link>
         ))}
       </div>
-      {!lista.length && <div className="card muted cg-vacio">Todavía no hay eventos. {puedeAbrir ? 'Abre el registro de hoy para empezar.' : 'Un Administrador debe crear el evento.'}</div>}
+      {!lista.length && <div className="card muted cg-vacio">Todavía no hay eventos. {puedeAbrir ? 'Abre un evento para empezar.' : 'Un Administrador debe crear el evento.'}</div>}
       {lista.length > 4 && (
         <details className="card cg-anteriores">
           <summary>Eventos anteriores ({lista.length - 4})</summary>
           <div className="cg-lista">
             {lista.slice(4).map((e) => (
               <div key={e.id} className="cg-item">
-                <span className="cg-quien"><span className="cg-nombre">{e.name || 'Evento'}</span><span className="cg-meta">{fechaCorta(e.date)} · {plural(conteo.get(e.id) || 0, 'presente', 'presentes')}</span></span>
+                <span className="cg-quien"><span className="cg-nombre">{e.name || 'Evento'}</span><span className="cg-meta">{fechaCorta(e.date)} · {etiquetaTipo(tipoEvento(e))} · {plural(conteo.get(e.id) || 0, 'presente', 'presentes')}</span></span>
                 <Link className="btn small" to={`/congrega/asistencia/${e.id}`}>Revisar ›</Link>
               </div>
             ))}
@@ -124,7 +125,9 @@ export default function Asistencia() {
 /** Revisar asistencia de un evento: aquí se marca, se quita y se cambia el tipo. */
 export function RevisarAsistencia() {
   const ctx = useCongrega();
-  const { people, familias, marca, registrarVisita, listo, sinTipo, events = [] } = ctx;
+  const { people, familias, marca, registrarVisita, listo, sinTipo, events = [], saveEvent, can } = ctx;
+  const puedeEditar = ctx.asisAdmin || can?.events;
+  const [editando, setEditando] = useState(false);
   const navigate = useNavigate();
   const { eventId } = useParams();
   const ev = events.find((e) => e.id === eventId);
@@ -161,10 +164,12 @@ export function RevisarAsistencia() {
             <div className="cg-evento-head">
               <div>
                 <h2>{ev.name || 'Evento'}</h2>
-                <div className="muted">{formatLong(ev.date)}</div>
+                <div className="muted">{formatLong(ev.date)} · {etiquetaTipo(tipoEvento(ev))}</div>
+                {puedeEditar && !editando && <button type="button" className="btn small ghost cg-izq" onClick={() => setEditando(true)}>✎ Cambiar nombre o tipo</button>}
               </div>
               <Contador m={m} />
             </div>
+            {editando && <EditarEvento ev={ev} saveEvent={saveEvent} onListo={() => setEditando(false)} />}
           </section>
           <div className="cg-row">
             <input className="cg-grow" type="search" value={buscar} onChange={(e) => setBuscar(e.target.value)} placeholder="Buscar por nombre o familia…" aria-label="Buscar persona" />

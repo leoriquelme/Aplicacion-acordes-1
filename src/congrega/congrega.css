@@ -327,3 +327,12 @@ a.cg-item:hover { background: var(--surface-2); text-decoration: none; }
 .cg-masivo-legal input { flex: none; width: 1.1rem; height: 1.1rem; margin-top: 0.15rem; accent-color: var(--primary); }
 .cg-confirmar-borrado { border-color: color-mix(in srgb, var(--cg-warn) 55%, var(--border)); }
 .cg-confirmar-borrado .btn.peligro { color: var(--cg-warn); border-color: var(--cg-warn); }
+
+/* Tipos de evento: al abrir un evento y en estadísticas */
+.cg-tipos-evento { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.cg-tipos-evento button { border: 1px solid var(--border); background: var(--surface); color: var(--muted); border-radius: 999px; padding: 0.45rem 0.85rem; font: inherit; font-weight: 600; min-height: 2.4rem; cursor: pointer; }
+.cg-tipos-evento button[aria-pressed='true'] { background: var(--primary-soft); color: var(--primary); border-color: var(--primary); }
+.cg-abrir-evento label { margin-bottom: 0; }
+.cg-abrir-evento input { width: 100%; }
+.cg-chip.tipo-evento { align-self: flex-start; }
+.cg-filtro-tipo { max-width: 12rem; min-height: 2.4rem; }
