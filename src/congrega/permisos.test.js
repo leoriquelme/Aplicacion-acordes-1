@@ -10,7 +10,7 @@ describe('permisos por perfil', () => {
   it('Pastor: fichas privadas y reportes, sin marcar ni ajustes', () => {
     const p = permisosDe({ role: 'colaborador', perfiles: ['pastor'] });
     expect(p).toMatchObject({ admin: false, pastor: true, marca: false, verPrivado: true, verAsistencia: true });
-    expect(pestanasCongrega(p)).toEqual(['inicio', 'personas']);
+    expect(pestanasCongrega(p)).toEqual(['inicio', 'personas', 'ajustes']);
   });
   it('Director musical: solo nombres en Congrega', () => {
     const p = permisosDe({ role: 'director' });
@@ -19,15 +19,15 @@ describe('permisos por perfil', () => {
   it('Encargado de asistencia (equipo de estación): solo estación y su ficha', () => {
     const p = permisosDe({ role: 'miembro', enEquipo: true });
     expect(p).toMatchObject({ marca: true, soloHoy: true, verPersonas: false, verPrivado: false });
-    expect(pestanasCongrega(p)).toEqual(['estacion', 'mificha']);
+    expect(pestanasCongrega(p)).toEqual(['estacion', 'ajustes']);
   });
   it('Administrativo de asistencia: asistencia completa', () => {
     const p = permisosDe({ role: 'colaborador', perfiles: ['asisAdmin'] });
     expect(p).toMatchObject({ asisAdmin: true, marca: true, soloHoy: false, verPrivado: false });
   });
   it('Miembro y Colaborador: solo su ficha', () => {
-    expect(pestanasCongrega(permisosDe({ role: 'miembro' }))).toEqual(['mificha']);
-    expect(pestanasCongrega(permisosDe({ role: 'colaborador' }))).toEqual(['mificha']);
+    expect(pestanasCongrega(permisosDe({ role: 'miembro' }))).toEqual(['ajustes']);
+    expect(pestanasCongrega(permisosDe({ role: 'colaborador' }))).toEqual(['ajustes']);
   });
   it('solo el Súper admin cambia Administradores; al Súper admin nadie', () => {
     const admin = permisosDe({ role: 'admin' }); const dueno = permisosDe({ role: 'admin', esDueno: true });
