@@ -51,7 +51,8 @@ function FilaFamilia({ fam, ms, familias, abierta, onToggle }) {
 }
 
 export default function Personas() {
-  const { people, familias, isAdmin } = useCongrega();
+  const { people, familias, isAdmin, verPrivado } = useCongrega();
+  const filtrosDisponibles = verPrivado ? FILTROS : FILTROS.filter(([k]) => !['miembros', 'inactivos'].includes(k));
   const [filtro, setFiltro] = useState('activos');
   const [buscar, setBuscar] = useState('');
   const [habitual, setHabitual] = useState('');
@@ -101,7 +102,7 @@ export default function Personas() {
       </div>
       <input type="search" value={buscar} onChange={(e) => setBuscar(e.target.value)} placeholder="Buscar persona, familia o ministerio…" aria-label="Buscar persona" />
       <div className="cg-tags" role="group" aria-label="Filtrar">
-        {FILTROS.map(([k, l]) => <button key={k} type="button" className="cg-tag" aria-pressed={filtro === k} onClick={() => setFiltro(k)}>{l}</button>)}
+        {filtrosDisponibles.map(([k, l]) => <button key={k} type="button" className="cg-tag" aria-pressed={filtro === k} onClick={() => setFiltro(k)}>{l}</button>)}
         {isAdmin && <button type="button" className="cg-tag" aria-pressed={filtro === 'repetidos'} onClick={() => setFiltro('repetidos')}>Repetidos</button>}
         {filtro !== 'repetidos' && (
           <select className="cg-tag cg-habitual" value={habitual} onChange={(e) => setHabitual(e.target.value)} aria-label="Asistencia habitual">
