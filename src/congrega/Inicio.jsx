@@ -4,6 +4,7 @@ import { Avatar } from '../components/Avatares.jsx';
 import { todayISO } from '../lib/dates.js';
 import { RANGOS, TIPOS, activo, esMiembro, nombreDe, useCongrega } from './datos.jsx';
 import { sugerencias } from './sugerencias.js';
+import { TIPOS_EVENTO, etiquetaTipo, resumenPorTipo, tipoEvento } from './eventos.js';
 
 const corto = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString('es-CL', { day: 'numeric', month: 'short' }).replace('.', '');
 
@@ -203,6 +204,7 @@ export default function Inicio() {
   const { people, events = [], asistencia, fichas, familias, churchId, myUid, verPrivado: isAdmin, verClasificacion, verAsistencia: marca, pastor, asisAdmin, aplicarCambio } = useCongrega();
   const [quienes, setQuienes] = useState(null);
   const [filtroEdad, setFiltroEdad] = useState('todos');
+  const [filtroTipo, setFiltroTipo] = useState('todos');
   // El círculo para ver y editar a las personas de cada gráfico: Administrativo de asistencia, Pastor y Administrador.
   const ver = pastor || asisAdmin;
   const porKey = new Map(people.map((p) => [p.key, p]));
@@ -235,7 +237,11 @@ export default function Inicio() {
   const listaComunas = [...comunas].map(([l, ps]) => barra(l, ps)).sort((a, b) => b.v - a.v).slice(0, 8);
   // Quiénes vinieron a cada evento (con el filtro Todos / Adultos / Niños).
   const vinieronA = (id, f = 'todos') => [...asistencia.values()].filter((a) => a.eventId === id).map((a) => porKey.get(a.personKey)).filter((p) => p && pasaFiltro(p, f));
-  const grafico = evs.slice(0, 12).reverse().map((e) => ({ e, ps: vinieronA(e.id, filtroEdad) }));
+  // Filtro por tipo de evento (Culto dominical, Día de oración, Jóvenes…) y resumen por tipo.
+  const porTipo = resumenPorTipo(evs, conteo);
+  const evsTipo = filtroTipo === 'todos' ? evs : evs.filter((e) => tipoEvento(e) === filtroTipo);
+  const grafico = evsTipo.slice(0, 12).reverse().map((e) => ({ e, ps: vinieronA(e.id, filtroEdad) }));
+  const barrasTipo = porTipo.map((r) => ({ label: r.label, v: r.promedio, k: r.k, r }));
 
   const [anio, mesNum, diaNum] = hoy.split('-').map(Number);
   const limiteSeguimiento = new Date(anio, mesNum - 1, diaNum - 21);
@@ -288,14 +294,30 @@ export default function Inicio() {
         {pastor && (
           <>
             {marca && (
-              <Panel ancho titulo="Asistencia por evento" sub={`Últimos ${Math.min(12, evs.length)} eventos con registro${filtroEdad === 'ninos' ? ' · niños: rango Bebé o Niño' : ''}`}
+              <Panel ancho titulo="Asistencia por evento" sub={`Últimos ${Math.min(12, evsTipo.length)} eventos con registro${filtroTipo !== 'todos' ? ` · ${etiquetaTipo(filtroTipo)}` : ''}${filtroEdad === 'ninos' ? ' · niños: rango Bebé o Niño' : ''}`}
                 ver={ver} onAbrir={setQuienes} grupos={grafico.map(({ e, ps }) => ({ label: `${e.name || 'Evento'} · ${corto(e.date)}`, ps })).reverse()}
                 extra={(
-                  <div className="cg-seg cg-filtro-edad" role="group" aria-label="Filtrar por edad">
-                    {FILTROS_EDAD.map(([k, l]) => <button key={k} type="button" aria-pressed={filtroEdad === k} onClick={() => setFiltroEdad(k)}>{l}</button>)}
-                  </div>
+                  <>
+                    {porTipo.length > 1 && (
+                      <select className="cg-filtro-tipo" value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value)} aria-label="Filtrar por tipo de evento">
+                        <option value="todos">Todos los eventos</option>
+                        {TIPOS_EVENTO.filter((t) => porTipo.some((r) => r.k === t.k)).map((t) => <option key={t.k} value={t.k}>{t.l}</option>)}
+                      </select>
+                    )}
+                    <div className="cg-seg cg-filtro-edad" role="group" aria-label="Filtrar por edad">
+                      {FILTROS_EDAD.map(([k, l]) => <button key={k} type="button" aria-pressed={filtroEdad === k} onClick={() => setFiltroEdad(k)}>{l}</button>)}
+                    </div>
+                  </>
                 )}>
-                {evs.length ? <Linea puntos={grafico.map(({ e, ps }) => ({ id: e.id, v: ps.length, label: `${e.name || 'Evento'} ${e.date}`, corto: corto(e.date) }))} /> : <div className="muted cg-vacio">Aún no hay asistencia registrada.</div>}
+                {evsTipo.length ? <Linea puntos={grafico.map(({ e, ps }) => ({ id: e.id, v: ps.length, label: `${e.name || 'Evento'} ${e.date}`, corto: corto(e.date) }))} /> : <div className="muted cg-vacio">Aún no hay asistencia registrada.</div>}
+              </Panel>
+            )}
+            {marca && porTipo.length > 0 && (
+              <Panel titulo="Asistencia por tipo de evento" sub="Promedio de asistentes por evento, con todo el historial registrado">
+                <Barras items={barrasTipo} />
+                <div className="cg-stack">
+                  {porTipo.map((r) => <div key={r.k} className="muted small">{r.label}: {r.eventos} {r.eventos === 1 ? 'evento' : 'eventos'} · máximo {r.max}</div>)}
+                </div>
               </Panel>
             )}
             {constancia && <Panel titulo="Constancia" sub={`Personas activas según cuántas veces vinieron en los últimos ${recientes.length} eventos`} ver={ver} onAbrir={setQuienes} grupos={constancia}><Barras items={constancia} /></Panel>}

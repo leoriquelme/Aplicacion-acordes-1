@@ -104,7 +104,7 @@ export default function App() {
     const yaHayCulto = events.some((e) => e.date === fecha && /culto|adoraci[oó]n|servicio/i.test(e.name || ''));
     if (yaHayCulto) { cultoCreadoEnSemana.current = fecha; return; }
     cultoCreadoEnSemana.current = fecha;
-    saveEvent({ id: `culto-dominical-${fecha}`, name: 'Servicio de Adoración', date: fecha, time: '11:45', notes: '', items: [] });
+    saveEvent({ id: `culto-dominical-${fecha}`, name: 'Servicio de Adoración', tipo: 'culto', date: fecha, time: '11:45', notes: '', items: [] });
   }, [eventsReady, mode, can?.events, events, saveEvent]);
   // Selector de apps (como Planning Center): la primera vez se pregunta qué app usar; después se abre la última elegida.
   const navigate = useNavigate();

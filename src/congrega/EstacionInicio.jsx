@@ -9,6 +9,7 @@ import { Avatar } from '../components/Avatares.jsx';
 import { nombreDe, norm, useCongrega } from './datos.jsx';
 import { estacion, proximosEventos, turnoId, useTurnos } from './estacion.jsx';
 import { MAX_EQUIPO_ESTACION } from './permisos.js';
+import { AbrirEvento } from './AbrirEvento.jsx';
 
 const cerca = (date, hoy) => Math.abs((new Date(`${date}T12:00:00`) - new Date(`${hoy}T12:00:00`)) / 86400000) <= 1;
 
@@ -49,13 +50,11 @@ function IniciarAdmin({ events, hoy, iniciar, saveEvent }) {
   return (
     <section className="card cg-stack cg-iniciar">
       <h2>Iniciar estación</h2>
-      {!deHoy.length && (
-        <button type="button" className="btn" onClick={() => setId(saveEvent({ name: 'Servicio de Adoración', date: hoy, time: '', items: [] }))}>+ Abrir registro de hoy</button>
-      )}
+      <AbrirEvento saveEvent={saveEvent} onCreado={setId} />
       {ev ? (
         <>
           <select value={ev.id} onChange={(e) => setId(e.target.value)} aria-label="Evento">
-            {[...deHoy, ...lista.filter((e) => e.date !== hoy)].map((e) => <option key={e.id} value={e.id}>{fechaCorta(e.date)} · {e.name || 'Evento'}</option>)}
+            {[...(deHoy.some((e) => e.id === ev.id) || lista.some((e) => e.id === ev.id) ? [] : [ev]), ...deHoy, ...lista.filter((e) => e.date !== hoy)].map((e) => <option key={e.id} value={e.id}>{fechaCorta(e.date)} · {e.name || 'Evento'}</option>)}
           </select>
           <button type="button" className="btn primary cg-boton-iniciar" onClick={() => iniciar(ev)}>▶ Iniciar</button>
         </>
