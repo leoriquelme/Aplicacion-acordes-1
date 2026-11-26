@@ -99,8 +99,8 @@ function PerfilesAcceso() {
   );
 }
 
-const pNombreSeleccionado = (p) => p?.nombre || (!p?.apellido && p?.name ? p.name.trim().split(/\\s+/)[0] : '');
-const pApellidoSeleccionado = (p) => p?.apellido || (!p?.nombre && p?.name ? p.name.trim().split(/\\s+/).slice(1).join(' ') : '');
+const pNombreSeleccionado = (p) => p?.nombre || (!p?.apellido && p?.name ? p.name.trim().split(/\s+/)[0] : '');
+const pApellidoSeleccionado = (p) => p?.apellido || (!p?.nombre && p?.name ? p.name.trim().split(/\s+/).slice(1).join(' ') : '');
 
 const CAMPOS_MASIVOS = [
   { key: 'nombre', label: 'Nombre', grupo: 'persona', tipo: 'texto', requerido: true },
