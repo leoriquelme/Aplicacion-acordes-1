@@ -31,7 +31,7 @@ export default function Ficha() {
   const { key } = useParams();
   const nueva = key === 'nueva';
   const c = useCongrega();
-  const { people, familias, fichas, notas, asistencia, cuentas, events = [], isAdmin, verPrivado, editarFicha, myUid } = c;
+  const { people, familias, fichas, notas, asistencia, cuentas, events = [], isAdmin, verPrivado, verClasificacion, editarFicha, myUid } = c;
   const p = nueva ? { tipo: 'Activo', estado: 'activo', teams: [] } : people.find((x) => x.key === key);
   const [params] = useSearchParams();
   const [editar, setEditar] = useState(nueva || params.get('editar') === '1');
@@ -99,7 +99,7 @@ export default function Ficha() {
       ) : (
       <fieldset className="card cg-grid"><legend>Iglesia</legend>
         {verPrivado && <Dato label="Miembro" value={sino(p.miembro)} />}
-        <Dato label="Asistencia habitual" value={p.tipo} />
+        {verClasificacion && <Dato label="Asistencia habitual" value={p.tipo} />}
         <Dato label="Rango de edad" value={p.rangoEdad} />
         {verPrivado && <Dato label="Estado" value={activo(p) ? 'Activo' : 'Inactivo'} />}
         <Dato label="Ministerios y equipos" value={p.teams || []} full />
