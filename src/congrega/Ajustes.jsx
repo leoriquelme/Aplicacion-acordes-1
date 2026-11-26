@@ -131,6 +131,8 @@ const CAMPOS_MASIVOS = [
   { key: 'fechaConsentimiento', label: 'Fecha de consentimiento', grupo: 'ficha', tipo: 'fecha' },
   { key: 'medioConsentimiento', label: 'Medio del consentimiento', grupo: 'ficha', tipo: 'select', opciones: ['Formulario en papel', 'Formulario digital', 'Verbal', 'Entregados por la persona'] },
   { key: 'notaConsentimiento', label: 'Nota del consentimiento', grupo: 'ficha', tipo: 'texto' },
+  { key: 'notas', label: 'Notas pastorales', grupo: 'ficha', tipo: 'area', max: 5000 },
+  { key: 'notasMedicas', label: 'Notas médicas', grupo: 'ficha', tipo: 'area', max: 3000 },
 ];
 
 function EdicionMasiva() {
@@ -147,18 +149,20 @@ function EdicionMasiva() {
   const [confirmarBorrado, setConfirmarBorrado] = useState(false);
   const [palabraBorrado, setPalabraBorrado] = useState('');
   const [confirmoConsentimiento, setConfirmoConsentimiento] = useState(false);
+  const [confirmoNotas, setConfirmoNotas] = useState(false);
   const [procesando, setProcesando] = useState(false);
 
   useEffect(() => onSnapshot(collection(db, 'churches', churchId, 'members'), (snap) => setMiembros(new Map(snap.docs.map((d) => [d.id, d.data()]))), () => setMiembros(new Map())), [churchId]);
   const owner = church?.ownerUid;
   const ordenadas = [...people].sort((a, b) => norm(nombreDe(a)).localeCompare(norm(nombreDe(b))));
-  const elegibles = ordenadas.filter((p) => p.key !== myUid && p.key !== owner && (!p.uid || puedeCambiarPerfil(c, { role: miembros?.get(p.key)?.role || 'colaborador', esDueno: p.key === owner })));
+  const elegibles = ordenadas.filter((p) => p.key !== myUid && p.key !== owner && (!p.uid || (miembros?.has(p.key) && puedeCambiarPerfil(c, { role: miembros.get(p.key)?.role || 'colaborador', esDueno: p.key === owner }))));
   const q = norm(buscar);
   const visibles = elegibles.filter((p) => !q || norm(nombreDe(p)).includes(q) || norm(p.tipo || '').includes(q) || norm(p.email || fichas.get(p.key)?.email || '').includes(q));
   const seleccion = elegibles.filter((p) => seleccionados.has(p.key));
   const def = CAMPOS_MASIVOS.find((x) => x.key === campo) || CAMPOS_MASIVOS[0];
   const mostrarValor = (x) => {
-    if (x === null || x === '') return 'vacío';
+    if (def.key === 'familiaId' && !x) return 'Sin familia';
+    if (x === '__vaciar' || x === null || x === '') return 'vacío';
     if (x === true) return 'Sí';
     if (x === false) return 'No';
     if (def.key === 'familiaId') return x ? (familias.get(x)?.name || 'Familia seleccionada') : 'Sin familia';
@@ -178,6 +182,7 @@ function EdicionMasiva() {
   });
   const limpiarValidacion = () => { setError(''); setResultado(''); setConfirmarEdicion(false); setConfirmarBorrado(false); setPalabraBorrado(''); };
   const normalizarValor = () => {
+    if (valor === '__vaciar') return null;
     if (def.tipo === 'bool') return valor === '' ? undefined : valor === 'si';
     if (def.tipo === 'familia') return valor || null;
     if (def.key === 'teams') return valor.trim() ? [valor.trim().slice(0, 80)] : [];
@@ -192,9 +197,11 @@ function EdicionMasiva() {
     if (def.requerido && !valor.trim()) return 'El nombre no puede quedar vacío.';
     if (def.tipo === 'email' && valor.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor.trim())) return 'Escribe un correo válido.';
     if (def.tipo === 'texto' && valor.length > 120) return 'El texto no puede superar 120 caracteres.';
+    if (def.tipo === 'area' && valor.length > def.max) return 'El texto no puede superar ' + def.max + ' caracteres.';
     if (def.tipo === 'familia' && valor && !familias.has(valor)) return 'La familia elegida ya no existe.';
     if (def.tipo === 'fecha' && valor && !/^\d{4}-\d{2}-\d{2}$/.test(valor)) return 'Selecciona una fecha válida.';
     if (def.key === 'consentimiento' && valor === 'si' && !confirmoConsentimiento) return 'Confirma que todas las personas seleccionadas dieron su consentimiento.';
+    if (['notas', 'notasMedicas'].includes(def.key) && !confirmoNotas) return 'Confirma que deseas reemplazar estas notas en todas las fichas seleccionadas.';
     return '';
   };
   const prepararEdicion = () => {
@@ -258,7 +265,7 @@ function EdicionMasiva() {
       <label className="cg-dato"><span>Buscar personas</span><input type="search" value={buscar} onChange={(e) => setBuscar(e.target.value)} placeholder="Nombre, tipo o correo" /></label>
       <div className="cg-edicion-masiva-cabeza">
         <strong>{seleccion.length} seleccionada(s) · {visibles.length} visible(s)</strong>
-        <button type="button" className="btn small" onClick={toggleVisibles} disabled={!visibles.length || procesando}>{visibles.length && visibles.every((p) => seleccionados.has(p.key)) ? 'Desmarcar visibles' : 'Seleccionar visibles'}</button>
+        <button type="button" className="btn small" onClick={toggleVisibles} disabled={!miembros || !visibles.length || procesando}>{visibles.length && visibles.every((p) => seleccionados.has(p.key)) ? 'Desmarcar visibles' : 'Seleccionar visibles'}</button>
       </div>
       <div className="card cg-lista cg-masivo-lista">
         {!miembros && <div className="muted cg-vacio">Cargando permisos…</div>}
@@ -268,7 +275,7 @@ function EdicionMasiva() {
           const seleccionable = seleccion.some((x) => x.key === p.key) || (!p.uid || puedeCambiarPerfil(c, { role: m?.role || 'colaborador', esDueno: p.key === owner }));
           return (
             <label key={p.key} className="cg-item cg-perfil-acceso">
-              <input type="checkbox" className="cg-checkbox" checked={seleccionados.has(p.key)} onChange={() => toggle(p.key)} disabled={!seleccionable || procesando} aria-label={'Seleccionar a ' + nombreDe(p)} />
+              <input type="checkbox" className="cg-checkbox" checked={seleccionados.has(p.key)} onChange={() => toggle(p.key)} disabled={!miembros || !seleccionable || procesando} aria-label={'Seleccionar a ' + nombreDe(p)} />
               <Avatar name={nombreDe(p)} personKey={p.key} photo={p.photo || ''} size="md" />
               <span className="cg-quien"><span className="cg-nombre">{nombreDe(p)}</span>
                 <span className="cg-meta">{[p.tipo || 'Sin tipo', p.uid ? 'Cuenta en Iglesia' : 'Sin cuenta', p.estado === 'inactivo' ? 'Inactivo' : 'Activo'].join(' · ')}</span>
@@ -281,7 +288,7 @@ function EdicionMasiva() {
         <div className="cg-edicion-masiva">
           <div className="cg-grid">
             <label className="cg-dato"><span>Dato que corregir</span>
-              <select value={campo} onChange={(e) => { setCampo(e.target.value); setValor(''); setConfirmoConsentimiento(false); setConfirmarEdicion(false); }}>
+              <select value={campo} onChange={(e) => { setCampo(e.target.value); setValor(''); setConfirmoConsentimiento(false); setConfirmoNotas(false); setConfirmarEdicion(false); }}>
                 {CAMPOS_MASIVOS.map((x) => <option key={x.key} value={x.key}>{x.label}</option>)}
               </select>
             </label>
@@ -290,9 +297,11 @@ function EdicionMasiva() {
               {def.tipo === 'bool' && <select value={valor} onChange={(e) => setValor(e.target.value)}><option value="">Selecciona…</option><option value="si">Sí</option><option value="no">No</option></select>}
               {def.tipo === 'familia' && <select value={valor} onChange={(e) => setValor(e.target.value)}><option value="">Sin familia</option>{[...familias.values()].sort((a, b) => a.name.localeCompare(b.name, 'es')).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select>}
               {['texto', 'email', 'fecha'].includes(def.tipo) && <input type={def.tipo === 'fecha' ? 'date' : def.tipo === 'email' ? 'email' : 'text'} value={valor} onChange={(e) => setValor(e.target.value)} maxLength={120} />}
+              {def.tipo === 'area' && <textarea value={valor} onChange={(e) => setValor(e.target.value)} maxLength={def.max} rows={4} />}
             </label>
           </div>
           {def.key === 'consentimiento' && valor === 'si' && <label className="cg-masivo-legal"><input type="checkbox" checked={confirmoConsentimiento} onChange={(e) => setConfirmoConsentimiento(e.target.checked)} /> Confirmo que todas las personas seleccionadas dieron su consentimiento.</label>}
+          {['notas', 'notasMedicas'].includes(def.key) && <label className="cg-masivo-legal"><input type="checkbox" checked={confirmoNotas} onChange={(e) => setConfirmoNotas(e.target.checked)} /> Confirmo que quiero reemplazar las notas de todas las fichas seleccionadas.</label>}
           {error && <div className="cg-aviso" role="alert">{error}</div>}
           {resultado && <div className="cg-aviso" role="status">{resultado}</div>}
           {!confirmarEdicion ? (
