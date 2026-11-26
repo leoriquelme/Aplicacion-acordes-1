@@ -15,7 +15,7 @@ const CAMPOS = [
 
 export default function MiFicha() {
   const c = useCongrega();
-  const { people, familias, fichas, myUid, churchId, role, misPerfiles = [], equipo, guardarMisDatos, church } = c;
+  const { people, familias, fichas, myUid, churchId, guardarMisDatos } = c;
   const p = people.find((x) => x.key === myUid);
   const d = fichas.get(myUid) || {};
   const [f, setF] = useState(null);
