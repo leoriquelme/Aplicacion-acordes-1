@@ -47,7 +47,7 @@ function Paginas() {
         <Route path="personas/:key" element={<Ficha />} />
         <Route path="familias/:id" element={<Familia />} />
         <Route path="mificha" element={<MiFicha />} />
-        <Route path="ajustes" element={si(c.admin, <Ajustes />)} />
+        <Route path="ajustes" element={<Ajustes />} />
         <Route path="*" element={<Navigate to="/congrega" replace />} />
       </Routes>
     </div>
