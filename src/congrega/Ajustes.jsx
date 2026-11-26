@@ -15,7 +15,7 @@ export default function Ajustes() {
       <MiFicha />
       {isAdmin && <PerfilesAcceso />}
       {isAdmin && <EdicionMasiva />}
-      {isAdmin && <UnirPerfiles />
+      {isAdmin && <UnirPerfiles />}
       {dueno && <Registro />}
     </div>
   );
