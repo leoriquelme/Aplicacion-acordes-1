@@ -316,3 +316,14 @@ a.cg-item:hover { background: var(--surface-2); text-decoration: none; }
   .cg-edicion-masiva-acciones > * { flex: 1 1 100%; }
   .cg-masivo-perfil { width: 100%; }
 }
+
+.cg-masivo-lista { max-height: min(55vh, 34rem); overflow-y: auto; }
+.cg-masivo-lista .cg-item { cursor: pointer; }
+.cg-masivo-lista .cg-item:hover { background: color-mix(in srgb, var(--primary-soft) 45%, transparent); }
+.cg-masivo-lista .cg-checkbox { accent-color: var(--primary); }
+.cg-edicion-preview { display: grid; gap: 0.45rem; padding: 0.9rem; border: 1px solid color-mix(in srgb, var(--primary) 35%, var(--border)); border-radius: 12px; background: var(--surface); }
+.cg-edicion-preview p { margin: 0; }
+.cg-masivo-legal { display: flex; align-items: flex-start; gap: 0.5rem; padding: 0.65rem; border-radius: 10px; background: var(--surface-2); }
+.cg-masivo-legal input { flex: none; width: 1.1rem; height: 1.1rem; margin-top: 0.15rem; accent-color: var(--primary); }
+.cg-confirmar-borrado { border-color: color-mix(in srgb, var(--cg-warn) 55%, var(--border)); }
+.cg-confirmar-borrado .btn.peligro { color: var(--cg-warn); border-color: var(--cg-warn); }

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { collection, limit, onSnapshot, orderBy, query } from 'firebase/firestore';
+import { collection, deleteField, limit, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { db } from '../lib/firebase.js';
 import { Avatar } from '../components/Avatares.jsx';
-import { nombreDe, norm, useCongrega } from './datos.jsx';
+import { CIVIL, RANGOS, ROLES_FAMILIA, TIPOS, nombreDe, norm, useCongrega } from './datos.jsx';
 import UnirPerfiles from './UnirPerfiles.jsx';
 import MiFicha from './MiFicha.jsx';
 import { PERFILES_EXTRA, PERFIL_PRINCIPAL, QUE_HACE, nombrePerfil, puedeCambiarPerfil } from './permisos.js';
@@ -14,7 +14,8 @@ export default function Ajustes() {
       <div className="page-head"><h1>Ajustes</h1></div>
       <MiFicha />
       {isAdmin && <PerfilesAcceso />}
-      {isAdmin && <UnirPerfiles />}
+      {isAdmin && <EdicionMasiva />}
+      {isAdmin && <UnirPerfiles />
       {dueno && <Registro />}
     </div>
   );
@@ -23,15 +24,11 @@ export default function Ajustes() {
 /** Perfiles de acceso: perfil principal + perfiles extra de cada persona con cuenta. */
 function PerfilesAcceso() {
   const c = useCongrega();
-  const { people, churchId, church, myUid, cambiarPerfiles, equipo, removePerson } = c;
+  const { people, churchId, church, myUid, cambiarPerfiles, equipo } = c;
   const [miembros, setMiembros] = useState(null);
   const [abierto, setAbierto] = useState('');
   const [error, setError] = useState('');
-  const [seleccionados, setSeleccionados] = useState(() => new Set());
-  const [perfilMasivo, setPerfilMasivo] = useState('colaborador');
-  const [procesando, setProcesando] = useState(false);
-  const [resultado, setResultado] = useState('');
-  useEffect(() => onSnapshot(collection(db, 'churches', churchId, 'members'), (s) => setMiembros(new Map(s.docs.map((d) => [d.id, d.data()]))), () => setMiembros(new Map())), [churchId]);
+  useEffect(() => onSnapshot(collection(db, 'churches', churchId, 'members'), (snap) => setMiembros(new Map(snap.docs.map((d) => [d.id, d.data()]))), () => setMiembros(new Map())), [churchId]);
   const owner = church?.ownerUid;
   const conCuenta = people.filter((p) => p.uid && miembros?.has(p.key))
     .sort((a, b) => (b.key === owner) - (a.key === owner) || norm(nombreDe(a)).localeCompare(norm(nombreDe(b))));
@@ -40,45 +37,12 @@ function PerfilesAcceso() {
     ...(m?.perfiles || []).map(nombrePerfil),
     ...(equipo.get(uid)?.estado === 'aceptado' ? ['Encargado de asistencia'] : []),
   ];
-  const guardar = (uid, role, perfiles) => cambiarPerfiles(uid, role, perfiles).catch((e) => setError(`No se pudo cambiar: ${e.message}`));
-  const editables = conCuenta.filter((p) => p.key !== myUid && puedeCambiarPerfil(c, { role: miembros.get(p.key)?.role, esDueno: p.key === owner }));
-  const seleccion = editables.filter((p) => seleccionados.has(p.key));
-  const perfilesMasivos = PERFIL_PRINCIPAL.filter(([k]) => k !== 'admin' || c.dueno);
-  const alternarSeleccion = (uid) => setSeleccionados((actual) => {
-    const nueva = new Set(actual);
-    if (nueva.has(uid)) nueva.delete(uid); else nueva.add(uid);
-    return nueva;
-  });
-  const seleccionarTodos = () => setSeleccionados((actual) => {
-    const todos = editables.every((p) => actual.has(p.key));
-    return todos ? new Set() : new Set(editables.map((p) => p.key));
-  });
-  const aplicarMasivo = async () => {
-    if (!seleccion.length || procesando) return;
-    setProcesando(true); setResultado(''); setError('');
-    const cambios = await Promise.allSettled(seleccion.map((p) => cambiarPerfiles(p.key, perfilMasivo, miembros.get(p.key)?.perfiles || [])));
-    const exitos = cambios.filter((r) => r.status === 'fulfilled').length;
-    setSeleccionados(new Set(seleccion.filter((_, i) => cambios[i].status === 'rejected').map((p) => p.key)));
-    setResultado(`Perfil actualizado para ${exitos} de ${cambios.length} usuarios.${exitos < cambios.length ? ` ${cambios.length - exitos} no se pudieron actualizar.` : ''}`);
-    setProcesando(false);
-  };
-  const quitarSeleccionados = async () => {
-    if (!seleccion.length || procesando) return;
-    const nombres = seleccion.map(nombreDe).join(', ');
-    const confirmado = window.confirm(`¿Quitar de esta iglesia a ${seleccion.length} usuario(s)?\n\n${nombres}\n\nEsto elimina su acceso y ficha en esta iglesia, pero no elimina su cuenta de Google/Firebase.`);
-    if (!confirmado) return;
-    setProcesando(true); setResultado(''); setError('');
-    const cambios = await Promise.allSettled(seleccion.map((p) => removePerson(p.key)));
-    const exitos = cambios.filter((r) => r.status === 'fulfilled').length;
-    setSeleccionados(new Set(seleccion.filter((_, i) => cambios[i].status === 'rejected').map((p) => p.key)));
-    setResultado(`Se quitaron ${exitos} de ${cambios.length} usuarios de la iglesia.${exitos < cambios.length ? ` ${cambios.length - exitos} no se pudieron quitar; puedes volver a intentarlo.` : ''}`);
-    setProcesando(false);
-  };
+  const guardar = (uid, role, perfiles) => cambiarPerfiles(uid, role, perfiles).catch((e) => setError('No se pudo cambiar: ' + e.message));
 
   return (
     <section className="card cg-stack">
       <h2>Perfiles de acceso</h2>
-      <p className="muted">Cada persona tiene un perfil principal y puede sumar otros (por ejemplo, Pastor y Director musical). El Encargado de asistencia se elige en la pestaña <strong>Estación</strong>.</p>
+      <p className="muted">Cambia el rol de acceso de cada persona con cuenta. Para corregir datos de las fichas de toda la congregación, usa Edición masiva más abajo.</p>
       <details className="cg-que-hace">
         <summary>Qué hace cada perfil</summary>
         <dl>
@@ -88,30 +52,6 @@ function PerfilesAcceso() {
         </dl>
       </details>
       {error && <div className="cg-aviso" role="alert">{error}</div>}
-      {resultado && <div className="cg-aviso" role="status">{resultado}</div>}
-      {miembros && editables.length > 0 && (
-        <div className="cg-edicion-masiva">
-          <div className="cg-edicion-masiva-cabeza">
-            <div><strong>Edición masiva</strong><span className="muted small">Selecciona usuarios para cambiar su perfil o quitarles el acceso a esta iglesia.</span></div>
-            <button type="button" className="btn small" onClick={seleccionarTodos} disabled={procesando}>
-              {editables.every((p) => seleccionados.has(p.key)) ? 'Desmarcar todos' : 'Seleccionar editables'}
-            </button>
-          </div>
-          {seleccion.length > 0 && (
-            <div className="cg-edicion-masiva-acciones">
-              <span className="muted">{seleccion.length} seleccionado(s)</span>
-              <label className="cg-dato cg-masivo-perfil"><span>Asignar perfil principal</span>
-                <select value={perfilMasivo} onChange={(e) => setPerfilMasivo(e.target.value)} disabled={procesando}>
-                  {perfilesMasivos.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-                </select>
-              </label>
-              <button type="button" className="btn primary small" onClick={aplicarMasivo} disabled={procesando}>{procesando ? 'Procesando…' : 'Aplicar perfil'}</button>
-              <button type="button" className="btn small peligro" onClick={quitarSeleccionados} disabled={procesando}>{procesando ? 'Procesando…' : 'Quitar de la iglesia'}</button>
-            </div>
-          )}
-          <p className="muted small">No puedes seleccionarte a ti mismo ni al Súper admin. Los administradores solo pueden quitar a otros administradores si son Súper admin.</p>
-        </div>
-      )}
       <div className="card cg-lista">
         {!miembros && <div className="muted cg-vacio">Cargando…</div>}
         {conCuenta.map((p) => {
@@ -120,14 +60,12 @@ function PerfilesAcceso() {
           const editable = puedeCambiarPerfil(c, { role: m?.role, esDueno: p.key === owner });
           const extras = m?.perfiles || [];
           const abiertoAqui = abierto === p.key;
-          const seleccionable = p.key !== myUid && editable;
           return (
             <div key={p.key} className="cg-item cg-perfil-acceso">
-              {seleccionable && <input className="cg-checkbox" type="checkbox" aria-label={`Seleccionar a ${nombreDe(p)}`} checked={seleccionados.has(p.key)} onChange={() => alternarSeleccion(p.key)} disabled={procesando} />}
               <Avatar name={nombreDe(p)} personKey={p.key} photo={p.photo || ''} size="md" />
               <span className="cg-quien"><span className="cg-nombre">{nombreDe(p)}{yo && <span className="muted"> (tú)</span>}</span>
                 <span className="cg-meta cg-etiquetas">{etiquetas(p.key, m).map((e) => <span key={e} className="cg-chip">{e}</span>)}</span>
-                <span className="cg-meta">{c.cuentas?.get(p.key)?.email ? `Google: ${c.cuentas.get(p.key).email}` : 'Google: el correo aparece cuando vuelva a abrir la app'}</span>
+                <span className="cg-meta">{c.cuentas?.get(p.key)?.email ? 'Google: ' + c.cuentas.get(p.key).email : 'Google: el correo aparece cuando vuelva a abrir la app'}</span>
               </span>
               {(editable || yo) && <button type="button" className="btn small" aria-expanded={abiertoAqui} onClick={() => setAbierto(abiertoAqui ? '' : p.key)}>{abiertoAqui ? 'Listo' : 'Cambiar'}</button>}
               {abiertoAqui && (
@@ -156,10 +94,279 @@ function PerfilesAcceso() {
           );
         })}
       </div>
-      <p className="muted small">Solo aparecen quienes ya entraron a la app con su cuenta. Las personas sin cuenta no tienen acceso.</p>
+      <p className="muted small">Solo aparecen quienes ya entraron con una cuenta. Los roles de acceso se administran individualmente aquí.</p>
     </section>
   );
 }
+
+const pNombreSeleccionado = (p) => p?.nombre || (!p?.apellido && p?.name ? p.name.trim().split(/\s+/)[0] : '');
+const pApellidoSeleccionado = (p) => p?.apellido || (!p?.nombre && p?.name ? p.name.trim().split(/\s+/).slice(1).join(' ') : '');
+
+const CAMPOS_MASIVOS = [
+  { key: 'nombre', label: 'Nombre', grupo: 'persona', tipo: 'texto', requerido: true },
+  { key: 'apellido', label: 'Apellidos', grupo: 'persona', tipo: 'texto' },
+  { key: 'apodo', label: 'Apodo', grupo: 'persona', tipo: 'texto' },
+  { key: 'segundoNombre', label: 'Segundo nombre', grupo: 'ficha', tipo: 'texto' },
+  { key: 'miembro', label: 'Es miembro', grupo: 'persona', tipo: 'bool' },
+  { key: 'tipo', label: 'Asistencia habitual', grupo: 'persona', tipo: 'select', opciones: TIPOS },
+  { key: 'estado', label: 'Estado de actividad', grupo: 'persona', tipo: 'select', opciones: [['activo', 'Activo'], ['inactivo', 'Inactivo']] },
+  { key: 'motivoInactivo', label: 'Motivo de inactividad', grupo: 'ficha', tipo: 'select', opciones: ['Cambio de iglesia', 'Cambio de domicilio', 'No volvió a asistir', 'Fallecido/a', 'Otro'] },
+  { key: 'fechaInactivo', label: 'Inactivo desde', grupo: 'ficha', tipo: 'fecha' },
+  { key: 'rangoEdad', label: 'Rango de edad', grupo: 'persona', tipo: 'select', opciones: RANGOS },
+  { key: 'esNino', label: 'Es niño/a', grupo: 'persona', tipo: 'bool' },
+  { key: 'familiaId', label: 'Familia', grupo: 'persona', tipo: 'familia' },
+  { key: 'rolFamilia', label: 'Rol en la familia', grupo: 'persona', tipo: 'select', opciones: ROLES_FAMILIA },
+  { key: 'teams', label: 'Ministerio o equipo (reemplaza los actuales)', grupo: 'persona', tipo: 'texto' },
+  { key: 'fechaNacimiento', label: 'Fecha de nacimiento', grupo: 'ficha', tipo: 'fecha' },
+  { key: 'genero', label: 'Género', grupo: 'ficha', tipo: 'select', opciones: ['Femenino', 'Masculino', 'Prefiere no decir'] },
+  { key: 'estadoCivil', label: 'Estado civil', grupo: 'ficha', tipo: 'select', opciones: CIVIL },
+  { key: 'aniversario', label: 'Aniversario de matrimonio', grupo: 'ficha', tipo: 'fecha' },
+  { key: 'telefono', label: 'Celular', grupo: 'ficha', tipo: 'texto' },
+  { key: 'email', label: 'Correo', grupo: 'ficha', tipo: 'email' },
+  { key: 'direccion', label: 'Dirección', grupo: 'ficha', tipo: 'texto' },
+  { key: 'comuna', label: 'Comuna', grupo: 'ficha', tipo: 'texto' },
+  { key: 'region', label: 'Región', grupo: 'ficha', tipo: 'texto' },
+  { key: 'fechaLlegada', label: 'Fecha de llegada a la iglesia', grupo: 'ficha', tipo: 'fecha' },
+  { key: 'fechaConversion', label: 'Fecha de conversión', grupo: 'ficha', tipo: 'fecha' },
+  { key: 'bautizado', label: 'Bautizado/a', grupo: 'ficha', tipo: 'bool' },
+  { key: 'fechaBautismo', label: 'Fecha de bautismo', grupo: 'ficha', tipo: 'fecha' },
+  { key: 'consentimiento', label: 'Consentimiento de datos', grupo: 'ficha', tipo: 'bool' },
+  { key: 'fechaConsentimiento', label: 'Fecha de consentimiento', grupo: 'ficha', tipo: 'fecha' },
+  { key: 'medioConsentimiento', label: 'Medio del consentimiento', grupo: 'ficha', tipo: 'select', opciones: ['Formulario en papel', 'Formulario digital', 'Verbal', 'Entregados por la persona'] },
+  { key: 'notaConsentimiento', label: 'Nota del consentimiento', grupo: 'ficha', tipo: 'texto' },
+  { key: 'notas', label: 'Notas pastorales', grupo: 'ficha', tipo: 'area', max: 5000 },
+  { key: 'notasMedicas', label: 'Notas médicas', grupo: 'ficha', tipo: 'area', max: 3000 },
+];
+
+function EdicionMasiva() {
+  const c = useCongrega();
+  const { people, familias, fichas, notas, asistencia, churchId, church, myUid, eliminarPersona, guardarPersona } = c;
+  const [miembros, setMiembros] = useState(null);
+  const [buscar, setBuscar] = useState('');
+  const [filtro, setFiltro] = useState('todas');
+  const [seleccionados, setSeleccionados] = useState(() => new Set());
+  const [campo, setCampo] = useState(CAMPOS_MASIVOS[0].key);
+  const [valor, setValor] = useState('');
+  const [error, setError] = useState('');
+  const [resultado, setResultado] = useState('');
+  const [confirmarEdicion, setConfirmarEdicion] = useState(false);
+  const [confirmarBorrado, setConfirmarBorrado] = useState(false);
+  const [palabraBorrado, setPalabraBorrado] = useState('');
+  const [confirmoConsentimiento, setConfirmoConsentimiento] = useState(false);
+  const [confirmoNotas, setConfirmoNotas] = useState(false);
+  const [procesando, setProcesando] = useState(false);
+
+  useEffect(() => onSnapshot(collection(db, 'churches', churchId, 'members'), (snap) => setMiembros(new Map(snap.docs.map((d) => [d.id, d.data()]))), () => setMiembros(new Map())), [churchId]);
+  const owner = church?.ownerUid;
+  const ordenadas = [...people].sort((a, b) => norm(nombreDe(a)).localeCompare(norm(nombreDe(b))));
+  const elegibles = ordenadas.filter((p) => p.key !== myUid && p.key !== owner && (!p.uid || (miembros?.has(p.key) && puedeCambiarPerfil(c, { role: miembros.get(p.key)?.role || 'colaborador', esDueno: p.key === owner }))));
+  const asistenciasPorPersona = new Map();
+  asistencia.forEach((a) => asistenciasPorPersona.set(a.personKey, (asistenciasPorPersona.get(a.personKey) || 0) + 1));
+  const q = norm(buscar);
+  const visibles = elegibles.filter((p) => {
+    const pasaBusqueda = !q || norm(nombreDe(p)).includes(q) || norm(p.tipo || '').includes(q) || norm(p.email || fichas.get(p.key)?.email || '').includes(q);
+    const pasaFiltro = filtro === 'visitas' ? p.tipo === 'Visita'
+      : filtro === 'una-visita' ? p.tipo === 'Visita' && asistenciasPorPersona.get(p.key) === 1
+        : filtro === 'sin-cuenta' ? !p.uid
+          : filtro === 'inactivos' ? p.estado === 'inactivo' : true;
+    return pasaBusqueda && pasaFiltro;
+  });
+  const seleccion = elegibles.filter((p) => seleccionados.has(p.key));
+  const def = CAMPOS_MASIVOS.find((x) => x.key === campo) || CAMPOS_MASIVOS[0];
+  const mostrarValor = (x) => {
+    if (def.key === 'familiaId' && !x) return 'Sin familia';
+    if (def.key === 'teams' && Array.isArray(x)) return x.length ? x.join(', ') : 'vacío';
+    if (x === '__vaciar' || x === null || x === '') return 'vacío';
+    if (x === true) return 'Sí';
+    if (x === false) return 'No';
+    if (def.key === 'familiaId') return x ? (familias.get(x)?.name || 'Familia seleccionada') : 'Sin familia';
+    if (def.key === 'estado') return x === 'activo' ? 'Activo' : 'Inactivo';
+    return String(x);
+  };
+  const toggle = (key) => setSeleccionados((antes) => {
+    const despues = new Set(antes);
+    if (despues.has(key)) despues.delete(key); else despues.add(key);
+    return despues;
+  });
+  const toggleVisibles = () => setSeleccionados((antes) => {
+    const todos = visibles.length > 0 && visibles.every((p) => antes.has(p.key));
+    const despues = new Set(antes);
+    visibles.forEach((p) => todos ? despues.delete(p.key) : despues.add(p.key));
+    return despues;
+  });
+  const normalizarValor = () => {
+    if (valor === '__vaciar') return null;
+    if (def.tipo === 'bool') return valor === '' ? undefined : valor === 'si';
+    if (def.tipo === 'familia') return valor || null;
+    if (def.key === 'teams') return valor.trim() ? [valor.trim().slice(0, 80)] : [];
+    if (valor === '') return null;
+    if (def.tipo === 'texto' || def.tipo === 'email') return valor.trim().slice(0, 120);
+    return valor;
+  };
+  const validar = () => {
+    if (!seleccion.length) return 'Selecciona al menos una persona.';
+    if (def.tipo === 'bool' && valor === '') return 'Elige Sí o No.';
+    if (def.tipo === 'select' && valor === '') return 'Elige un valor.';
+    if (def.requerido && !valor.trim()) return 'El nombre no puede quedar vacío.';
+    if (['nombre', 'apellido'].includes(def.key)) {
+      const nombreLargo = seleccion.some((p) => {
+        const nombreNuevo = def.key === 'nombre' ? valor.trim() : pNombreSeleccionado(p);
+        const apellidoNuevo = def.key === 'apellido' ? valor.trim() : pApellidoSeleccionado(p);
+        return (nombreNuevo + ' ' + apellidoNuevo).trim().length > 60;
+      });
+      if (nombreLargo) return 'El nombre completo no puede superar 60 caracteres.';
+    }
+    if (def.tipo === 'email' && valor.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor.trim())) return 'Escribe un correo válido.';
+    if (def.tipo === 'texto' && valor.length > 120) return 'El texto no puede superar 120 caracteres.';
+    if (def.tipo === 'area' && valor.length > def.max) return 'El texto no puede superar ' + def.max + ' caracteres.';
+    if (def.tipo === 'familia' && valor && !familias.has(valor)) return 'La familia elegida ya no existe.';
+    if (def.tipo === 'fecha' && valor && !/^\d{4}-\d{2}-\d{2}$/.test(valor)) return 'Selecciona una fecha válida.';
+    if (def.key === 'consentimiento' && valor === 'si' && !confirmoConsentimiento) return 'Confirma que todas las personas seleccionadas dieron su consentimiento.';
+    if (['notas', 'notasMedicas'].includes(def.key) && !confirmoNotas) return 'Confirma que deseas reemplazar estas notas en todas las fichas seleccionadas.';
+    return '';
+  };
+  const prepararEdicion = () => {
+    const mensaje = validar();
+    if (mensaje) { setError(mensaje); return; }
+    setError(''); setResultado(''); setConfirmarEdicion(true); setConfirmarBorrado(false);
+  };
+  const aplicarEdicion = async () => {
+    const mensaje = validar();
+    if (mensaje) { setError(mensaje); setConfirmarEdicion(false); return; }
+    setProcesando(true); setError(''); setResultado('');
+    const v = normalizarValor();
+    const fallidos = [];
+    let exitos = 0;
+    for (const p of seleccion) {
+      try {
+        if (def.grupo === 'ficha') {
+          const anterior = { ...(fichas.get(p.key) || {}), ...(notas.get(p.key) || {}) };
+          let personaPublica = null;
+          if (def.key === 'fechaNacimiento' || def.key === 'aniversario') {
+            const campoPublico = def.key === 'fechaNacimiento' ? 'birthday' : 'aniversarioMD';
+            personaPublica = { name: nombreDe(p), [campoPublico]: v ? v.slice(5) : (campoPublico === 'birthday' ? deleteField() : null) };
+          }
+          await guardarPersona(p.key, personaPublica, { ...anterior, [def.key]: v }, [def.label]);
+        } else {
+          const persona = { name: nombreDe(p), [def.key]: v };
+          if (def.key === 'nombre' || def.key === 'apellido') {
+            const nombre = def.key === 'nombre' ? v : pNombreSeleccionado(p);
+            const apellido = def.key === 'apellido' ? (v || '') : pApellidoSeleccionado(p);
+            persona.name = [nombre, apellido].filter(Boolean).join(' ').slice(0, 60);
+          }
+          await guardarPersona(p.key, persona, fichas.get(p.key) || {}, [def.label]);
+        }
+        exitos++;
+      } catch (e) { fallidos.push({ key: p.key, texto: nombreDe(p) + ': ' + e.message }); }
+    }
+    setProcesando(false); setConfirmarEdicion(false);
+    setResultado('Se actualizaron ' + exitos + ' de ' + seleccion.length + ' fichas.' + (fallidos.length ? ' Fallaron: ' + fallidos.slice(0, 3).map((f) => f.texto).join('; ') + (fallidos.length > 3 ? '; y ' + (fallidos.length - 3) + ' más.' : '.') : ''));
+    setSeleccionados(new Set(fallidos.map((f) => f.key)));
+    setValor(''); setConfirmoConsentimiento(false);
+  };
+  const iniciarBorrado = () => {
+    if (!seleccion.length) { setError('Selecciona al menos una ficha.'); return; }
+    setError(''); setResultado(''); setConfirmarBorrado(true); setConfirmarEdicion(false); setPalabraBorrado('');
+  };
+  const borrarSeleccion = async () => {
+    if (palabraBorrado !== 'ELIMINAR') { setError('Escribe ELIMINAR para confirmar.'); return; }
+    setProcesando(true); setError(''); setResultado('');
+    const fallidos = [];
+    let exitos = 0;
+    for (const p of seleccion) {
+      try { await eliminarPersona(p.key); exitos++; }
+      catch (e) { fallidos.push({ key: p.key, texto: nombreDe(p) + ': ' + e.message }); }
+    }
+    setProcesando(false); setConfirmarBorrado(false); setPalabraBorrado('');
+    setResultado('Se eliminaron ' + exitos + ' de ' + seleccion.length + ' perfiles.' + (fallidos.length ? ' No se pudieron eliminar: ' + fallidos.slice(0, 3).map((f) => f.texto).join('; ') + (fallidos.length > 3 ? '; y ' + (fallidos.length - 3) + ' más.' : '.') : ''));
+    setSeleccionados(new Set(fallidos.map((f) => f.key)));
+  };
+  const cuentasSeleccionadas = seleccion.filter((p) => p.uid).length;
+  const visitasSeleccionadas = seleccion.filter((p) => p.tipo === 'Visita' || p.miembro === false).length;
+  const visitasDeUnaVez = seleccion.filter((p) => p.tipo === 'Visita' && asistenciasPorPersona.get(p.key) === 1).length;
+
+  return (
+    <section className="card cg-stack">
+      <h2>Edición masiva de fichas</h2>
+      <p className="muted">Corrige un dato en varias fichas a la vez. Incluye miembros, personas sin cuenta y visitas. Los cambios de rol de acceso se hacen individualmente en Perfiles de acceso; las notas pastorales y médicas siguen editándose una ficha a la vez.</p>
+      <div className="cg-grid">
+        <label className="cg-dato"><span>Buscar personas</span><input type="search" value={buscar} onChange={(e) => setBuscar(e.target.value)} placeholder="Nombre, tipo o correo" /></label>
+        <label className="cg-dato"><span>Filtrar lista</span><select value={filtro} onChange={(e) => { setFiltro(e.target.value); setSeleccionados(new Set()); }}><option value="todas">Toda la congregación</option><option value="visitas">Visitas</option><option value="una-visita">Visitas con una asistencia</option><option value="sin-cuenta">Fichas sin cuenta</option><option value="inactivos">Inactivos</option></select></label>
+      </div>
+      <div className="cg-edicion-masiva-cabeza">
+        <strong>{seleccion.length} seleccionada(s) · {visibles.length} visible(s)</strong>
+        <button type="button" className="btn small" onClick={toggleVisibles} disabled={!miembros || !visibles.length || procesando}>{visibles.length && visibles.every((p) => seleccionados.has(p.key)) ? 'Desmarcar visibles' : 'Seleccionar visibles'}</button>
+      </div>
+      <div className="card cg-lista cg-masivo-lista">
+        {!miembros && <div className="muted cg-vacio">Cargando permisos…</div>}
+        {miembros && !visibles.length && <div className="muted cg-vacio">No hay personas para mostrar.</div>}
+        {miembros && visibles.map((p) => {
+          const m = miembros.get(p.key);
+          const seleccionable = seleccion.some((x) => x.key === p.key) || (!p.uid || puedeCambiarPerfil(c, { role: m?.role || 'colaborador', esDueno: p.key === owner }));
+          return (
+            <label key={p.key} className="cg-item cg-perfil-acceso">
+              <input type="checkbox" className="cg-checkbox" checked={seleccionados.has(p.key)} onChange={() => toggle(p.key)} disabled={!miembros || !seleccionable || procesando} aria-label={'Seleccionar a ' + nombreDe(p)} />
+              <Avatar name={nombreDe(p)} personKey={p.key} photo={p.photo || ''} size="md" />
+              <span className="cg-quien"><span className="cg-nombre">{nombreDe(p)}</span>
+                <span className="cg-meta">{[p.tipo || 'Sin tipo', p.uid ? 'Cuenta en Iglesia' : 'Sin cuenta', p.estado === 'inactivo' ? 'Inactivo' : 'Activo'].join(' · ')}</span>
+              </span>
+            </label>
+          );
+        })}
+      </div>
+      {seleccion.length > 0 && (
+        <div className="cg-edicion-masiva">
+          <div className="cg-grid">
+            <label className="cg-dato"><span>Dato que corregir</span>
+              <select value={campo} onChange={(e) => { setCampo(e.target.value); setValor(''); setConfirmoConsentimiento(false); setConfirmoNotas(false); setConfirmarEdicion(false); }}>
+                {CAMPOS_MASIVOS.map((x) => <option key={x.key} value={x.key}>{x.label}</option>)}
+              </select>
+            </label>
+            <label className="cg-dato"><span>Nuevo valor{def.tipo === 'familia' ? '' : ' para todas las seleccionadas'}</span>
+              {def.tipo === 'select' && <select value={valor} onChange={(e) => setValor(e.target.value)}><option value="">Selecciona…</option>{def.opciones.map((o) => { const pair = Array.isArray(o) ? o : [o, o]; return <option key={pair[0]} value={pair[0]}>{pair[1]}</option>; })}<option value="__vaciar">Vaciar campo</option></select>}
+              {def.tipo === 'bool' && <select value={valor} onChange={(e) => setValor(e.target.value)}><option value="">Selecciona…</option><option value="si">Sí</option><option value="no">No</option></select>}
+              {def.tipo === 'familia' && <select value={valor} onChange={(e) => setValor(e.target.value)}><option value="">Sin familia</option>{[...familias.values()].sort((a, b) => a.name.localeCompare(b.name, 'es')).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select>}
+              {['texto', 'email', 'fecha'].includes(def.tipo) && <input type={def.tipo === 'fecha' ? 'date' : def.tipo === 'email' ? 'email' : 'text'} value={valor} onChange={(e) => setValor(e.target.value)} maxLength={120} />}
+              {def.tipo === 'area' && <textarea value={valor} onChange={(e) => setValor(e.target.value)} maxLength={def.max} rows={4} />}
+            </label>
+          </div>
+          {def.key === 'consentimiento' && valor === 'si' && <label className="cg-masivo-legal"><input type="checkbox" checked={confirmoConsentimiento} onChange={(e) => setConfirmoConsentimiento(e.target.checked)} /> Confirmo que todas las personas seleccionadas dieron su consentimiento.</label>}
+          {['notas', 'notasMedicas'].includes(def.key) && <label className="cg-masivo-legal"><input type="checkbox" checked={confirmoNotas} onChange={(e) => setConfirmoNotas(e.target.checked)} /> Confirmo que quiero reemplazar las notas de todas las fichas seleccionadas.</label>}
+          {error && <div className="cg-aviso" role="alert">{error}</div>}
+          {resultado && <div className="cg-aviso" role="status">{resultado}</div>}
+          {!confirmarEdicion ? (
+            <button type="button" className="btn primary" onClick={prepararEdicion} disabled={procesando}>Revisar cambio</button>
+          ) : (
+            <div className="cg-edicion-preview">
+              <strong>Validación del cambio</strong>
+              <p>Se cambiará “{def.label}” a “{mostrarValor(normalizarValor())}” en {seleccion.length} ficha(s):</p>
+              <p className="muted small">{seleccion.slice(0, 8).map(nombreDe).join(', ')}{seleccion.length > 8 ? ' y ' + (seleccion.length - 8) + ' más.' : ''}</p>
+              <div className="cg-row">
+                <button type="button" className="btn primary" onClick={aplicarEdicion} disabled={procesando}>{procesando ? 'Aplicando…' : 'Confirmar y aplicar'}</button>
+                <button type="button" className="btn" onClick={() => setConfirmarEdicion(false)} disabled={procesando}>Volver</button>
+              </div>
+            </div>
+          )}
+          {!confirmarBorrado ? <button type="button" className="btn peligro" onClick={iniciarBorrado} disabled={procesando}>Eliminar perfiles seleccionados</button> : (
+            <div className="cg-edicion-preview cg-confirmar-borrado">
+              <strong>Confirma la eliminación permanente</strong>
+              <p>Se eliminarán {seleccion.length} perfiles, incluyendo datos personales y registros de asistencia; esta acción no se puede deshacer.</p>
+              <p>{visitasSeleccionadas} visita(s), de ellas {visitasDeUnaVez} con una sola asistencia · {cuentasSeleccionadas} usuario(s) con cuenta. Las cuentas de Google/Firebase no se eliminan; se les quitará acceso a esta iglesia.</p>
+              <p className="muted small">{seleccion.slice(0, 8).map(nombreDe).join(', ')}{seleccion.length > 8 ? ' y ' + (seleccion.length - 8) + ' más.' : ''}</p>
+              <label className="cg-dato"><span>Escribe ELIMINAR para confirmar</span><input value={palabraBorrado} onChange={(e) => setPalabraBorrado(e.target.value)} autoComplete="off" /></label>
+              <div className="cg-row">
+                <button type="button" className="btn peligro" onClick={borrarSeleccion} disabled={procesando || palabraBorrado !== 'ELIMINAR'}>{procesando ? 'Eliminando…' : 'Eliminar definitivamente'}</button>
+                <button type="button" className="btn" onClick={() => { setConfirmarBorrado(false); setPalabraBorrado(''); }} disabled={procesando}>Cancelar</button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+      <p className="muted small">Los perfiles principales y las notas pastorales o médicas no se cambian en bloque. Tú y el Súper admin no se pueden eliminar desde esta herramienta.</p>
+    </section>
+  );
+}
+
 /** Registro de cambios: solo el Súper admin. */
 function Registro() {
   const { churchId } = useCongrega();

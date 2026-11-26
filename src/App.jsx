@@ -127,7 +127,7 @@ export default function App() {
     <div className="app">
       {!presenting && (
         <header className="topbar">
-          <Link className="brand" to="/apps" title="Cambiar de módulo"><span className="brand-mark" aria-hidden="true">A</span><span className="brand-name">{APP_NOMBRE}</span><span className="brand-context">{enCongrega ? 'Congrega' : enApps ? 'Apps' : 'Música'}</span><span className="beta-pill">{APP_ETAPA}</span><span className="brand-cambiar" aria-hidden="true">▾</span></Link>
+          <Link className="brand" to="/apps" title="Cambiar de módulo"><span className="brand-mark" aria-hidden="true">I</span><span className="brand-name">{APP_NOMBRE}</span><span className="brand-context">{enCongrega ? 'Congrega' : enApps ? 'Apps' : 'Adora'}</span><span className="beta-pill">{APP_ETAPA}</span><span className="brand-cambiar" aria-hidden="true">▾</span></Link>
           {!enApps && (!enCongrega || (mode === 'cloud' && church)) && <nav className="tabs">
             {tabs.map((t) => (
               <NavLink

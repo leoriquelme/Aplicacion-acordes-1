@@ -156,14 +156,40 @@ export function CongregaProvider({ children }) {
   }, [churchId]);
 
   const eliminarPersona = useCallback(async (key) => {
-    const b = writeBatch(db);
-    asistencia.forEach((a, id) => { if (a.personKey === key) b.delete(ref('asistencia', id)); });
-    b.delete(ref('fichas', key));
-    b.delete(ref('notas', key));
-    b.delete(ref('people', key));
-    await b.commit();
-    anotar('Eliminó una persona', nombreDe(people.find((p) => p.key === key)));
-  }, [asistencia, ref, anotar, people]);
+    const persona = people.find((p) => p.key === key);
+    const raiz = ['churches', churchId];
+    const memberRef = ref('members', key);
+    const [member, asistencias, participaciones, turnos] = await Promise.all([
+      persona?.uid ? getDoc(memberRef) : Promise.resolve(null),
+      getDocs(query(collection(db, ...raiz, 'asistencia'), where('personKey', '==', key))),
+      getDocs(query(collection(db, ...raiz, 'participations'), where('personKey', '==', key))),
+      persona?.uid ? getDocs(query(collection(db, ...raiz, 'turnosEstacion'), where('uid', '==', key))) : Promise.resolve({ docs: [] }),
+    ]);
+    const dependencias = [
+      ...asistencias.docs.map((d) => d.ref),
+      ...participaciones.docs.map((d) => d.ref),
+      ...turnos.docs.map((d) => d.ref),
+    ];
+    // Mantén la membresía hasta que se borren los registros dependientes: las reglas
+    // validan cada operación contra el permiso actual del Administrador.
+    while (dependencias.length > 400) {
+      const lote = writeBatch(db);
+      dependencias.splice(0, 400).forEach((r) => lote.delete(r));
+      await lote.commit();
+    }
+    const lote = writeBatch(db);
+    dependencias.forEach((r) => lote.delete(r));
+    lote.delete(ref('fichas', key));
+    lote.delete(ref('notas', key));
+    lote.delete(ref('people', key));
+    if (persona?.uid) {
+      if (member?.exists()) lote.delete(memberRef);
+      lote.delete(ref('cuentas', key));
+      lote.delete(ref('equipoEstacion', key));
+    }
+    await lote.commit();
+    anotar('Eliminó una persona', nombreDe(persona));
+  }, [ref, anotar, people, churchId]);
 
   /**
    * Une a personas repetidas en una sola (solo Administrador), sacando lo mejor de cada una:
