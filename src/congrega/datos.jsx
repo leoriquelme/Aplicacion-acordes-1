@@ -189,7 +189,7 @@ export function CongregaProvider({ children }) {
     }
     await lote.commit();
     anotar('Eliminó una persona', nombreDe(persona));
-  }, [asistencia, ref, anotar, people, churchId]);
+  }, [ref, anotar, people, churchId]);
 
   /**
    * Une a personas repetidas en una sola (solo Administrador), sacando lo mejor de cada una:
