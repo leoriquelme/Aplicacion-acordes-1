@@ -585,7 +585,7 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
         .map((p) => deleteDoc(doc(col('participations'), p.id)).catch(() => {})));
       if (members.some((m) => m.uid === key)) await deleteDoc(memberRef(churchId, key));
       await deleteDoc(personRef(churchId, key));
-    } catch (e) { report(e); }
+    } catch (e) { report(e); throw e; }
   }, [churchId, members, report, participations, col]);
 
   /** Sube canciones de este equipo a la iglesia, saltando títulos que ya existen. */

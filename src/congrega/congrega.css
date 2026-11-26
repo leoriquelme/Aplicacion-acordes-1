@@ -301,3 +301,18 @@ a.cg-item:hover { background: var(--surface-2); text-decoration: none; }
 @media (hover: hover) {
   .cg .cg-rec:hover { background: color-mix(in srgb, var(--primary-soft) 65%, transparent); }
 }
+
+/* Edición masiva de usuarios en Ajustes: solo perfiles administradores. */
+.cg-edicion-masiva { display: grid; gap: 0.75rem; padding: 0.9rem; border: 1px solid var(--border); border-radius: 14px; background: color-mix(in srgb, var(--primary-soft) 34%, var(--surface)); }
+.cg-edicion-masiva-cabeza, .cg-edicion-masiva-acciones { display: flex; align-items: center; flex-wrap: wrap; gap: 0.65rem; }
+.cg-edicion-masiva-cabeza { justify-content: space-between; }
+.cg-edicion-masiva-cabeza > div { display: grid; gap: 0.15rem; }
+.cg-edicion-masiva-acciones { padding-top: 0.7rem; border-top: 1px solid var(--border); }
+.cg-masivo-perfil { min-width: min(100%, 13rem); }
+.cg-edicion-masiva .peligro { color: var(--cg-warn); border-color: color-mix(in srgb, var(--cg-warn) 45%, var(--border)); }
+.cg-edicion-masiva .peligro:hover:not(:disabled) { background: color-mix(in srgb, var(--cg-warn) 10%, var(--surface)); }
+.cg-perfil-acceso .cg-checkbox { margin-right: 0.1rem; accent-color: var(--primary); }
+@media (max-width: 520px) {
+  .cg-edicion-masiva-acciones > * { flex: 1 1 100%; }
+  .cg-masivo-perfil { width: 100%; }
+}
