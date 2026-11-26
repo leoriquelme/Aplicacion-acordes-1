@@ -72,8 +72,7 @@ export function pestanasCongrega(p) {
   if (p.asisAdmin) t.push('asistencia');
   if (p.marca) t.push('estacion');
   if (p.verPersonas) t.push('personas');
-  else t.push('mificha');
-  if (p.admin) t.push('ajustes');
+  t.push('ajustes');
   return t;
 }
 
