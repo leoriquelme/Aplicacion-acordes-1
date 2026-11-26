@@ -683,11 +683,13 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
     const d = datosPrueba();
     const ops = [
       ...d.people.filter((p) => p.key !== mySession?.key).map(({ key, ...p }) => (b) => {
-        const { miembro, estado, ...publico } = p;
+        const { miembro, estado, motivoInactivo, fechaInactivo, ...publico } = p;
         b.set(personRef(churchId, key), publico);
         const privado = {};
         if (miembro !== undefined) privado.miembro = miembro === true;
         if (estado !== undefined) privado.estado = estado === 'inactivo' ? 'inactivo' : 'activo';
+        if (motivoInactivo !== undefined) privado.motivoInactivo = String(motivoInactivo || '').slice(0, 60);
+        if (fechaInactivo !== undefined) privado.fechaInactivo = String(fechaInactivo || '').slice(0, 10);
         if (Object.keys(privado).length) b.set(doc(db, 'churches', churchId, 'estadoPersonas', key), privado);
       }),
       ...d.songs.map((s) => (b) => b.set(doc(col('songs'), s.id), { ...sinId(s), updatedAt: Date.now(), createdAt: s.createdAt || Date.now() })),
