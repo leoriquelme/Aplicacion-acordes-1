@@ -209,11 +209,12 @@ function EdicionMasiva() {
     if (def.tipo === 'select' && valor === '') return 'Elige un valor.';
     if (def.requerido && !valor.trim()) return 'El nombre no puede quedar vacío.';
     if (['nombre', 'apellido'].includes(def.key)) {
-      const nombreActual = pNombreSeleccionado(seleccion[0]);
-      const apellidoActual = pApellidoSeleccionado(seleccion[0]);
-      const nombreNuevo = def.key === 'nombre' ? valor.trim() : nombreActual;
-      const apellidoNuevo = def.key === 'apellido' ? valor.trim() : apellidoActual;
-      if ((nombreNuevo + ' ' + apellidoNuevo).trim().length > 60) return 'El nombre completo no puede superar 60 caracteres.';
+      const nombreLargo = seleccion.some((p) => {
+        const nombreNuevo = def.key === 'nombre' ? valor.trim() : pNombreSeleccionado(p);
+        const apellidoNuevo = def.key === 'apellido' ? valor.trim() : pApellidoSeleccionado(p);
+        return (nombreNuevo + ' ' + apellidoNuevo).trim().length > 60;
+      });
+      if (nombreLargo) return 'El nombre completo no puede superar 60 caracteres.';
     }
     if (def.tipo === 'email' && valor.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor.trim())) return 'Escribe un correo válido.';
     if (def.tipo === 'texto' && valor.length > 120) return 'El texto no puede superar 120 caracteres.';
