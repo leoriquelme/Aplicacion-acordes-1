@@ -295,7 +295,7 @@ export async function soySuperAdmin() {
   }
 }
 
-const SUBCOLECCIONES = ['members', 'sessions', 'people', 'estadoPersonas', 'private', 'songs', 'events', 'participations', 'favorites', 'suggestions', 'live', 'families', 'fichas', 'asistencia', 'notas', 'registro', 'cuentas'];
+const SUBCOLECCIONES = ['members', 'sessions', 'people', 'estadoPersonas', 'clasificacionPersonas', 'private', 'songs', 'events', 'participations', 'favorites', 'suggestions', 'live', 'families', 'fichas', 'asistencia', 'notas', 'registro', 'cuentas'];
 
 /** Todas las iglesias (solo Super Admin). */
 export async function todasLasIglesias() {
@@ -683,7 +683,7 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
     const d = datosPrueba();
     const ops = [
       ...d.people.filter((p) => p.key !== mySession?.key).map(({ key, ...p }) => (b) => {
-        const { miembro, estado, motivoInactivo, fechaInactivo, ...publico } = p;
+        const { miembro, estado, motivoInactivo, fechaInactivo, tipo, ...publico } = p;
         b.set(personRef(churchId, key), publico);
         const privado = {};
         if (miembro !== undefined) privado.miembro = miembro === true;
@@ -691,6 +691,7 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
         if (motivoInactivo !== undefined) privado.motivoInactivo = String(motivoInactivo || '').slice(0, 60);
         if (fechaInactivo !== undefined) privado.fechaInactivo = String(fechaInactivo || '').slice(0, 10);
         if (Object.keys(privado).length) b.set(doc(db, 'churches', churchId, 'estadoPersonas', key), privado);
+        if (tipo !== undefined) b.set(doc(db, 'churches', churchId, 'clasificacionPersonas', key), { tipo: String(tipo || '').slice(0, 20) });
       }),
       ...d.songs.map((s) => (b) => b.set(doc(col('songs'), s.id), { ...sinId(s), updatedAt: Date.now(), createdAt: s.createdAt || Date.now() })),
       ...d.events.map((e) => (b) => b.set(doc(col('events'), e.id), sinId(e))),
@@ -702,7 +703,7 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
   }, [isTest, churchId, col, mySession?.key]); // eslint-disable-line react-hooks/exhaustive-deps
   const resetTestChurch = useCallback(async () => {
     if (!isTest) throw new Error('Solo en la iglesia de prueba.');
-    const [ps, ss, es, estados] = await Promise.all(['participations', 'songs', 'events', 'estadoPersonas'].map((n) => getDocs(col(n))));
+    const [ps, ss, es, estados] = await Promise.all(['participations', 'songs', 'events', 'estadoPersonas', 'clasificacionPersonas'].map((n) => getDocs(col(n))));
     await commitAll([...ps.docs, ...ss.docs, ...es.docs, ...estados.docs].map((d) => (b) => b.delete(d.ref)));
     await commitAll(people.filter((p) => p.key !== mySession?.key && p.role !== 'admin').map((p) => (b) => b.delete(personRef(churchId, p.key))));
   }, [isTest, churchId, col, people, mySession?.key]); // eslint-disable-line react-hooks/exhaustive-deps
