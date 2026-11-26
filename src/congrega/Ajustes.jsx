@@ -111,8 +111,8 @@ const CAMPOS_MASIVOS = [
   { key: 'miembro', label: 'Es miembro', grupo: 'persona', tipo: 'bool' },
   { key: 'tipo', label: 'Asistencia habitual', grupo: 'persona', tipo: 'select', opciones: TIPOS },
   { key: 'estado', label: 'Estado de actividad', grupo: 'persona', tipo: 'select', opciones: [['activo', 'Activo'], ['inactivo', 'Inactivo']] },
-  { key: 'motivoInactivo', label: 'Motivo de inactividad', grupo: 'ficha', tipo: 'select', opciones: ['Cambio de iglesia', 'Cambio de domicilio', 'No volvió a asistir', 'Fallecido/a', 'Otro'] },
-  { key: 'fechaInactivo', label: 'Inactivo desde', grupo: 'ficha', tipo: 'fecha' },
+  { key: 'motivoInactivo', label: 'Motivo de inactividad', grupo: 'persona', tipo: 'select', opciones: ['Cambio de iglesia', 'Cambio de domicilio', 'No volvió a asistir', 'Fallecido/a', 'Otro'] },
+  { key: 'fechaInactivo', label: 'Inactivo desde', grupo: 'persona', tipo: 'fecha' },
   { key: 'rangoEdad', label: 'Rango de edad', grupo: 'persona', tipo: 'select', opciones: RANGOS },
   { key: 'esNino', label: 'Es niño/a', grupo: 'persona', tipo: 'bool' },
   { key: 'familiaId', label: 'Familia', grupo: 'persona', tipo: 'familia' },
@@ -376,26 +376,57 @@ function MigrarEstadosPrivados() {
   const migrar = async () => {
     setProcesando(true); setMensaje('');
     try {
-      const snap = await getDocs(collection(db, 'churches', churchId, 'people'));
-      const pendientes = snap.docs.filter((d) => {
+      const base = ['churches', churchId];
+      const [peopleSnap, fichasSnap] = await Promise.all([
+        getDocs(collection(db, ...base, 'people')),
+        getDocs(collection(db, ...base, 'fichas')),
+      ]);
+      const pendientes = new Map();
+      peopleSnap.docs.forEach((d) => {
         const x = d.data();
-        return Object.prototype.hasOwnProperty.call(x, 'miembro') || Object.prototype.hasOwnProperty.call(x, 'estado');
+        if (['miembro', 'estado', 'motivoInactivo', 'fechaInactivo'].some((k) => Object.prototype.hasOwnProperty.call(x, k))) {
+          pendientes.set(d.id, { ...(pendientes.get(d.id) || {}), persona: d, personaDatos: x });
+        }
       });
-      if (!pendientes.length) { setMensaje('La migración ya está completa.'); return; }
-      const confirmada = window.confirm(`Se moverá el estado de ${pendientes.length} perfiles a datos privados. Se conservarán los valores y se quitarán de las fichas visibles. ¿Continuar?`);
+      fichasSnap.docs.forEach((d) => {
+        const x = d.data();
+        if (['motivoInactivo', 'fechaInactivo'].some((k) => Object.prototype.hasOwnProperty.call(x, k))) {
+          pendientes.set(d.id, { ...(pendientes.get(d.id) || {}), ficha: d, fichaDatos: x });
+        }
+      });
+      const filas = [...pendientes.values()];
+      if (!filas.length) { setMensaje('La migración ya está completa.'); return; }
+      const confirmada = window.confirm(`Se moverán los estados, motivos y fechas de ${filas.length} perfiles a datos privados. Se conservarán los valores y se quitarán de las fichas visibles. ¿Continuar?`);
       if (!confirmada) return;
-      for (let i = 0; i < pendientes.length; i += 200) {
+      for (let i = 0; i < filas.length; i += 150) {
         const lote = writeBatch(db);
-        pendientes.slice(i, i + 200).forEach((d) => {
-          const x = d.data(); const privado = {};
-          if (Object.prototype.hasOwnProperty.call(x, 'miembro')) privado.miembro = x.miembro === true;
-          if (Object.prototype.hasOwnProperty.call(x, 'estado')) privado.estado = x.estado === 'inactivo' ? 'inactivo' : 'activo';
-          lote.set(doc(db, 'churches', churchId, 'estadoPersonas', d.id), privado, { merge: true });
-          lote.update(d.ref, { miembro: deleteField(), estado: deleteField() });
+        filas.slice(i, i + 150).forEach(({ persona, personaDatos = {}, ficha, fichaDatos = {} }) => {
+          const key = persona?.id || ficha.id;
+          const privado = {};
+          const estado = { ...fichaDatos, ...personaDatos };
+          if (Object.prototype.hasOwnProperty.call(estado, 'miembro')) privado.miembro = estado.miembro === true;
+          if (Object.prototype.hasOwnProperty.call(estado, 'estado')) privado.estado = estado.estado === 'inactivo' ? 'inactivo' : 'activo';
+          if (Object.prototype.hasOwnProperty.call(estado, 'motivoInactivo')) privado.motivoInactivo = String(estado.motivoInactivo || '').slice(0, 60);
+          if (Object.prototype.hasOwnProperty.call(estado, 'fechaInactivo')) privado.fechaInactivo = /^\d{4}-\d{2}-\d{2}$/.test(estado.fechaInactivo || '') ? estado.fechaInactivo : '';
+          lote.set(doc(db, 'churches', churchId, 'estadoPersonas', key), privado, { merge: true });
+          if (persona) {
+            const borrar = {};
+            ['miembro', 'estado', 'motivoInactivo', 'fechaInactivo'].forEach((k) => {
+              if (Object.prototype.hasOwnProperty.call(personaDatos, k)) borrar[k] = deleteField();
+            });
+            if (Object.keys(borrar).length) lote.update(persona.ref, borrar);
+          }
+          if (ficha) {
+            const borrar = {};
+            ['motivoInactivo', 'fechaInactivo'].forEach((k) => {
+              if (Object.prototype.hasOwnProperty.call(fichaDatos, k)) borrar[k] = deleteField();
+            });
+            if (Object.keys(borrar).length) lote.update(ficha.ref, borrar);
+          }
         });
         await lote.commit();
       }
-      setMensaje(`Listo: ${pendientes.length} perfiles migrados. Ahora puedes publicar las reglas de Firestore incluidas en firestore.rules.actualizadas.txt.`);
+      setMensaje(`Listo: ${filas.length} perfiles migrados. Ahora puedes publicar las reglas finales de firestore.rules.actualizadas.txt.`);
     } catch (e) {
       setMensaje(`No se pudo completar la migración: ${e.message}`);
     } finally { setProcesando(false); }
@@ -403,7 +434,7 @@ function MigrarEstadosPrivados() {
   return (
     <section className="card cg-stack">
       <h2>Privacidad de membresía</h2>
-      <p className="muted">Mueve el estado de miembro y actividad fuera del perfil visible. Ejecuta esto una vez antes de publicar las nuevas reglas de Firestore.</p>
+      <p className="muted">Mueve el estado de miembro y actividad, su motivo y la fecha de inactividad fuera de las fichas visibles. Publica primero las reglas temporales; después ejecuta esta migración y, al terminar, publica las reglas finales.</p>
       <button type="button" className="btn" onClick={migrar} disabled={procesando}>{procesando ? 'Migrando…' : 'Migrar datos de privacidad'}</button>
       {mensaje && <div className="cg-aviso info" role="status">{mensaje}</div>}
     </section>
