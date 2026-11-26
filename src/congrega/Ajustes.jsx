@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { collection, limit, onSnapshot, orderBy, query } from 'firebase/firestore';
+import { collection, deleteField, limit, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { db } from '../lib/firebase.js';
 import { Avatar } from '../components/Avatares.jsx';
 import { CIVIL, RANGOS, ROLES_FAMILIA, TIPOS, nombreDe, norm, useCongrega } from './datos.jsx';
@@ -99,6 +99,9 @@ function PerfilesAcceso() {
   );
 }
 
+const pNombreSeleccionado = (p) => p?.nombre || (!p?.apellido && p?.name ? p.name.trim().split(/\\s+/)[0] : '');
+const pApellidoSeleccionado = (p) => p?.apellido || (!p?.nombre && p?.name ? p.name.trim().split(/\\s+/).slice(1).join(' ') : '');
+
 const CAMPOS_MASIVOS = [
   { key: 'nombre', label: 'Nombre', grupo: 'persona', tipo: 'texto', requerido: true },
   { key: 'apellido', label: 'Apellidos', grupo: 'persona', tipo: 'texto' },
@@ -137,9 +140,10 @@ const CAMPOS_MASIVOS = [
 
 function EdicionMasiva() {
   const c = useCongrega();
-  const { people, familias, fichas, churchId, church, myUid, eliminarPersona, guardarPersona } = c;
+  const { people, familias, fichas, asistencia, churchId, church, myUid, eliminarPersona, guardarPersona } = c;
   const [miembros, setMiembros] = useState(null);
   const [buscar, setBuscar] = useState('');
+  const [filtro, setFiltro] = useState('todas');
   const [seleccionados, setSeleccionados] = useState(() => new Set());
   const [campo, setCampo] = useState(CAMPOS_MASIVOS[0].key);
   const [valor, setValor] = useState('');
@@ -156,12 +160,22 @@ function EdicionMasiva() {
   const owner = church?.ownerUid;
   const ordenadas = [...people].sort((a, b) => norm(nombreDe(a)).localeCompare(norm(nombreDe(b))));
   const elegibles = ordenadas.filter((p) => p.key !== myUid && p.key !== owner && (!p.uid || (miembros?.has(p.key) && puedeCambiarPerfil(c, { role: miembros.get(p.key)?.role || 'colaborador', esDueno: p.key === owner }))));
+  const asistenciasPorPersona = new Map();
+  asistencia.forEach((a) => asistenciasPorPersona.set(a.personKey, (asistenciasPorPersona.get(a.personKey) || 0) + 1));
   const q = norm(buscar);
-  const visibles = elegibles.filter((p) => !q || norm(nombreDe(p)).includes(q) || norm(p.tipo || '').includes(q) || norm(p.email || fichas.get(p.key)?.email || '').includes(q));
+  const visibles = elegibles.filter((p) => {
+    const pasaBusqueda = !q || norm(nombreDe(p)).includes(q) || norm(p.tipo || '').includes(q) || norm(p.email || fichas.get(p.key)?.email || '').includes(q);
+    const pasaFiltro = filtro === 'visitas' ? p.tipo === 'Visita'
+      : filtro === 'una-visita' ? p.tipo === 'Visita' && asistenciasPorPersona.get(p.key) === 1
+        : filtro === 'sin-cuenta' ? !p.uid
+          : filtro === 'inactivos' ? p.estado === 'inactivo' : true;
+    return pasaBusqueda && pasaFiltro;
+  });
   const seleccion = elegibles.filter((p) => seleccionados.has(p.key));
   const def = CAMPOS_MASIVOS.find((x) => x.key === campo) || CAMPOS_MASIVOS[0];
   const mostrarValor = (x) => {
     if (def.key === 'familiaId' && !x) return 'Sin familia';
+    if (def.key === 'teams' && Array.isArray(x)) return x.length ? x.join(', ') : 'vacío';
     if (x === '__vaciar' || x === null || x === '') return 'vacío';
     if (x === true) return 'Sí';
     if (x === false) return 'No';
@@ -180,7 +194,6 @@ function EdicionMasiva() {
     visibles.forEach((p) => todos ? despues.delete(p.key) : despues.add(p.key));
     return despues;
   });
-  const limpiarValidacion = () => { setError(''); setResultado(''); setConfirmarEdicion(false); setConfirmarBorrado(false); setPalabraBorrado(''); };
   const normalizarValor = () => {
     if (valor === '__vaciar') return null;
     if (def.tipo === 'bool') return valor === '' ? undefined : valor === 'si';
@@ -195,6 +208,13 @@ function EdicionMasiva() {
     if (def.tipo === 'bool' && valor === '') return 'Elige Sí o No.';
     if (def.tipo === 'select' && valor === '') return 'Elige un valor.';
     if (def.requerido && !valor.trim()) return 'El nombre no puede quedar vacío.';
+    if (['nombre', 'apellido'].includes(def.key)) {
+      const nombreActual = pNombreSeleccionado(seleccion[0]);
+      const apellidoActual = pApellidoSeleccionado(seleccion[0]);
+      const nombreNuevo = def.key === 'nombre' ? valor.trim() : nombreActual;
+      const apellidoNuevo = def.key === 'apellido' ? valor.trim() : apellidoActual;
+      if ((nombreNuevo + ' ' + apellidoNuevo).trim().length > 60) return 'El nombre completo no puede superar 60 caracteres.';
+    }
     if (def.tipo === 'email' && valor.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor.trim())) return 'Escribe un correo válido.';
     if (def.tipo === 'texto' && valor.length > 120) return 'El texto no puede superar 120 caracteres.';
     if (def.tipo === 'area' && valor.length > def.max) return 'El texto no puede superar ' + def.max + ' caracteres.';
@@ -220,12 +240,17 @@ function EdicionMasiva() {
       try {
         if (def.grupo === 'ficha') {
           const anterior = fichas.get(p.key) || {};
-          await guardarPersona(p.key, null, { ...anterior, [def.key]: v }, [def.label]);
+          let personaPublica = null;
+          if (def.key === 'fechaNacimiento' || def.key === 'aniversario') {
+            const campoPublico = def.key === 'fechaNacimiento' ? 'birthday' : 'aniversarioMD';
+            personaPublica = { name: nombreDe(p), [campoPublico]: v ? v.slice(5) : (campoPublico === 'birthday' ? deleteField() : null) };
+          }
+          await guardarPersona(p.key, personaPublica, { ...anterior, [def.key]: v }, [def.label]);
         } else {
           const persona = { name: nombreDe(p), [def.key]: v };
           if (def.key === 'nombre' || def.key === 'apellido') {
-            const nombre = def.key === 'nombre' ? v : (p.nombre || (!p.apellido ? p.name : '') || '');
-            const apellido = def.key === 'apellido' ? (v || '') : (p.apellido || '');
+            const nombre = def.key === 'nombre' ? v : pNombreSeleccionado(p);
+            const apellido = def.key === 'apellido' ? (v || '') : pApellidoSeleccionado(p);
             persona.name = [nombre, apellido].filter(Boolean).join(' ').slice(0, 60);
           }
           await guardarPersona(p.key, persona, fichas.get(p.key) || {}, [def.label]);
@@ -262,7 +287,10 @@ function EdicionMasiva() {
     <section className="card cg-stack">
       <h2>Edición masiva de fichas</h2>
       <p className="muted">Corrige un dato en varias fichas a la vez. Incluye miembros, personas sin cuenta y visitas. Los cambios de rol de acceso se hacen individualmente en Perfiles de acceso; las notas pastorales y médicas siguen editándose una ficha a la vez.</p>
-      <label className="cg-dato"><span>Buscar personas</span><input type="search" value={buscar} onChange={(e) => setBuscar(e.target.value)} placeholder="Nombre, tipo o correo" /></label>
+      <div className="cg-grid">
+        <label className="cg-dato"><span>Buscar personas</span><input type="search" value={buscar} onChange={(e) => setBuscar(e.target.value)} placeholder="Nombre, tipo o correo" /></label>
+        <label className="cg-dato"><span>Filtrar lista</span><select value={filtro} onChange={(e) => { setFiltro(e.target.value); setSeleccionados(new Set()); }}><option value="todas">Toda la congregación</option><option value="visitas">Visitas</option><option value="una-visita">Visitas con una asistencia</option><option value="sin-cuenta">Fichas sin cuenta</option><option value="inactivos">Inactivos</option></select></label>
+      </div>
       <div className="cg-edicion-masiva-cabeza">
         <strong>{seleccion.length} seleccionada(s) · {visibles.length} visible(s)</strong>
         <button type="button" className="btn small" onClick={toggleVisibles} disabled={!miembros || !visibles.length || procesando}>{visibles.length && visibles.every((p) => seleccionados.has(p.key)) ? 'Desmarcar visibles' : 'Seleccionar visibles'}</button>
