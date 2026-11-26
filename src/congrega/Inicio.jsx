@@ -259,7 +259,7 @@ export default function Inicio() {
         <div className="card dato cg-dato-ver">{ver && ult && <VerQuienes titulo={`Asistencia ${corto(ult.date)}`} grupos={[{ label: ult.name || 'Evento', ps: vinieronA(ult.id) }]} onAbrir={setQuienes} />}<strong>{ult ? nUlt : '—'}</strong><span>{ult ? `Asistencia ${corto(ult.date)}` : marca ? 'Sin asistencia registrada' : 'Asistencia (solo quienes la marcan)'}</span>
           {delta != null && <span className={`cg-delta ${delta >= 0 ? 'sube' : 'baja'}`}>{delta > 0 ? `▲ ${delta} más` : delta < 0 ? `▼ ${-delta} menos` : 'Igual'} que la vez anterior</span>}</div>
         <div className="card dato"><strong>{prom}</strong><span>Promedio últimos {recientes.length} eventos</span></div>
-        <Link className="card dato" to="/congrega/personas"><strong>{activos.length}</strong><span>Personas activas · {activos.filter(esMiembro).length} miembros ›</span></Link>
+        <Link className="card dato" to="/congrega/personas"><strong>{isAdmin ? activos.length : people.length}</strong><span>{isAdmin ? `Personas activas · ${activos.filter(esMiembro).length} miembros ›` : 'Personas registradas ›'}</span></Link>
         <div className="card dato cg-dato-ver">{ver && visitasMes > 0 && <VerQuienes titulo="Visitas nuevas este mes" grupos={[{ label: 'Visitas', ps: people.filter((p) => p.tipo === 'Visita' && (p.primeraVisita || '').slice(0, 7) === mes) }]} onAbrir={setQuienes} />}<strong>{visitasMes}</strong><span>Visitas nuevas este mes</span></div>
       </div>
       <div className="cg-dash">
