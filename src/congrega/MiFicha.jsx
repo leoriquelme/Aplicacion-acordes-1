@@ -7,7 +7,6 @@ import { db } from '../lib/firebase.js';
 import { Avatar } from '../components/Avatares.jsx';
 import ElegirFoto from '../components/ElegirFoto.jsx';
 import { CIVIL, activo, nombreDe, useCongrega } from './datos.jsx';
-import { nombrePerfil } from './permisos.js';
 
 const CAMPOS = [
   ['telefono', 'Celular', 'tel'], ['email', 'Correo', 'email'], ['direccion', 'Dirección', 'text', true], ['comuna', 'Comuna', 'text'], ['region', 'Región', 'text'],
@@ -16,7 +15,7 @@ const CAMPOS = [
 
 export default function MiFicha() {
   const c = useCongrega();
-  const { people, familias, fichas, myUid, churchId, role, misPerfiles = [], equipo, guardarMisDatos, church } = c;
+  const { people, familias, fichas, myUid, churchId, guardarMisDatos } = c;
   const p = people.find((x) => x.key === myUid);
   const d = fichas.get(myUid) || {};
   const [f, setF] = useState(null);
@@ -24,7 +23,6 @@ export default function MiFicha() {
   if (!p) return <div className="card">Todavía no tienes ficha en esta iglesia. Entra una vez a Adora con tu cuenta y vuelve aquí.</div>;
   const fam = p.familiaId && familias.get(p.familiaId);
   const parientes = p.familiaId ? people.filter((m) => m.familiaId === p.familiaId && m.key !== p.key && activo(m)) : [];
-  const perfiles = [church?.ownerUid === myUid ? 'Súper admin' : nombrePerfil(role), ...misPerfiles.map(nombrePerfil), ...(equipo.get(myUid)?.estado === 'aceptado' ? ['Encargado de asistencia'] : [])];
   const persona = doc(db, 'churches', churchId, 'people', myUid);
   const editando = f != null;
 
@@ -52,7 +50,6 @@ export default function MiFicha() {
         <Avatar name={nombreDe(p)} personKey={p.key} photo={p.photo || ''} size="xl" />
         <div className="cg-stack cg-grow">
           <h2 className="cg-titulo">{nombreDe(p)}</h2>
-          <div className="cg-etiquetas">{perfiles.map((x) => <span key={x} className="cg-chip">{x}</span>)}</div>
           <div className="cg-row">
             <ElegirFoto className="btn small" label="Subir foto" onFoto={(foto) => updateDoc(persona, { photo: foto })}>{p.photo ? 'Cambiar foto' : 'Subir foto'}</ElegirFoto>
             {p.photo && <button type="button" className="btn small ghost" onClick={() => updateDoc(persona, { photo: deleteField() })}>Quitar foto</button>}

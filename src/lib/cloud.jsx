@@ -583,8 +583,10 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
       const hoy = new Date().toISOString().slice(0, 10);
       await Promise.all(participations.filter((p) => p.personKey === key && (p.date || '') >= hoy)
         .map((p) => deleteDoc(doc(col('participations'), p.id)).catch(() => {})));
-      if (members.some((m) => m.uid === key)) await deleteDoc(memberRef(churchId, key));
-      await deleteDoc(personRef(churchId, key));
+      const batch = writeBatch(db);
+      if (members.some((m) => m.uid === key)) batch.delete(memberRef(churchId, key));
+      batch.delete(personRef(churchId, key));
+      await batch.commit();
     } catch (e) { report(e); throw e; }
   }, [churchId, members, report, participations, col]);
 
