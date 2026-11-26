@@ -98,10 +98,10 @@ export default function Ficha() {
         <fieldset className="card cg-grid"><legend>Iglesia</legend><Dato label="Ministerios y equipos" value={p.teams || []} full /></fieldset>
       ) : (
       <fieldset className="card cg-grid"><legend>Iglesia</legend>
-        <Dato label="Miembro" value={sino(p.miembro)} />
+        {verPrivado && <Dato label="Miembro" value={sino(p.miembro)} />}
         <Dato label="Asistencia habitual" value={p.tipo} />
         <Dato label="Rango de edad" value={p.rangoEdad} />
-        <Dato label="Estado" value={activo(p) ? 'Activo' : 'Inactivo'} />
+        {verPrivado && <Dato label="Estado" value={activo(p) ? 'Activo' : 'Inactivo'} />}
         <Dato label="Ministerios y equipos" value={p.teams || []} full />
         <div className="cg-dato"><span>Familia</span>{fam ? <Link to={`/congrega/familias/${p.familiaId}`}>Familia {fam.name}{p.rolFamilia ? ` · ${p.rolFamilia}` : ''} ›</Link> : <div className="muted">—</div>}</div>
         {fam && (
