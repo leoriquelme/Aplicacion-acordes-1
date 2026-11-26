@@ -81,7 +81,7 @@ function PerfilesAcceso() {
       <details className="cg-que-hace">
         <summary>Qué hace cada perfil</summary>
         <dl>
-          {[[...PERFIL_PRINCIPAL[0]], ['pastor', 'Pastor'], ['director', 'Director musical'], ['asisAdmin', 'Administrativo de asistencia'], ['asistencia', 'Encargado de asistencia'], ['colaborador', 'Colaborador'], ['miembro', 'Miembro']].map(([k, l]) => (
+          {[['dueno', 'Súper admin'], ...PERFIL_PRINCIPAL.slice(0, 1), ['pastor', 'Pastor'], ['director', 'Director musical'], ['asisAdmin', 'Administrativo de asistencia'], ['asistencia', 'Encargado de asistencia'], ['colaborador', 'Colaborador'], ['miembro', 'Miembro']].map(([k, l]) => (
             <div key={k}><dt>{l}</dt><dd>{QUE_HACE[k]}</dd></div>
           ))}
         </dl>
