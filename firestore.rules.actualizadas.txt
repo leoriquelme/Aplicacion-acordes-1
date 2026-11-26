@@ -1,6 +1,7 @@
 rules_version = '2';
-// Reglas de permisos del Cancionero.
+// Reglas de permisos de Iglesia (Adora y Congrega).
 //
+// Secuencia: publica primero firestore.rules.migracion.txt; despliega la app; ejecuta la migración desde Ajustes como Administrador; luego reemplaza por estas reglas finales.
 // Cada persona entra con su cuenta (Google o correo y contraseña). Sin iglesia, ve los himnos,
 // la biblioteca compartida y sus canciones personales. Puede crear una iglesia (queda como
 // Administrador) o unirse a una con el código de acceso (entra como Colaborador; el Administrador
@@ -12,7 +13,8 @@ rules_version = '2';
 //   ← el id es el nombre "normalizado" (sin mayúsculas, tildes ni espacios de más): no puede haber dos iglesias con el mismo nombre.
 //     status: 'activa' (o sin campo) | 'bloqueada' (la bloquea el Super Admin: nadie entra)
 // churches/{iglesia}/members/{uid}   { key (= uid), name, role, code, joinedAt }  ← quién pertenece y con qué perfil (lo que vale)
-// churches/{iglesia}/people/{uid}    { name, uid, role, teams, photo, birthday, firstSeen, lastSeen }  ← ficha visible de cada persona
+// churches/{iglesia}/people/{uid}    ← ficha visible; sin estado ni condición de miembro
+// churches/{iglesia}/estadoPersonas/{uid} { miembro, estado } ← solo Administrador y Pastor
 // churches/{iglesia}/participations/{evento__persona}, favorites/{persona}, songs, events
 // feedback/{id}                      ← sugerencias de mejoras: las envía cualquiera con cuenta, las lee solo el Super Admin
 // churches/{iglesia}/live/actual      { eventId, songId, song, section, by, byName, active, at }  ← modo en vivo
@@ -97,6 +99,12 @@ service cloud.firestore {
     }
     function validName(n) { return n is string && n.size() > 0 && n.size() <= 60; }
     function shortText(t, max) { return t is string && t.size() <= max; }
+    function noPublicStatus(d) { return !d.keys().hasAny(['miembro', 'estado']); }
+    function validPrivateStatus(d) {
+      return d.keys().hasOnly(['miembro', 'estado'])
+        && (!('miembro' in d) || d.miembro is bool)
+        && (!('estado' in d) || d.estado in ['activo', 'inactivo']);
+    }
     function validCode(x) { return x is string && x.matches('^[A-Z0-9]{4,12}$'); }
     function codePath(x) { return /databases/$(database)/documents/codes/$(x); }
     // El código queda anotado en codes/{código} → { churchId }: así no hay dos iglesias con el mismo código
@@ -281,35 +289,49 @@ service cloud.firestore {
 
       // Ficha visible de cada persona (people/{uid}): nombre, perfil, equipos, última vez.
       match /people/{key} {
-        allow read: if isMember(c);
+        // Admin y Pastor pueden leer fichas antiguas mientras ejecutan la migración; el resto solo lee datos ya limpios.
+        allow read: if isPastor(c) || (isMember(c) && noPublicStatus(resource.data));
         // Al unirse (o volver a unirse): mi ficha, con el mismo perfil que mi miembro.
         allow create, update: if account() && key == request.auth.uid
           && !exists(memberPath(c, key)) && existsAfter(memberPath(c, key))
           && request.resource.data.uid == key
           && request.resource.data.role == getAfter(memberPath(c, key)).data.role
           && request.resource.data.keys().hasOnly(['name', 'uid', 'role', 'teams', 'firstSeen', 'lastSeen'])
+          && noPublicStatus(request.resource.data)
           && validName(request.resource.data.name)
           // El Administrador puede agregar fichas sin cuenta (p. ej. datos de prueba o importadas).
-          || (isAdmin(c) && request.resource.data.get('uid', '') == '' && validName(request.resource.data.name));
+          || (isAdmin(c) && noPublicStatus(request.resource.data) && request.resource.data.get('uid', '') == '' && validName(request.resource.data.name));
         // Congrega: quien marca asistencia registra una visita nueva (sin cuenta, solo datos básicos).
-        allow create: if canCheckin(c) && request.resource.data.get('uid', '') == ''
-          && request.resource.data.keys().hasOnly(['name', 'nombre', 'apellido', 'uid', 'role', 'tipo', 'estado', 'miembro', 'creadoEn', 'creadoPor', 'primeraVisita'])
+        allow create: if canCheckin(c) && noPublicStatus(request.resource.data) && request.resource.data.get('uid', '') == ''
+          && request.resource.data.keys().hasOnly(['name', 'nombre', 'apellido', 'uid', 'role', 'tipo', 'creadoEn', 'creadoPor', 'primeraVisita'])
           && validName(request.resource.data.name) && request.resource.data.get('role', 'colaborador') == 'colaborador';
         // El Administrador puede cambiar cualquier ficha (por ejemplo, quitar una foto inapropiada).
         // El Administrativo de asistencia corrige el tipo de asistencia y el rango de edad (sugerencias del Inicio).
-        allow update: if (isAdmin(c) && photoOk(request.resource.data))
-          || (isAsisAdmin(c) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['tipo', 'rangoEdad', 'esNino'])
+        allow update: if (isAdmin(c) && noPublicStatus(request.resource.data) && photoOk(request.resource.data))
+          || (isAsisAdmin(c) && noPublicStatus(request.resource.data) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['tipo', 'rangoEdad', 'esNino'])
               && request.resource.data.get('tipo', '') in ['', 'Activo', 'Regular', 'Ocasional', 'Visita']
               && shortText(request.resource.data.get('rangoEdad', ''), 20)
               && request.resource.data.get('esNino', false) is bool)
           // Cada uno actualiza su "última vez", su nombre, sus equipos y su foto.
-          || (isMember(c) && key == request.auth.uid
+          || (isMember(c) && key == request.auth.uid && noPublicStatus(request.resource.data)
               && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastSeen', 'name', 'teams', 'photo', 'birthday', 'aniversarioMD'])
               && photoOk(request.resource.data) && birthdayOk(request.resource.data)
               && (!('aniversarioMD' in request.resource.data) || request.resource.data.aniversarioMD == null
                 || (request.resource.data.aniversarioMD is string && request.resource.data.aniversarioMD.matches('^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$')))
               && validName(request.resource.data.name)
               && (!('teams' in request.resource.data) || (request.resource.data.teams is list && request.resource.data.teams.size() <= 12)));
+        allow delete: if isAdmin(c);
+      }
+      // El estado de membresía y actividad no se guarda en people: solo Admin/Pastor lo leen.
+      // Quien marca asistencia puede crear el estado predeterminado de una visita nueva.
+      match /estadoPersonas/{key} {
+        allow read: if isPastor(c);
+        allow create: if (isAdmin(c) && validPrivateStatus(request.resource.data))
+          || (canCheckin(c) && request.resource.data.keys().hasOnly(['miembro', 'estado'])
+            && request.resource.data.get('miembro', false) == false
+            && request.resource.data.get('estado', 'activo') == 'activo'
+            && exists(personPath(c, key)) && get(personPath(c, key)).data.get('uid', '') == '');
+        allow update: if isAdmin(c) && validPrivateStatus(request.resource.data);
         allow delete: if isAdmin(c);
       }
 
