@@ -4,16 +4,17 @@ import { db } from '../lib/firebase.js';
 import { Avatar } from '../components/Avatares.jsx';
 import { nombreDe, norm, useCongrega } from './datos.jsx';
 import UnirPerfiles from './UnirPerfiles.jsx';
+import MiFicha from './MiFicha.jsx';
 import { PERFILES_EXTRA, PERFIL_PRINCIPAL, QUE_HACE, nombrePerfil, puedeCambiarPerfil } from './permisos.js';
 
 export default function Ajustes() {
   const { isAdmin, dueno } = useCongrega();
-  if (!isAdmin) return <div className="card">Solo el Administrador de la iglesia ve los ajustes de Congrega.</div>;
   return (
     <div className="cg-stack">
       <div className="page-head"><h1>Ajustes</h1></div>
-      <PerfilesAcceso />
-      <UnirPerfiles />
+      <MiFicha />
+      {isAdmin && <PerfilesAcceso />}
+      {isAdmin && <UnirPerfiles />}
       {dueno && <Registro />}
     </div>
   );
