@@ -168,7 +168,10 @@ a.cg-item:hover { background: var(--surface-2); text-decoration: none; }
 .cg-estacion-modal .cg-familia { order: 0; text-align: left; }
 .cg-estacion-buscar .btn.ghost { white-space: nowrap; }
 .cg-agregar-visita { width: 100%; min-height: 3.2rem; font-size: 1.1rem; }
-.cg-estacion .cg-agregar-visita { position: sticky; bottom: max(0.8rem, env(safe-area-inset-bottom)); box-shadow: var(--shadow-float, 0 6px 20px rgba(0,0,0,.25)); }
+.cg-barra-final { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+.cg-estacion .cg-barra-final { position: sticky; bottom: max(0.8rem, env(safe-area-inset-bottom)); z-index: 2; }
+.cg-barra-final .btn { flex: 1 1 0; min-height: 3.2rem; font-size: 1.1rem; box-shadow: var(--shadow-float, 0 6px 20px rgba(0,0,0,.25)); }
+.cg-barra-final .cg-agregar-visita { background: var(--surface); }
 
 /* Menú desplegable Editar / Unir en la ficha */
 .cg-menu { position: relative; }
@@ -336,3 +339,5 @@ a.cg-item:hover { background: var(--surface-2); text-decoration: none; }
 .cg-abrir-evento input { width: 100%; }
 .cg-chip.tipo-evento { align-self: flex-start; }
 .cg-filtro-tipo { max-width: 12rem; min-height: 2.4rem; }
+
+.cg-aviso.ok { background: var(--cg-ok-soft); color: var(--cg-ok); }

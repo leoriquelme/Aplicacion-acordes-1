@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { fechaCorta, todayISO, formatLong, sortEvents } from '../lib/dates.js';
 import { activo, nombreDe, norm, useCongrega } from './datos.jsx';
 import { TIPOS_ASISTENCIA } from './unir.js';
@@ -73,6 +73,18 @@ function ResumenJornada() {
   );
 }
 
+/** Aviso al volver con "Terminar y cerrar": la asistencia ya quedó guardada. */
+export function AvisoCerrado({ cerrado }) {
+  const [visto, setVisto] = useState(false);
+  if (!cerrado || visto) return null;
+  return (
+    <div className="cg-aviso ok cg-row cg-entre" role="status">
+      <span>✓ Asistencia de <strong>{cerrado.nombre}</strong> cerrada y guardada: {plural(cerrado.n, 'presente', 'presentes')}.</span>
+      <button type="button" className="btn small ghost" onClick={() => setVisto(true)} aria-label="Ocultar aviso">✕</button>
+    </div>
+  );
+}
+
 /** Asistencia: resumen de la última jornada y lista de eventos. Para cambiar quién vino se entra a "Revisar". */
 export default function Asistencia() {
   const ctx = useCongrega();
@@ -82,12 +94,14 @@ export default function Asistencia() {
   const lista = useMemo(() => sortEvents(events.filter((e) => e.date && e.date <= hoy), -1).slice(0, 30), [events, hoy]);
   const conteo = useMemo(() => { const c = new Map(); asistencia.forEach((a) => c.set(a.eventId, (c.get(a.eventId) || 0) + 1)); return c; }, [asistencia]);
   const puedeAbrir = ctx.asisAdmin || can?.events;
+  const cerrado = useLocation().state?.cerrado;
   return (
     <div className="cg-stack">
       <div className="page-head">
         <h1>Asistencia</h1>
         <Link className="btn" to="/congrega/estacion">Abrir estación</Link>
       </div>
+      <AvisoCerrado cerrado={cerrado} />
       <ResumenJornada />
       {puedeAbrir && (
         <AbrirEvento saveEvent={saveEvent} principal={!events.some((e) => e.date === hoy)} onCreado={(id) => navigate(`/congrega/asistencia/${id}`)} />
@@ -243,7 +257,10 @@ export function RevisarAsistencia() {
                 );
               })}
           </div>
-          <button type="button" className="btn primary cg-agregar-visita" onClick={() => { setVisita({ nombre: '', apellido: '' }); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>+ Agregar visita</button>
+          <div className="cg-barra-final">
+            <button type="button" className="btn cg-agregar-visita" onClick={() => { setVisita({ nombre: '', apellido: '' }); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>+ Agregar visita</button>
+            <button type="button" className="btn primary cg-cerrar-asistencia" onClick={() => navigate('/congrega/asistencia', { state: { cerrado: { nombre: ev.name || 'Evento', n: presentes.size } } })}>✓ Terminar y cerrar</button>
+          </div>
         </>
       )}
     </div>

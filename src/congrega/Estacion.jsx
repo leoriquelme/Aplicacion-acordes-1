@@ -3,7 +3,7 @@
 // Letra grande, fotos y un toque para marcar. Si la persona tiene familia, se abre su familia.
 // Avisa los cumpleaños y aniversarios de la semana.
 import { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { fechaCorta, formatLong, todayISO } from '../lib/dates.js';
 import { activo, nombreDe, norm, useCongrega } from './datos.jsx';
 import { celebraciones, coincide, marcadoDe } from './marcado.js';
@@ -14,6 +14,7 @@ export default function Estacion() {
   const ctx = useCongrega();
   const { people, familias, marca, registrarVisita, sinTipo } = ctx;
   const [params] = useSearchParams();
+  const navigate = useNavigate();
   const elegido = ctx.events?.find((e) => e.id === params.get('ev'));
   const porDefecto = useEvento();
   const ev = elegido || (ctx.asisAdmin ? porDefecto.ev : null);
@@ -104,7 +105,13 @@ export default function Estacion() {
         })}
         {!lista.length && <div className="card muted cg-vacio">{filtro === 'presentes' && !q ? 'Todavía no hay nadie marcado.' : filtro === 'ausentes' && !q ? '¡Llegaron todos!' : 'Nadie coincide. Si es su primera vez, toca “Agregar visita”.'}</div>}
       </div>
-      <button type="button" className="btn primary cg-agregar-visita" onClick={() => setVisita({ nombre: '', apellido: '' })}>+ Agregar visita</button>
+      <div className="cg-barra-final">
+        <button type="button" className="btn cg-agregar-visita" onClick={() => setVisita({ nombre: '', apellido: '' })}>+ Agregar visita</button>
+        <button type="button" className="btn primary cg-cerrar-asistencia" onClick={() => {
+          if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+          navigate('/congrega/estacion', { state: { cerrado: { nombre: ev.name || 'Evento', n: m.presentes.size } } });
+        }}>✓ Terminar y cerrar</button>
+      </div>
 
       {familia && (
         <div className="modal-fondo" role="dialog" aria-modal="true" aria-label="Familia" onClick={(e) => e.target === e.currentTarget && setFamilia(null)}>

@@ -3,13 +3,14 @@
 // aprueban a quien se ofrece para un servicio y pueden iniciar cualquier evento.
 // Quien está en el equipo se ofrece para los próximos servicios e inicia la estación en su turno aprobado.
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { fechaCorta, formatLong, sortEvents, todayISO } from '../lib/dates.js';
 import { Avatar } from '../components/Avatares.jsx';
 import { nombreDe, norm, useCongrega } from './datos.jsx';
 import { estacion, proximosEventos, turnoId, useTurnos } from './estacion.jsx';
 import { MAX_EQUIPO_ESTACION } from './permisos.js';
 import { AbrirEvento } from './AbrirEvento.jsx';
+import { AvisoCerrado } from './Asistencia.jsx';
 
 const cerca = (date, hoy) => Math.abs((new Date(`${date}T12:00:00`) - new Date(`${hoy}T12:00:00`)) / 86400000) <= 1;
 
@@ -18,6 +19,7 @@ export default function EstacionInicio() {
   const { churchId, myUid, me, events = [], people, equipo, asisAdmin, marca, saveEvent, anotar } = c;
   const turnos = useTurnos(churchId, myUid, asisAdmin);
   const navigate = useNavigate();
+  const cerrado = useLocation().state?.cerrado;
   const hoy = todayISO();
   const [error, setError] = useState('');
   const falla = (e) => setError(`No se pudo: ${e.message}`);
@@ -31,6 +33,7 @@ export default function EstacionInicio() {
   return (
     <div className="cg-stack">
       <div className="page-head"><h1>Estación</h1></div>
+      <AvisoCerrado cerrado={cerrado} />
       {error && <div className="cg-aviso" role="alert">{error}</div>}
       {mio?.estado === 'invitado' && <div className="cg-aviso info">Acepta la invitación de arriba para ser parte del equipo de estación.</div>}
       {marca && (asisAdmin ? <IniciarAdmin events={events} hoy={hoy} iniciar={iniciar} saveEvent={saveEvent} /> : <IniciarTurno turnos={turnos} events={events} hoy={hoy} myUid={myUid} iniciar={iniciar} />)}
