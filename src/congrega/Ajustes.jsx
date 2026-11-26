@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { collection, deleteField, limit, onSnapshot, orderBy, query } from 'firebase/firestore';
+import { collection, deleteField, doc, getDocs, limit, onSnapshot, orderBy, query, writeBatch } from 'firebase/firestore';
 import { db } from '../lib/firebase.js';
 import { Avatar } from '../components/Avatares.jsx';
 import { CIVIL, RANGOS, ROLES_FAMILIA, TIPOS, nombreDe, norm, useCongrega } from './datos.jsx';
@@ -15,6 +15,7 @@ export default function Ajustes() {
       <MiFicha />
       {isAdmin && <PerfilesAcceso />}
       {isAdmin && <EdicionMasiva />}
+      {isAdmin && <MigrarEstadosPrivados />}
       {isAdmin && <UnirPerfiles />}
       {dueno && <Registro />}
     </div>
@@ -363,6 +364,48 @@ function EdicionMasiva() {
         </div>
       )}
       <p className="muted small">Los perfiles principales y las notas pastorales o médicas no se cambian en bloque. Tú y el Súper admin no se pueden eliminar desde esta herramienta.</p>
+    </section>
+  );
+}
+
+/** Migra estado de membresía/actividad desde people a una colección privada. */
+function MigrarEstadosPrivados() {
+  const { churchId } = useCongrega();
+  const [procesando, setProcesando] = useState(false);
+  const [mensaje, setMensaje] = useState('');
+  const migrar = async () => {
+    setProcesando(true); setMensaje('');
+    try {
+      const snap = await getDocs(collection(db, 'churches', churchId, 'people'));
+      const pendientes = snap.docs.filter((d) => {
+        const x = d.data();
+        return Object.prototype.hasOwnProperty.call(x, 'miembro') || Object.prototype.hasOwnProperty.call(x, 'estado');
+      });
+      if (!pendientes.length) { setMensaje('La migración ya está completa.'); return; }
+      const confirmada = window.confirm(`Se moverá el estado de ${pendientes.length} perfiles a datos privados. Se conservarán los valores y se quitarán de las fichas visibles. ¿Continuar?`);
+      if (!confirmada) return;
+      for (let i = 0; i < pendientes.length; i += 200) {
+        const lote = writeBatch(db);
+        pendientes.slice(i, i + 200).forEach((d) => {
+          const x = d.data(); const privado = {};
+          if (Object.prototype.hasOwnProperty.call(x, 'miembro')) privado.miembro = x.miembro === true;
+          if (Object.prototype.hasOwnProperty.call(x, 'estado')) privado.estado = x.estado === 'inactivo' ? 'inactivo' : 'activo';
+          lote.set(doc(db, 'churches', churchId, 'estadoPersonas', d.id), privado, { merge: true });
+          lote.update(d.ref, { miembro: deleteField(), estado: deleteField() });
+        });
+        await lote.commit();
+      }
+      setMensaje(`Listo: ${pendientes.length} perfiles migrados. Ahora puedes publicar las reglas de Firestore incluidas en firestore.rules.actualizadas.txt.`);
+    } catch (e) {
+      setMensaje(`No se pudo completar la migración: ${e.message}`);
+    } finally { setProcesando(false); }
+  };
+  return (
+    <section className="card cg-stack">
+      <h2>Privacidad de membresía</h2>
+      <p className="muted">Mueve el estado de miembro y actividad fuera del perfil visible. Ejecuta esto una vez antes de publicar las nuevas reglas de Firestore.</p>
+      <button type="button" className="btn" onClick={migrar} disabled={procesando}>{procesando ? 'Migrando…' : 'Migrar datos de privacidad'}</button>
+      {mensaje && <div className="cg-aviso info" role="status">{mensaje}</div>}
     </section>
   );
 }
