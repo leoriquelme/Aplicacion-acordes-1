@@ -132,7 +132,7 @@ export default function Ficha() {
             <Dato label="Llegó a la iglesia" value={fmt(d.fechaLlegada)} />
             <Dato label="Fecha de conversión" value={fmt(d.fechaConversion)} />
             <Dato label="Bautizado/a" value={d.bautizado ? `Sí${d.fechaBautismo ? `, ${fmt(d.fechaBautismo)}` : ''}` : sino(d.bautizado)} />
-            {!activo(p) && <Dato label="Motivo de inactividad" value={[d.motivoInactivo, d.fechaInactivo && `desde ${fmt(d.fechaInactivo)}`].filter(Boolean).join(', ')} />}
+            {!activo(p) && verPrivado && <Dato label="Motivo de inactividad" value={[p.motivoInactivo, p.fechaInactivo && `desde ${fmt(p.fechaInactivo)}`].filter(Boolean).join(', ')} />}
           </fieldset>
           <fieldset className="card cg-grid"><legend>Notas privadas <span className="muted">· solo Administrador y Pastor</span></legend>
             <Dato label="Notas pastorales" value={d.notas} full />
@@ -172,7 +172,7 @@ function Opciones({ value, onChange, options, vacio = '—' }) {
   return <select value={value ?? ''} onChange={(e) => onChange(e.target.value)}><option value="">{vacio}</option>{options.map((o) => <option key={o} value={o}>{o}</option>)}</select>;
 }
 
-const PERSONA = ['nombre', 'apellido', 'apodo', 'tipo', 'miembro', 'rangoEdad', 'esNino', 'estado', 'familiaId', 'rolFamilia', 'teams'];
+const PERSONA = ['nombre', 'apellido', 'apodo', 'tipo', 'miembro', 'rangoEdad', 'esNino', 'estado', 'motivoInactivo', 'fechaInactivo', 'familiaId', 'rolFamilia', 'teams'];
 
 /** Formulario de una persona. `soloFicha`: el Pastor edita solo datos privados (contacto, vida en la iglesia y notas). */
 function Editar({ p, k, onListo, soloFicha = false }) {
