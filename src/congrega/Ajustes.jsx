@@ -408,6 +408,7 @@ function MigrarEstadosPrivados() {
           if (Object.prototype.hasOwnProperty.call(estado, 'estado')) privado.estado = estado.estado === 'inactivo' ? 'inactivo' : 'activo';
           if (Object.prototype.hasOwnProperty.call(estado, 'motivoInactivo')) privado.motivoInactivo = String(estado.motivoInactivo || '').slice(0, 60);
           if (Object.prototype.hasOwnProperty.call(estado, 'fechaInactivo')) privado.fechaInactivo = /^\d{4}-\d{2}-\d{2}$/.test(estado.fechaInactivo || '') ? estado.fechaInactivo : '';
+          if (privado.motivoInactivo === 'Fallecido/a') privado.estado = 'inactivo';
           lote.set(doc(db, 'churches', churchId, 'estadoPersonas', key), privado, { merge: true });
           if (persona) {
             const borrar = {};
