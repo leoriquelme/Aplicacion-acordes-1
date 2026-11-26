@@ -1,0 +1,513 @@
+rules_version = '2';
+// Reglas de permisos de Iglesia (Adora y Congrega).
+//
+// Secuencia: publica primero firestore.rules.migracion.txt; despliega la app; ejecuta la migración desde Ajustes como Administrador; luego reemplaza por estas reglas finales.
+// Cada persona entra con su cuenta (Google o correo y contraseña). Sin iglesia, ve los himnos,
+// la biblioteca compartida y sus canciones personales. Puede crear una iglesia (queda como
+// Administrador) o unirse a una con el código de acceso (entra como Colaborador; el Administrador
+// la puede subir a Director musical). El perfil queda ligado a la cuenta: no hay PIN.
+//
+// users/{uid}                        { name, email, churches: { iglesia: { name } }, favorites, notes }
+// users/{uid}/songs/{id}             ← canciones personales (solo la persona)
+// churches/{iglesia}                 { name, ownerUid, ownerEmail, ownerName, accessCode, city, status, createdAt }
+//   ← el id es el nombre "normalizado" (sin mayúsculas, tildes ni espacios de más): no puede haber dos iglesias con el mismo nombre.
+//     status: 'activa' (o sin campo) | 'bloqueada' (la bloquea el Super Admin: nadie entra)
+// churches/{iglesia}/members/{uid}   { key (= uid), name, role, code, joinedAt }  ← quién pertenece y con qué perfil (lo que vale)
+// churches/{iglesia}/people/{uid}    ← ficha visible; sin estado ni categoría de asistencia habitual
+// churches/{iglesia}/estadoPersonas/{uid} { miembro, estado, motivoInactivo, fechaInactivo } ← solo Administrador y Pastor
+// churches/{iglesia}/clasificacionPersonas/{uid} { tipo } ← Admin, Pastor y Administrativo de asistencia
+// churches/{iglesia}/participations/{evento__persona}, favorites/{persona}, songs, events
+// feedback/{id}                      ← sugerencias de mejoras: las envía cualquiera con cuenta, las lee solo el Super Admin
+// churches/{iglesia}/live/actual      { eventId, songId, song, section, by, byName, active, at }  ← modo en vivo
+// owners/{uid} { churches: [ids] }   ← iglesias creadas por cada cuenta (máximo 3)
+// superadmins/{uid}                  ← lo crea Leonardo a mano en la consola
+// library/{iglesia__cancion}         ← biblioteca compartida entre iglesias
+// stats/oracion { count }
+//
+// Congrega (personas y asistencia), en la misma iglesia:
+// churches/{iglesia}/people/{key}      ← la misma ficha visible; Congrega agrega apellido, familia, tipo, etc.
+// churches/{iglesia}/families/{id}     { name }  ← familias (hogares)
+// churches/{iglesia}/fichas/{key}      ← datos privados: contacto, nacimiento. Administrador y Pastor; cada uno ve y actualiza la suya.
+// churches/{iglesia}/notas/{key}       { notas, notasMedicas } ← datos sensibles (Ley 21.719): solo Administrador y Pastor.
+// churches/{iglesia}/asistencia/{evento__persona} { eventId, personKey, date, at, por, tipo }
+//   ← la marcan el Administrador, el Administrativo de asistencia y el equipo de estación (este, solo en su turno aprobado, cerca del día)
+// churches/{iglesia}/equipoEstacion/{uid} { estado: 'invitado' | 'aceptado', por, at } ← Encargados de asistencia (hasta 8; lo limita la app)
+// churches/{iglesia}/turnosEstacion/{evento__uid} { eventId, uid, nombre, date, estado: 'ofrecido' | 'aprobado', at, por }
+// churches/{iglesia}/registro/{id}     ← registro de cambios: lo escribe cada uno al cambiar algo; lo lee solo el Súper admin.
+//
+// Perfiles (members/{uid}): role = admin | director | colaborador | miembro (el de Adora), y
+// perfiles = lista con pastor, asisAdmin (Administrativo de asistencia). El Encargado de asistencia es el equipo de estación.
+// Quien creó la iglesia (ownerUid) es el Súper admin: solo él nombra Administradores y nadie le cambia el perfil.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    // Una cuenta de verdad (Google o correo), no una sesión anónima.
+    function account() {
+      return signedIn() && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+    function churchPath(c) { return /databases/$(database)/documents/churches/$(c); }
+    function memberPath(c, uid) { return /databases/$(database)/documents/churches/$(c)/members/$(uid); }
+    function personPath(c, key) { return /databases/$(database)/documents/churches/$(c)/people/$(key); }
+
+    function church(c) { return get(churchPath(c)).data; }
+    function isSuper() { return signedIn() && exists(/databases/$(database)/documents/superadmins/$(request.auth.uid)); }
+    // Igual que keyOf() en la app: "Iglesia  Bautista Ñuñoa" → "iglesia bautista nunoa".
+    // (lower() no cambia letras con tilde, por eso se reemplazan también las mayúsculas)
+    function norm(n) {
+      return n
+        .replace('[áàâäãåÁÀÂÄÃÅ]', 'a').replace('[éèêëÉÈÊË]', 'e').replace('[íìîïÍÌÎÏ]', 'i')
+        .replace('[óòôöõÓÒÔÖÕ]', 'o').replace('[úùûüÚÙÛÜ]', 'u').replace('[ñÑ]', 'n').replace('[çÇ]', 'c')
+        .lower().replace('[^a-z0-9]+', ' ').trim();
+    }
+    function activa(c) { return church(c).get('status', 'activa') != 'bloqueada'; }
+
+    // Pertenezco a la iglesia (y no está bloqueada).
+    function isMember(c) { return signedIn() && exists(memberPath(c, request.auth.uid)) && activa(c); }
+    function me(c) { return get(memberPath(c, request.auth.uid)).data; }
+    function isAdmin(c) { return isMember(c) && me(c).role == 'admin'; }
+    function isDirector(c) { return isMember(c) && me(c).role == 'director'; }
+    function canEdit(c) { return isMember(c) && me(c).role in ['admin', 'director']; }
+    // Perfiles extra de Congrega (members.perfiles).
+    function tiene(c, p) { return isMember(c) && p in me(c).get('perfiles', []); }
+    // Súper admin de la iglesia: quien la creó.
+    function isOwner(c) { return isAdmin(c) && church(c).get('ownerUid', '') == request.auth.uid; }
+    function isPastor(c) { return isAdmin(c) || tiene(c, 'pastor'); }
+    function isAsisAdmin(c) { return isAdmin(c) || tiene(c, 'asisAdmin'); }
+    // Equipo de estación (Encargado de asistencia): invitado por el Administrador o el Administrativo y aceptado.
+    function equipoPath(c, uid) { return /databases/$(database)/documents/churches/$(c)/equipoEstacion/$(uid); }
+    function enEquipo(c) { return isMember(c) && exists(equipoPath(c, request.auth.uid)) && get(equipoPath(c, request.auth.uid)).data.estado == 'aceptado'; }
+    // Turno aprobado para tomar la estación en un evento.
+    function turnoAprobado(c, ev) {
+      let t = /databases/$(database)/documents/churches/$(c)/turnosEstacion/$(ev + '__' + request.auth.uid);
+      return exists(t) && get(t).data.estado == 'aprobado';
+    }
+    // Quién usa la estación: Administrador, Administrativo de asistencia o el equipo de estación.
+    function canCheckin(c) { return isAsisAdmin(c) || enEquipo(c); }
+    // Marcar en un evento: el Administrativo siempre; el equipo, en su turno aprobado y cerca del día.
+    function canMarcar(c, ev, date) { return isAsisAdmin(c) || (enEquipo(c) && cercaDeHoy(date) && turnoAprobado(c, ev)); }
+    // "AAAA-MM-DD" a menos de 2 días de hoy (el Encargado solo marca el evento del día).
+    function cercaDeHoy(d) {
+      let p = d.split('-');
+      return p.size() == 3 && p[0].matches('^[0-9]{4}$') && p[1].matches('^[0-9]{2}$') && p[2].matches('^[0-9]{2}$')
+        && math.abs(timestamp.date(int(p[0]), int(p[1]), int(p[2])).toMillis() - request.time.toMillis()) <= 172800000;
+    }
+    function validPerfiles(d) {
+      return d.role in ['admin', 'director', 'colaborador', 'miembro']
+        && d.get('asistencia', false) is bool
+        && d.get('perfiles', []) is list && d.get('perfiles', []).size() <= 2
+        && d.get('perfiles', []).hasOnly(['pastor', 'asisAdmin']);
+    }
+    function validName(n) { return n is string && n.size() > 0 && n.size() <= 60; }
+    function shortText(t, max) { return t is string && t.size() <= max; }
+    function noPublicStatus(d) { return !d.keys().hasAny(['miembro', 'estado', 'motivoInactivo', 'fechaInactivo', 'tipo']); }
+    function validPrivateStatus(d) {
+      return d.keys().hasOnly(['miembro', 'estado', 'motivoInactivo', 'fechaInactivo'])
+        && (!('miembro' in d) || d.miembro is bool)
+        && (!('estado' in d) || d.estado in ['activo', 'inactivo'])
+        && (!('motivoInactivo' in d) || shortText(d.motivoInactivo, 60))
+        && (!('fechaInactivo' in d) || (d.fechaInactivo is string && (d.fechaInactivo == '' || d.fechaInactivo.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$'))));
+    }
+    function validClassification(d) {
+      return d.keys().hasOnly(['tipo'])
+        && (!('tipo' in d) || d.tipo in ['', 'Activo', 'Regular', 'Ocasional', 'Visita']);
+    }
+    function validCode(x) { return x is string && x.matches('^[A-Z0-9]{4,12}$'); }
+    function codePath(x) { return /databases/$(database)/documents/codes/$(x); }
+    // El código queda anotado en codes/{código} → { churchId }: así no hay dos iglesias con el mismo código
+    // (Firebase no deja crear un documento que ya existe) y para unirse basta con escribir el código.
+    // Foto o logo achicado en el teléfono (texto data:image/jpeg;base64,… de menos de 60.000 letras).
+    function validPhoto(x) { return x is string && x.size() <= 60000 && x.matches('^data:image/(jpeg|webp);base64,[A-Za-z0-9+/=]+$'); }
+    function photoOk(d) { return !('photo' in d) || validPhoto(d.photo); }
+    // Fecha de nacimiento (solo en mi cuenta) "AAAA-MM-DD" y cumpleaños (en mi ficha de la iglesia) "MM-DD".
+    function birthDateOk(d) { return !('birthDate' in d) || (d.birthDate is string && d.birthDate.matches('^(19|20)[0-9]{2}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$')); }
+    function birthdayOk(d) { return !('birthday' in d) || (d.birthday is string && d.birthday.matches('^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$')); }
+    function codeFor(c, x) { return validCode(x) && existsAfter(codePath(x)) && getAfter(codePath(x)).data.churchId == c; }
+
+    // ---------- Cuenta personal ----------
+    match /users/{uid} {
+      allow read, delete: if signedIn() && request.auth.uid == uid;
+      allow create, update: if account() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['name', 'email', 'churches', 'favorites', 'notes', 'createdAt', 'photo', 'birthDate'])
+        && photoOk(request.resource.data) && birthDateOk(request.resource.data)
+        && (!('name' in request.resource.data) || validName(request.resource.data.name))
+        && (!('churches' in request.resource.data) || (request.resource.data.churches is map && request.resource.data.churches.size() <= 20))
+        && (!('favorites' in request.resource.data) || (request.resource.data.favorites is list && request.resource.data.favorites.size() <= 500))
+        && (!('notes' in request.resource.data) || (request.resource.data.notes is map && request.resource.data.notes.size() <= 500));
+
+      match /songs/{song} {
+        allow read, delete: if signedIn() && request.auth.uid == uid;
+        allow create, update: if account() && request.auth.uid == uid
+          && (!('content' in request.resource.data) || shortText(request.resource.data.content, 50000));
+      }
+    }
+
+    // ---------- Biblioteca compartida entre iglesias ----------
+    // Cada iglesia comparte voluntariamente sus canciones (confirmando que tiene permiso).
+    // Cualquiera con cuenta puede buscar y copiar.
+    function validShare(pid, d) {
+      return canEdit(d.churchId)
+        && pid == d.churchId + '__' + d.songId
+        && d.confirmed == true
+        && d.keys().hasOnly(['churchId', 'churchName', 'songId', 'title', 'author', 'key', 'content', 'order', 'sharedBy', 'confirmed', 'sharedAt'])
+        && validName(d.title) && d.content is string && d.content.size() < 20000
+        && d.get('churchName', '') == church(d.churchId).name && shortText(d.get('sharedBy', ''), 60)
+        && shortText(d.get('author', ''), 120) && (!('order' in d) || (d.order is list && d.order.size() <= 60));
+    }
+    match /library/{pid} {
+      allow read: if account();
+      allow create, update: if validShare(pid, request.resource.data);
+      allow delete: if canEdit(resource.data.churchId) || isSuper();
+    }
+
+    // Contador de oraciones por el proyecto: cualquiera con cuenta suma de a uno.
+    match /stats/oracion {
+      allow read: if account();
+      allow create: if account() && request.resource.data.keys().hasOnly(['count']) && request.resource.data.count == 1;
+      allow update: if account() && request.resource.data.keys().hasOnly(['count'])
+        && (request.resource.data.count == resource.data.count + 1
+          || (isSuper() && request.resource.data.count == 0));
+      allow delete: if false;
+    }
+
+    // Sugerencias de mejoras para la app: cualquiera con cuenta envía; solo el Super Admin las lee y resuelve.
+    match /feedback/{id} {
+      allow read, delete: if isSuper();
+      allow create: if account()
+        && request.resource.data.keys().hasOnly(['text', 'uid', 'email', 'name', 'churchId', 'churchName', 'at'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 1000
+        && shortText(request.resource.data.email, 120) && shortText(request.resource.data.name, 60)
+        && shortText(request.resource.data.churchId, 100) && shortText(request.resource.data.churchName, 80)
+        && request.resource.data.at is int;
+      allow update: if false;
+    }
+
+    match /superadmins/{uid} {
+      allow get: if signedIn() && request.auth.uid == uid;
+      allow list, write: if false;
+    }
+
+    // Iglesias creadas por cada cuenta (máximo 3; la app además limita a 3 iglesias en total, creadas + unidas).
+    match /owners/{uid} {
+      allow get: if (signedIn() && request.auth.uid == uid) || isSuper();
+      allow create: if account() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['churches'])
+        && request.resource.data.churches is list && request.resource.data.churches.size() == 1;
+      allow update: if (account() && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['churches'])
+          && request.resource.data.churches is list
+          && request.resource.data.churches.size() == resource.data.churches.size() + 1
+          && request.resource.data.churches.size() <= 3
+          && request.resource.data.churches.hasAll(resource.data.churches))
+        // El Super Admin, al borrar una iglesia, la saca de la lista (así esa cuenta puede crear otra).
+        || (isSuper() && request.resource.data.keys().hasOnly(['churches'])
+          && request.resource.data.churches is list && resource.data.churches.hasAll(request.resource.data.churches));
+      allow delete: if false;
+    }
+
+    // Crear una iglesia nueva. Como el id es el nombre normalizado, si ya existe una con el mismo
+    // nombre la creación falla, aunque dos personas lo intenten al mismo tiempo.
+    // Se crea junto con: owners/{uid} y el miembro Administrador (members/{uid} y people/{uid}).
+    function validNewChurch(c) {
+      let d = request.resource.data;
+      let owners = /databases/$(database)/documents/owners/$(request.auth.uid);
+      return account()
+        && d.keys().hasOnly(['name', 'city', 'ownerUid', 'ownerEmail', 'ownerName', 'status', 'createdAt', 'accessCode'])
+        && validName(d.name) && c.size() >= 3 && c.size() <= 60 && c == norm(d.name)
+        && d.ownerUid == request.auth.uid && d.ownerEmail == request.auth.token.get('email', '')
+        && validName(d.ownerName)
+        && d.status == 'activa' && d.createdAt == request.time
+        && codeFor(c, d.accessCode)
+        && shortText(d.get('city', ''), 60)
+        && existsAfter(owners) && c in getAfter(owners).data.churches
+        && !(exists(owners) && c in get(owners).data.churches);
+    }
+
+    // Códigos de acceso: cualquiera con cuenta busca un código (uno por uno, no se pueden listar).
+    // Solo quien creó la iglesia anota o borra sus códigos.
+    match /codes/{x} {
+      allow get: if account();
+      allow list, update: if false;
+      allow create: if account() && validCode(x)
+        && request.resource.data.keys().hasOnly(['churchId'])
+        && getAfter(churchPath(request.resource.data.churchId)).data.ownerUid == request.auth.uid
+        && getAfter(churchPath(request.resource.data.churchId)).data.accessCode == x;
+      allow delete: if isSuper()
+        || (account() && get(churchPath(resource.data.churchId)).data.ownerUid == request.auth.uid
+            && getAfter(churchPath(resource.data.churchId)).data.get('accessCode', '') != x);
+    }
+
+    // Super Admin: ve y borra todo lo de cualquier iglesia (para limpiar iglesias de prueba o vacías).
+    match /churches/{c}/{rest=**} {
+      allow read, delete: if isSuper();
+    }
+
+    match /churches/{c} {
+      // Los miembros leen la ficha de su iglesia (nombre y código: el código ya lo conocen, con él entraron).
+      allow get: if isMember(c) || isSuper();
+      allow list: if isSuper();
+      allow create: if validNewChurch(c);
+      allow delete: if false; // el Super Admin borra (ver arriba)
+      // El Administrador cambia (o quita) el código de acceso.
+      // El Super Admin bloquea o desbloquea, y puede asignar el dueño de una iglesia antigua.
+      // También sube o quita el logo de la iglesia.
+      allow update: if (isAdmin(c)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['accessCode', 'logo'])
+          && (!('accessCode' in request.resource.data) || codeFor(c, request.resource.data.accessCode))
+          && (!('logo' in request.resource.data) || validPhoto(request.resource.data.logo)))
+        || (isSuper()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+          && request.resource.data.get('status', 'activa') in ['activa', 'bloqueada']);
+
+      // ---------- Miembros ----------
+      // Unirse: con el código de acceso, siempre como Colaborador. Quien creó la iglesia (ownerUid)
+      // entra como Administrador. La ficha de cada persona es people/{uid} y se crea en el mismo envío.
+      function validJoin(c, uid) {
+        let d = request.resource.data;
+        let ch = getAfter(churchPath(c)).data;
+        let person = personPath(c, uid);
+        return account() && request.auth.uid == uid
+          && d.keys().hasOnly(['key', 'name', 'role', 'code', 'joinedAt'])
+          && validName(d.name) && d.key == uid
+          && ch.get('status', 'activa') != 'bloqueada'
+          && ((d.role == 'colaborador' && 'accessCode' in ch && d.get('code', '') == ch.accessCode)
+            || (d.role == 'admin' && ch.get('ownerUid', '') == uid))
+          && existsAfter(person) && getAfter(person).data.uid == uid;
+      }
+      match /members/{uid} {
+        allow read: if isMember(c) || (signedIn() && request.auth.uid == uid);
+        allow create: if validJoin(c, uid);
+        // El Administrador cambia el perfil de otros y sus perfiles extra (también los suyos, pero no su perfil principal).
+        // Solo el Súper admin nombra o quita Administradores. Al Súper admin nadie le cambia el perfil.
+        allow update: if isAdmin(c)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role', 'asistencia', 'perfiles'])
+          && validPerfiles(request.resource.data)
+          && ((uid == request.auth.uid && request.resource.data.role == resource.data.role)
+            || (uid != request.auth.uid && uid != church(c).get('ownerUid', '')
+              && (isOwner(c) || (resource.data.role != 'admin' && request.resource.data.role != 'admin'))));
+        // Uno sale de la iglesia (menos quien la creó), o el Administrador saca a alguien
+        // (a otro Administrador solo el Súper admin; al Súper admin, nadie).
+        allow delete: if (signedIn() && request.auth.uid == uid && church(c).get('ownerUid', '') != uid)
+          || (isAdmin(c) && uid != request.auth.uid && uid != church(c).get('ownerUid', '')
+            && (resource.data.role != 'admin' || isOwner(c)));
+      }
+
+      // Ficha visible de cada persona (people/{uid}): nombre, perfil, equipos, última vez.
+      match /people/{key} {
+        // Admin y Pastor pueden leer fichas antiguas mientras ejecutan la migración; el resto solo lee datos ya limpios.
+        allow read: if isPastor(c) || (isMember(c) && noPublicStatus(resource.data));
+        // Al unirse (o volver a unirse): mi ficha, con el mismo perfil que mi miembro.
+        allow create, update: if account() && key == request.auth.uid
+          && !exists(memberPath(c, key)) && existsAfter(memberPath(c, key))
+          && request.resource.data.uid == key
+          && request.resource.data.role == getAfter(memberPath(c, key)).data.role
+          && request.resource.data.keys().hasOnly(['name', 'uid', 'role', 'teams', 'firstSeen', 'lastSeen'])
+          && noPublicStatus(request.resource.data)
+          && validName(request.resource.data.name)
+          // El Administrador puede agregar fichas sin cuenta (p. ej. datos de prueba o importadas).
+          || (isAdmin(c) && noPublicStatus(request.resource.data) && request.resource.data.get('uid', '') == '' && validName(request.resource.data.name));
+        // Congrega: quien marca asistencia registra una visita nueva (sin cuenta, solo datos básicos).
+        allow create: if canCheckin(c) && noPublicStatus(request.resource.data) && request.resource.data.get('uid', '') == ''
+          && request.resource.data.keys().hasOnly(['name', 'nombre', 'apellido', 'uid', 'role', 'creadoEn', 'creadoPor', 'primeraVisita'])
+          && validName(request.resource.data.name) && request.resource.data.get('role', 'colaborador') == 'colaborador';
+        // El Administrador puede cambiar cualquier ficha (por ejemplo, quitar una foto inapropiada).
+        // El Administrativo de asistencia corrige el tipo de asistencia y el rango de edad (sugerencias del Inicio).
+        allow update: if (isAdmin(c) && noPublicStatus(request.resource.data) && photoOk(request.resource.data))
+          || (isAsisAdmin(c) && noPublicStatus(request.resource.data) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rangoEdad', 'esNino'])
+              && request.resource.data.get('tipo', '') in ['', 'Activo', 'Regular', 'Ocasional', 'Visita']
+              && shortText(request.resource.data.get('rangoEdad', ''), 20)
+              && request.resource.data.get('esNino', false) is bool)
+          // Cada uno actualiza su "última vez", su nombre, sus equipos y su foto.
+          || (isMember(c) && key == request.auth.uid && noPublicStatus(request.resource.data)
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastSeen', 'name', 'teams', 'photo', 'birthday', 'aniversarioMD'])
+              && photoOk(request.resource.data) && birthdayOk(request.resource.data)
+              && (!('aniversarioMD' in request.resource.data) || request.resource.data.aniversarioMD == null
+                || (request.resource.data.aniversarioMD is string && request.resource.data.aniversarioMD.matches('^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$')))
+              && validName(request.resource.data.name)
+              && (!('teams' in request.resource.data) || (request.resource.data.teams is list && request.resource.data.teams.size() <= 12)));
+        allow delete: if isAdmin(c);
+      }
+      // Estado de miembro y actividad: solo Administrador y Pastor.
+      match /estadoPersonas/{key} {
+        allow read: if isPastor(c);
+        allow create: if (isAdmin(c) && validPrivateStatus(request.resource.data))
+          || (canCheckin(c) && request.resource.data.keys().hasOnly(['miembro', 'estado'])
+            && request.resource.data.get('miembro', false) == false
+            && request.resource.data.get('estado', 'activo') == 'activo'
+            && exists(personPath(c, key)) && get(personPath(c, key)).data.get('uid', '') == '');
+        allow update: if isAdmin(c) && validPrivateStatus(request.resource.data);
+        allow delete: if isAdmin(c);
+      }
+      // Clasificación de asistencia (incluye “Activo”): Admin, Pastor y Administrativo de asistencia.
+      match /clasificacionPersonas/{key} {
+        allow read: if isPastor(c) || isAsisAdmin(c);
+        allow create: if (isAsisAdmin(c) && validClassification(request.resource.data))
+          || (canCheckin(c) && request.resource.data.keys().hasOnly(['tipo']) && request.resource.data.get('tipo', '') == 'Visita'
+            && exists(personPath(c, key)) && get(personPath(c, key)).data.get('uid', '') == '');
+        allow update: if isAsisAdmin(c) && validClassification(request.resource.data);
+        allow delete: if isAdmin(c);
+      }
+
+      // ---------- Congrega ----------
+      match /families/{fam} {
+        allow read: if isMember(c);
+        allow write: if isAdmin(c) && (request.resource == null || validName(request.resource.data.name));
+      }
+      // Datos privados (contacto, nacimiento, consentimiento): Administrador y Pastor.
+      // Cada persona con cuenta ve su propia ficha y actualiza sus datos de contacto y su consentimiento.
+      function misDatos() {
+        return ['segundoNombre', 'fechaNacimiento', 'genero', 'estadoCivil', 'aniversario', 'telefono', 'email', 'direccion', 'comuna', 'region',
+          'consentimiento', 'fechaConsentimiento', 'medioConsentimiento', 'cambios', 'actualizadoEn', 'actualizadoPor'];
+      }
+      match /fichas/{key} {
+        allow read, create, update: if isPastor(c);
+        allow delete: if isAdmin(c);
+        allow get: if isMember(c) && key == request.auth.uid;
+        allow create: if isMember(c) && key == request.auth.uid && request.resource.data.keys().hasOnly(misDatos());
+        allow update: if isMember(c) && key == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(misDatos());
+      }
+      // Datos sensibles (Ley 21.719): notas pastorales y de salud. Solo Administrador y Pastor.
+      match /notas/{key} {
+        allow read: if isPastor(c);
+        allow create, update: if isPastor(c) && request.resource.data.keys().hasOnly(['notas', 'notasMedicas'])
+          && shortText(request.resource.data.get('notas', ''), 5000) && shortText(request.resource.data.get('notasMedicas', ''), 3000);
+        allow delete: if isAdmin(c);
+      }
+      // Cuenta de Google con la que entra cada uno (cuentas/{uid}): la escribe la misma persona al entrar;
+      // la ven solo el Administrador y el Pastor (y uno mismo).
+      match /cuentas/{uid} {
+        allow read: if isPastor(c) || (signedIn() && request.auth.uid == uid);
+        allow create, update: if isMember(c) && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['email', 'nombre', 'at'])
+          && shortText(request.resource.data.get('email', ''), 120) && shortText(request.resource.data.get('nombre', ''), 80)
+          && request.resource.data.at is int;
+        allow delete: if isAdmin(c);
+      }
+      // Registro de cambios: cada uno anota lo que cambió; solo el Súper admin lo lee. No se edita ni se borra.
+      match /registro/{rid} {
+        allow read: if isOwner(c);
+        allow create: if isMember(c)
+          && request.resource.data.keys().hasOnly(['at', 'uid', 'nombre', 'accion', 'persona', 'detalle'])
+          && request.resource.data.uid == request.auth.uid && request.resource.data.at is int
+          && shortText(request.resource.data.get('nombre', ''), 60) && shortText(request.resource.data.accion, 60)
+          && shortText(request.resource.data.get('persona', ''), 80) && shortText(request.resource.data.get('detalle', ''), 300);
+        allow update, delete: if false;
+      }
+      // Equipo de estación: el Administrador o el Administrativo invita; la persona acepta (o borra para decir que no).
+      match /equipoEstacion/{uid} {
+        allow read: if isMember(c);
+        allow create: if isAsisAdmin(c) && exists(memberPath(c, uid))
+          && request.resource.data.keys().hasOnly(['estado', 'por', 'at', 'nombre'])
+          && request.resource.data.estado == 'invitado' && request.resource.data.por == request.auth.uid
+          && request.resource.data.at is int && shortText(request.resource.data.get('nombre', ''), 60);
+        allow update: if isMember(c) && uid == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado', 'at'])
+          && resource.data.estado == 'invitado' && request.resource.data.estado == 'aceptado';
+        allow delete: if isAsisAdmin(c) || (isMember(c) && uid == request.auth.uid);
+      }
+      // Turnos de estación: alguien del equipo se ofrece para un evento; el Administrador o el Administrativo aprueba.
+      match /turnosEstacion/{tid} {
+        allow read: if isAsisAdmin(c) || (isMember(c) && resource.data.uid == request.auth.uid);
+        allow create: if (enEquipo(c) || isAsisAdmin(c))
+          && request.resource.data.keys().hasOnly(['eventId', 'uid', 'nombre', 'date', 'estado', 'at', 'por'])
+          && tid == request.resource.data.eventId + '__' + request.resource.data.uid
+          && exists(/databases/$(database)/documents/churches/$(c)/events/$(request.resource.data.eventId))
+          && request.resource.data.at is int && shortText(request.resource.data.get('nombre', ''), 60)
+          && shortText(request.resource.data.get('date', ''), 10) && shortText(request.resource.data.get('por', ''), 60)
+          && ((request.resource.data.uid == request.auth.uid && request.resource.data.estado == 'ofrecido')
+            || (isAsisAdmin(c) && request.resource.data.estado in ['ofrecido', 'aprobado']));
+        allow update: if isAsisAdmin(c)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado', 'at', 'por'])
+          && request.resource.data.estado in ['ofrecido', 'aprobado'];
+        allow delete: if isAsisAdmin(c) || (isMember(c) && resource.data.uid == request.auth.uid);
+      }
+      match /asistencia/{aid} {
+        allow read: if canCheckin(c) || isPastor(c);
+        allow delete: if canMarcar(c, resource.data.eventId, resource.data.get('date', ''));
+        allow create, update: if canMarcar(c, request.resource.data.eventId, request.resource.data.get('date', ''))
+          && request.resource.data.keys().hasOnly(['eventId', 'personKey', 'date', 'at', 'por', 'tipo'])
+          && request.resource.data.get('tipo', '') in ['', 'regular', 'visita', 'colaborador']
+          && aid == request.resource.data.eventId + '__' + request.resource.data.personKey
+          && exists(/databases/$(database)/documents/churches/$(c)/events/$(request.resource.data.eventId))
+          && exists(personPath(c, request.resource.data.personKey))
+          && request.resource.data.por == request.auth.uid
+          && request.resource.data.at is int
+          && shortText(request.resource.data.get('date', ''), 10);
+      }
+
+      match /private/{doc} {
+        allow read: if false;
+        allow write: if isAdmin(c);
+      }
+
+      match /songs/{song} {
+        allow read: if isMember(c);
+        allow create, update: if canEdit(c)
+          && (!('content' in request.resource.data) || shortText(request.resource.data.content, 50000));
+        allow delete: if isAdmin(c);
+      }
+
+      match /events/{event} {
+        allow read: if isMember(c);
+        allow create, update, delete: if canEdit(c);
+        // El Administrativo de asistencia abre los eventos donde se marca asistencia.
+        allow create, update: if isAsisAdmin(c);
+      }
+
+      // Inscripción para servir en un evento: un registro por persona y evento ("evento__persona").
+      // Cada uno se inscribe o se quita a sí mismo; Administrador y Director pueden hacerlo por otros
+      // y proponer a alguien (estado 'propuesta'); esa persona acepta (queda sin estado) o rechaza.
+      match /participations/{pid} {
+        allow read: if isMember(c);
+        allow create, update: if isMember(c)
+          && request.resource.data.eventId is string
+          && exists(/databases/$(database)/documents/churches/$(c)/events/$(request.resource.data.eventId))
+          && pid == request.resource.data.eventId + '__' + request.resource.data.personKey
+          && validName(request.resource.data.name)
+          && request.resource.data.role is string && request.resource.data.role.size() <= 40
+          && request.resource.data.keys().hasOnly(['eventId', 'personKey', 'name', 'role', 'group', 'date', 'at', 'prueba', 'estado', 'por'])
+          && shortText(request.resource.data.get('group', ''), 40) && shortText(request.resource.data.get('date', ''), 10)
+          // Propuesta del líder (la persona acepta o dice que no puede): estado 'propuesta' o 'rechazada'.
+          && request.resource.data.get('estado', '') in ['', 'propuesta', 'rechazada']
+          && shortText(request.resource.data.get('por', ''), 60)
+          && (request.resource.data.get('estado', '') != 'propuesta' || canEdit(c))
+          && (canEdit(c) || request.resource.data.personKey == request.auth.uid);
+        allow delete: if canEdit(c) || (isMember(c) && resource.data.personKey == request.auth.uid);
+      }
+
+      // En vivo: el Administrador o un Director pasa la letra durante el culto y los demás la siguen.
+      // Un solo documento por iglesia (live/actual); cada cambio de canción o sección lo reescribe.
+      match /live/{doc} {
+        allow read: if isMember(c);
+        allow create, update: if canEdit(c) && doc == 'actual'
+          && request.resource.data.keys().hasOnly(['eventId', 'songId', 'song', 'section', 'by', 'byName', 'active', 'at'])
+          && request.resource.data.eventId is string && request.resource.data.eventId.size() > 0 && request.resource.data.eventId.size() <= 100
+          && shortText(request.resource.data.get('songId', ''), 100)
+          && request.resource.data.song is int && request.resource.data.song >= 0 && request.resource.data.song < 200
+          && request.resource.data.section is int && request.resource.data.section >= 0 && request.resource.data.section < 200
+          && request.resource.data.by == request.auth.uid
+          && shortText(request.resource.data.get('byName', ''), 60)
+          && request.resource.data.active is bool
+          && request.resource.data.at is int;
+        allow delete: if canEdit(c);
+      }
+
+      // Favoritas y notas propias de cada persona: solo ella las ve y las cambia.
+      match /favorites/{key} {
+        allow read, delete: if isMember(c) && key == request.auth.uid;
+        allow create, update: if isMember(c) && key == request.auth.uid
+          && request.resource.data.keys().hasOnly(['songs', 'notes'])
+          && (!('songs' in request.resource.data) || (request.resource.data.songs is list && request.resource.data.songs.size() <= 500))
+          && (!('notes' in request.resource.data) || (request.resource.data.notes is map && request.resource.data.notes.size() <= 500));
+      }
+
+      // Sugerencias antiguas (ya no se usan: ahora van a feedback/). Solo el Super Admin las ve o borra.
+      match /suggestions/{sid} {
+        allow read, delete: if isSuper();
+        allow create, update: if false;
+      }
+    }
+  }
+}

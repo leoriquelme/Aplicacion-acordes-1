@@ -2,7 +2,7 @@
 // y agregan familias, fichas privadas (Administrador y Pastor), notas sensibles aparte y asistencia.
 // Qué ve cada uno lo decide permisos.js (y lo hacen cumplir las reglas de Firebase).
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { collection, deleteDoc, deleteField, doc, getDocs, onSnapshot, query, setDoc, where, writeBatch } from 'firebase/firestore';
+import { collection, deleteDoc, deleteField, doc, getDoc, getDocs, onSnapshot, query, setDoc, where, writeBatch } from 'firebase/firestore';
 import { db } from '../lib/firebase.js';
 import { useStore } from '../lib/store.jsx';
 import { fusionarDatos } from './importarPco.js';
@@ -25,17 +25,26 @@ export const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, 
 
 export function CongregaProvider({ children }) {
   const store = useStore();
-  const { churchId, role, myUid, people = [], misPerfiles = [], church, me } = store;
+  const { churchId, role, myUid, people: peoplePublic = [], misPerfiles = [], church, me } = store;
   const equipo = useEquipoEstacion(churchId);
   const perms = useMemo(() => permisosDe({ role, perfiles: misPerfiles, enEquipo: equipo.get(myUid)?.estado === 'aceptado', esDueno: church?.ownerUid === myUid }),
     [role, misPerfiles, equipo, myUid, church?.ownerUid]);
-  const { admin: isAdmin, marca, verPrivado, verAsistencia } = perms;
+  const { admin: isAdmin, marca, verPrivado, verAsistencia, asisAdmin } = perms;
+  const verClasificacion = verPrivado || asisAdmin;
   const [familias, setFamilias] = useState(new Map());
   const [fichas, setFichas] = useState(new Map());
   const [notas, setNotas] = useState(new Map());
   const [asistencia, setAsistencia] = useState(new Map());
   const [cuentas, setCuentas] = useState(new Map());
+  const [estadoPersonas, setEstadoPersonas] = useState(new Map());
+  const [clasificacionPersonas, setClasificacionPersonas] = useState(new Map());
   const [listo, setListo] = useState({ familias: false, asistencia: false });
+  const people = useMemo(() => peoplePublic.map((p) => {
+    const { miembro, estado, motivoInactivo, fechaInactivo, tipo, ...publico } = p;
+    const estadoPrivado = estadoPersonas.get(p.key) || { miembro, estado, motivoInactivo, fechaInactivo };
+    const clasificacion = clasificacionPersonas.get(p.key) || { tipo };
+    return { ...publico, ...(verPrivado ? estadoPrivado : {}), ...(verClasificacion ? clasificacion : {}) };
+  }), [peoplePublic, estadoPersonas, clasificacionPersonas, verPrivado, verClasificacion]);
   const anotar = useCallback((accion, persona, detalle) => registrar(churchId, myUid, me?.name, accion, persona, detalle), [churchId, myUid, me?.name]);
 
   useEffect(() => {
@@ -51,6 +60,16 @@ export function CongregaProvider({ children }) {
     if (!verPrivado) return onSnapshot(doc(db, 'churches', churchId, 'fichas', myUid), (s) => setFichas(new Map(s.exists() ? [[myUid, s.data()]] : [])), () => setFichas(new Map()));
     return onSnapshot(collection(db, 'churches', churchId, 'fichas'), (s) => setFichas(new Map(s.docs.map((d) => [d.id, d.data()]))), () => {});
   }, [churchId, verPrivado, myUid]);
+  // Estado de membresía y actividad: solo Administrador y Pastor.
+  useEffect(() => {
+    if (!churchId || !verPrivado) { setEstadoPersonas(new Map()); return undefined; }
+    return onSnapshot(collection(db, 'churches', churchId, 'estadoPersonas'), (s) => setEstadoPersonas(new Map(s.docs.map((d) => [d.id, d.data()]))), () => setEstadoPersonas(new Map()));
+  }, [churchId, verPrivado]);
+  // Asistencia habitual (incluida la categoría “Activo”): Admin, Pastor y Administrativo de asistencia.
+  useEffect(() => {
+    if (!churchId || !verClasificacion) { setClasificacionPersonas(new Map()); return undefined; }
+    return onSnapshot(collection(db, 'churches', churchId, 'clasificacionPersonas'), (s) => setClasificacionPersonas(new Map(s.docs.map((d) => [d.id, d.data()]))), () => setClasificacionPersonas(new Map()));
+  }, [churchId, verClasificacion]);
   // Notas pastorales y de salud (datos sensibles): solo Administrador y Pastor.
   useEffect(() => {
     if (!churchId || !verPrivado) { setNotas(new Map()); return undefined; }
@@ -78,7 +97,9 @@ export function CongregaProvider({ children }) {
       const p = people.find((x) => x.key === k);
       if (!p) return;
       const cambio = {};
-      if (f.motivoInactivo === 'Fallecido/a' && p.estado !== 'inactivo') cambio.estado = 'inactivo'; // quien falleció queda inactivo
+      if ((f.motivoInactivo || p.motivoInactivo) === 'Fallecido/a' && p.estado !== 'inactivo') {
+        b.set(doc(db, 'churches', churchId, 'estadoPersonas', k), { estado: 'inactivo' }, { merge: true }); n++;
+      }
       if (/^\d{4}-\d{2}-\d{2}$/.test(f.fechaNacimiento || '') && !p.birthday) cambio.birthday = f.fechaNacimiento.slice(5);
       if (/^\d{4}-\d{2}-\d{2}$/.test(f.aniversario || '') && p.aniversarioMD !== f.aniversario.slice(5)) cambio.aniversarioMD = f.aniversario.slice(5);
       if (Object.keys(cambio).length) { b.update(doc(db, 'churches', churchId, 'people', k), cambio); n++; }
@@ -111,12 +132,14 @@ export function CongregaProvider({ children }) {
   const registrarVisita = useCallback(async ({ nombre, apellido }, event) => {
     const r = doc(collection(db, 'churches', churchId, 'people'));
     await setDoc(r, {
-      name: `${nombre} ${apellido}`.trim().slice(0, 60), nombre, apellido, uid: '', role: 'colaborador', tipo: 'Visita', estado: 'activo',
-      miembro: false, creadoEn: Date.now(), creadoPor: myUid, primeraVisita: event?.date || '',
+      name: `${nombre} ${apellido}`.trim().slice(0, 60), nombre, apellido, uid: '', role: 'colaborador', tipo: 'Visita',
+      creadoEn: Date.now(), creadoPor: myUid, primeraVisita: event?.date || '',
     });
+    await setDoc(ref('estadoPersonas', r.id), { miembro: false, estado: 'activo' });
+    await setDoc(ref('clasificacionPersonas', r.id), { tipo: 'Visita' });
     if (event) await marcar(event, r.id, true, 'visita');
     return r.id;
-  }, [churchId, myUid, marcar]);
+  }, [churchId, myUid, marcar, ref]);
 
   /**
    * Guarda una persona: la ficha visible (solo Administrador), la privada y las notas (Administrador y Pastor).
@@ -125,7 +148,18 @@ export function CongregaProvider({ children }) {
   const guardarPersona = useCallback(async (key, persona, ficha, cambios) => {
     const r = key ? ref('people', key) : doc(collection(db, 'churches', churchId, 'people'));
     const b = writeBatch(db);
-    if (persona && isAdmin) b.set(r, { ...persona, name: (persona.name || nombreDe(persona)).slice(0, 60), ...(key ? {} : { uid: '', role: 'colaborador', creadoEn: Date.now() }) }, { merge: true });
+    if (persona && isAdmin) {
+      const { miembro, estado, motivoInactivo, fechaInactivo, tipo, ...personaPublica } = persona;
+      b.set(r, { ...personaPublica, name: (persona.name || nombreDe(persona)).slice(0, 60), ...(key ? {} : { uid: '', role: 'colaborador', creadoEn: Date.now() }) }, { merge: true });
+      const estadoPrivado = {};
+      if (miembro !== undefined) estadoPrivado.miembro = miembro === true;
+      if (estado !== undefined) estadoPrivado.estado = estado === 'inactivo' ? 'inactivo' : 'activo';
+      if (motivoInactivo !== undefined) estadoPrivado.motivoInactivo = String(motivoInactivo || '').slice(0, 60);
+      if (fechaInactivo !== undefined) estadoPrivado.fechaInactivo = String(fechaInactivo || '').slice(0, 10);
+      if (estadoPrivado.motivoInactivo === 'Fallecido/a') estadoPrivado.estado = 'inactivo';
+      if (Object.keys(estadoPrivado).length) b.set(ref('estadoPersonas', r.id), estadoPrivado, { merge: true });
+      if (tipo !== undefined) b.set(ref('clasificacionPersonas', r.id), { tipo: String(tipo || '').slice(0, 20) }, { merge: true });
+    }
     const anterior = fichas.get(r.id) || {};
     const { notas: n1, notasMedicas: n2, ...resto } = ficha;
     b.set(ref('fichas', r.id), {
@@ -182,6 +216,8 @@ export function CongregaProvider({ children }) {
     lote.delete(ref('fichas', key));
     lote.delete(ref('notas', key));
     lote.delete(ref('people', key));
+    lote.delete(ref('estadoPersonas', key));
+    lote.delete(ref('clasificacionPersonas', key));
     if (persona?.uid) {
       if (member?.exists()) lote.delete(memberRef);
       lote.delete(ref('cuentas', key));
@@ -221,9 +257,17 @@ export function CongregaProvider({ children }) {
       });
       unidas.push(o.key);
     }
-    const { key: kq, ...persona } = queda;
+    const { key: kq, miembro, estado, motivoInactivo, fechaInactivo, tipo, ...persona } = queda;
     const b = writeBatch(db);
     b.set(ref('people', kq), persona);
+    const estadoPrivado = {};
+    if (miembro !== undefined) estadoPrivado.miembro = miembro === true;
+    if (estado !== undefined) estadoPrivado.estado = estado === 'inactivo' ? 'inactivo' : 'activo';
+    if (motivoInactivo !== undefined) estadoPrivado.motivoInactivo = String(motivoInactivo || '').slice(0, 60);
+    if (fechaInactivo !== undefined) estadoPrivado.fechaInactivo = String(fechaInactivo || '').slice(0, 10);
+    if (estadoPrivado.motivoInactivo === 'Fallecido/a') estadoPrivado.estado = 'inactivo';
+    if (Object.keys(estadoPrivado).length) b.set(ref('estadoPersonas', kq), estadoPrivado, { merge: true });
+    if (tipo !== undefined) b.set(ref('clasificacionPersonas', kq), { tipo: String(tipo || '').slice(0, 20) }, { merge: true });
     b.set(ref('fichas', kq), { ...ficha, actualizadoEn: ahora, actualizadoPor: myUid });
     if (nota.notas || nota.notasMedicas) b.set(ref('notas', kq), nota);
     await b.commit();
@@ -244,7 +288,7 @@ export function CongregaProvider({ children }) {
     }
     await Promise.all(mover);
     const b2 = writeBatch(db);
-    unidas.forEach((k) => { b2.delete(ref('fichas', k)); b2.delete(ref('notas', k)); b2.delete(ref('people', k)); });
+    unidas.forEach((k) => { b2.delete(ref('fichas', k)); b2.delete(ref('notas', k)); b2.delete(ref('people', k)); b2.delete(ref('estadoPersonas', k)); b2.delete(ref('clasificacionPersonas', k)); });
     await b2.commit();
     anotar('Unió perfiles', nombreDe(persona), `${unidas.length + 1} fichas en una`);
     return kq;
@@ -252,7 +296,16 @@ export function CongregaProvider({ children }) {
 
   /** Aplica una sugerencia del Inicio (tipo de asistencia o rango de edad). Administrador o Administrativo de asistencia. */
   const aplicarCambio = useCallback(async (p, cambio) => {
-    await setDoc(ref('people', p.key), cambio, { merge: true });
+    const { miembro, estado, motivoInactivo, fechaInactivo, tipo, ...publico } = cambio;
+    if (Object.keys(publico).length) await setDoc(ref('people', p.key), publico, { merge: true });
+    const privado = {};
+    if (miembro !== undefined) privado.miembro = miembro === true;
+    if (estado !== undefined) privado.estado = estado === 'inactivo' ? 'inactivo' : 'activo';
+    if (motivoInactivo !== undefined) privado.motivoInactivo = String(motivoInactivo || '').slice(0, 60);
+    if (fechaInactivo !== undefined) privado.fechaInactivo = String(fechaInactivo || '').slice(0, 10);
+    if (privado.motivoInactivo === 'Fallecido/a') privado.estado = 'inactivo';
+    if (Object.keys(privado).length) await setDoc(ref('estadoPersonas', p.key), privado, { merge: true });
+    if (tipo !== undefined) await setDoc(ref('clasificacionPersonas', p.key), { tipo: String(tipo || '').slice(0, 20) }, { merge: true });
     anotar('Aplicó una sugerencia', nombreDe(p), Object.entries(cambio).map(([k, v]) => `${k}: ${v}`).join(', '));
   }, [ref, anotar]);
 
@@ -266,9 +319,9 @@ export function CongregaProvider({ children }) {
   }, [ref, myUid, anotar, people]);
 
   const value = useMemo(() => ({
-    ...store, ...perms, isAdmin, marca, familias, fichas, notas, asistencia, cuentas, listo, people, sinTipo, equipo, anotar,
+    ...store, ...perms, isAdmin, marca, verClasificacion, familias, fichas, notas, asistencia, cuentas, estadoPersonas, clasificacionPersonas, listo, people, sinTipo, equipo, anotar,
     marcar, registrarVisita, guardarPersona, guardarMisDatos, crearFamilia, eliminarPersona, unirPersonas, cambiarPerfiles, aplicarCambio,
-  }), [store, perms, isAdmin, marca, familias, fichas, notas, asistencia, cuentas, listo, people, sinTipo, equipo, anotar, marcar, registrarVisita, guardarPersona, guardarMisDatos, crearFamilia, eliminarPersona, unirPersonas, cambiarPerfiles, aplicarCambio]);
+  }), [store, perms, isAdmin, marca, verClasificacion, familias, fichas, notas, asistencia, cuentas, estadoPersonas, clasificacionPersonas, listo, people, sinTipo, equipo, anotar, marcar, registrarVisita, guardarPersona, guardarMisDatos, crearFamilia, eliminarPersona, unirPersonas, cambiarPerfiles, aplicarCambio]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
