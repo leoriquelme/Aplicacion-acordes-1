@@ -3,6 +3,8 @@ import { useStore } from '../lib/store.jsx';
 import { linkDeInvitacion, mensajeDeInvitacion } from '../lib/invitacion.js';
 import Icon from './Icon.jsx';
 import { FilaAbre } from './Comunicacion.jsx';
+import { Link } from 'react-router-dom';
+import Qr from './Qr.jsx';
 
 /** Link para invitar hermanos (por WhatsApp u otro medio). Solo lo ve el Administrador. */
 export default function InvitarCard() {
@@ -49,6 +51,13 @@ export default function InvitarCard() {
               <button className="btn" onClick={copiar}>Copiar link</button>
             </div>
             {msg && <p className="small">{msg}</p>}
+            <div className="invitar-qr">
+              <Qr texto={link} size={180} titulo="QR para unirse a la iglesia" />
+              <div className="cg-stack">
+                <p className="small">Los hermanos escanean este código con la cámara, entran con su cuenta y quedan dentro de la iglesia.</p>
+                <Link className="btn" to="/imprimir/afiche/invitacion"><Icon name="print" /> Imprimir afiche con QR</Link>
+              </div>
+            </div>
           </>
         )}
       </div>

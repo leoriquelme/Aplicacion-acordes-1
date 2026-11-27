@@ -4,6 +4,16 @@
 
 export const NOVEDADES = [
   {
+    id: 'n-2026-11-27-musica', fecha: '2026-11-27', icono: 'music', to: '/musica', boton: 'Escuchar',
+    titulo: 'Música de la iglesia',
+    texto: 'Escucha durante la semana las canciones del próximo culto, las del último y las que más cantamos, en Spotify o YouTube. También hay un link para mandarlo por WhatsApp a quien no tiene la app.',
+  },
+  {
+    id: 'n-2026-11-27-qr', fecha: '2026-11-27', icono: 'users', to: '/mi-iglesia', boton: 'Ver el QR',
+    titulo: 'Invitar con un código QR',
+    texto: 'El Administrador puede imprimir un afiche con un QR: los hermanos lo escanean, entran con su cuenta y quedan dentro de la iglesia.',
+  },
+  {
     id: 'n-2026-11-23-editar-guardar', fecha: '2026-11-23', icono: 'music', to: '/canciones', boton: 'Ver canciones',
     titulo: 'Editar canciones sin miedo',
     texto: 'Al editar una canción, los cambios solo se guardan cuando tocas Listo. Si vuelves atrás, la app te pregunta si quieres descartarlos y la canción queda como estaba.',

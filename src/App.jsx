@@ -11,6 +11,7 @@ import { enVivoActivo } from './lib/envivo.js';
 import IglesiaLogo from './components/IglesiaLogo.jsx';
 import { useEquipoEstacion } from './congrega/estacion.jsx';
 import { permisosDe, pestanasCongrega } from './congrega/permisos.js';
+import { SincronizarMusica } from './lib/musicaPublica.jsx';
 
 // Para que la app abra rápido (aunque haya poca señal), al abrir solo se baja lo de la primera
 // pantalla. Las demás páginas se bajan solas un momento después, sin que se note.
@@ -30,8 +31,12 @@ const cargarImportar = () => import('./pages/Importar.jsx');
 const cargarEditarPerfil = () => import('./components/Comunicacion.jsx');
 const cargarCongrega = () => import('./congrega/Congrega.jsx');
 const cargarApps = () => import('./congrega/Apps.jsx');
+const cargarMusica = () => import('./pages/Musica.jsx');
+const cargarAfiche = () => import('./pages/Afiche.jsx');
 const Congrega = lazy(cargarCongrega);
 const Apps = lazy(cargarApps);
+const Musica = lazy(cargarMusica);
+const Afiche = lazy(cargarAfiche);
 const Cancion = lazy(cargarCancion);
 const EditarCancion = lazy(cargarEditarCancion);
 const Eventos = lazy(cargarEventos);
@@ -46,7 +51,7 @@ const Sugerencias = lazy(cargarSugerencias);
 const Imprimir = lazy(cargarImprimir);
 const Importar = lazy(cargarImportar);
 const EditarPerfil = lazy(() => cargarEditarPerfil().then((m) => ({ default: m.EditarPerfil })));
-const TODAS = [cargarCancion, cargarEditarCancion, cargarEventos, cargarEvento, cargarAjustes, cargarPresentacion, cargarBiblioteca, cargarApoyo, cargarMiIglesia, cargarMiembros, cargarSugerencias, cargarImprimir, cargarImportar, cargarEditarPerfil, cargarCongrega, cargarApps];
+const TODAS = [cargarCancion, cargarEditarCancion, cargarEventos, cargarEvento, cargarAjustes, cargarPresentacion, cargarBiblioteca, cargarApoyo, cargarMiIglesia, cargarMiembros, cargarSugerencias, cargarImprimir, cargarImportar, cargarEditarPerfil, cargarCongrega, cargarApps, cargarMusica, cargarAfiche];
 
 /** Baja las demás páginas cuando el teléfono está libre, así después cambian al instante y sirven sin internet. */
 function usePrecargarPaginas() {
@@ -147,6 +152,7 @@ export default function App() {
           )}
         </header>
       )}
+      {mode === 'cloud' && can?.events && <SincronizarMusica />}
       {!presenting && liveEvent && (
         <div className="en-vivo-barra" role="status">
           <span className="en-vivo-dot" />
@@ -183,6 +189,8 @@ export default function App() {
           <Route path="/apoyo" element={<Apoyo />} />
           <Route path="/presentar/:tipo/:id" element={<Presentacion />} />
           <Route path="/imprimir/evento/:id" element={<Imprimir />} />
+          <Route path="/imprimir/afiche/:tipo" element={<Afiche />} />
+          <Route path="/musica" element={<Musica />} />
           <Route path="/apps" element={<Apps />} />
           <Route path="/congrega/*" element={<Congrega />} />
           <Route path="*" element={<Navigate to="/" replace />} />

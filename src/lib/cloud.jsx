@@ -361,6 +361,7 @@ export async function eliminarIglesia(iglesia) {
   }
   const lib = await getDocs(query(collection(db, 'library'), where('churchId', '==', iglesia.id)));
   await commitAll(lib.docs.map((d) => (b) => b.delete(d.ref)));
+  await deleteDoc(doc(db, 'musicaPublica', iglesia.id)).catch(() => {});
   await deleteDoc(base);
   if (iglesia.codigo) await deleteDoc(doc(db, 'codes', iglesia.codigo)).catch(() => {});
   if (iglesia.ownerUid) {

@@ -1,5 +1,5 @@
 import { Suspense, lazy, useContext, useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { Route, Routes, useLocation } from 'react-router-dom';
 import { AuthProvider, CloudStoreProvider, abrirIglesia, guardarPerfil, iglesiaCerradaAMano, marcarIglesiaCerrada, useAuth } from './lib/cloud.jsx';
 import { PersonalStoreProvider } from './lib/personal.jsx';
 import { DataContext } from './lib/store.jsx';
@@ -11,6 +11,8 @@ import { invitacionPendiente } from './lib/invitacion.js';
 
 // La página del Super Admin solo la usa una persona: se baja únicamente cuando se abre.
 const SuperAdmin = lazy(() => import('./pages/SuperAdmin.jsx'));
+// Música de la iglesia por link público: se ve sin cuenta.
+const EscucharPublico = lazy(() => import('./pages/EscucharPublico.jsx'));
 
 function Gate() {
   const { user, profile, session, setSession } = useAuth();
@@ -28,6 +30,7 @@ function Gate() {
       .catch(() => marcarIglesiaCerrada(true)) // no se pudo (la quitaron o se bloqueó): no reintentar
       .finally(() => setAbriendo(false));
   }, [abrirSola]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (pathname.startsWith('/escuchar/')) return <Suspense fallback={<div className="loading">Cargando…</div>}><Routes><Route path="/escuchar/:id" element={<EscucharPublico />} /></Routes></Suspense>;
   if (user === undefined || (user && profile === undefined)) return <div className="loading">Cargando…</div>;
   if (!user) return <Bienvenida />;
   if (!profile?.name) return <PedirNombre />;
