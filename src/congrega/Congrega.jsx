@@ -10,6 +10,8 @@ import Estacion from './Estacion.jsx';
 import EstacionInicio from './EstacionInicio.jsx';
 import MiFicha from './MiFicha.jsx';
 import InicioHermano from './InicioHermano.jsx';
+import Agenda from './Agenda.jsx';
+import Oracion from './Oracion.jsx';
 import Familia from './Familia.jsx';
 import { AvisosEstacion } from './estacion.jsx';
 import './congrega.css';
@@ -46,6 +48,8 @@ function Paginas() {
         <Route path="personas/:key" element={<Ficha />} />
         <Route path="familias/:id" element={<Familia />} />
         <Route path="mificha" element={<MiFicha />} />
+        <Route path="agenda" element={<Agenda />} />
+        <Route path="oracion" element={<Oracion />} />
         <Route path="ajustes" element={<Ajustes />} />
         <Route path="*" element={<Navigate to="/congrega" replace />} />
       </Routes>

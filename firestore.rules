@@ -466,6 +466,34 @@ service cloud.firestore {
         allow write: if isAdmin(c);
       }
 
+      // Peticiones de oración. Quien la escribe elige: solo los pastores (dato sensible) o toda la iglesia.
+      // "Estoy orando": cada uno pone o quita solo su propia marca en orando.{uid}.
+      function validPeticion(d) {
+        return d.keys().hasOnly(['texto', 'para', 'estado', 'autorUid', 'autor', 'at', 'orando'])
+          && d.texto is string && d.texto.size() > 0 && d.texto.size() <= 600
+          && d.para in ['pastores', 'iglesia'] && d.estado in ['activa', 'respondida']
+          && d.autorUid is string && shortText(d.get('autor', ''), 60) && d.at is int
+          && d.orando is map && d.orando.size() <= 500;
+      }
+      function puedeVerPeticion(c, d) { return isPastor(c) || (isMember(c) && (d.para == 'iglesia' || d.autorUid == request.auth.uid)); }
+      match /oracion/{id} {
+        allow read: if puedeVerPeticion(c, resource.data);
+        allow create: if isMember(c) && validPeticion(request.resource.data)
+          && request.resource.data.autorUid == request.auth.uid
+          && request.resource.data.estado == 'activa' && request.resource.data.orando.size() == 0;
+        allow update: if puedeVerPeticion(c, resource.data) && validPeticion(request.resource.data)
+          && request.resource.data.autorUid == resource.data.autorUid
+          && (
+            (resource.data.autorUid == request.auth.uid
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['texto', 'para', 'estado']))
+            || (isPastor(c) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado']))
+            || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['orando'])
+              && request.resource.data.orando.diff(resource.data.orando).affectedKeys().hasOnly([request.auth.uid])
+              && request.resource.data.orando.get(request.auth.uid, true) == true)
+          );
+        allow delete: if isPastor(c) || (isMember(c) && resource.data.autorUid == request.auth.uid);
+      }
+
       // Avisos de la iglesia: todos los miembros los leen; el Pastor y el Administrador publican.
       match /avisos/{id} {
         allow read: if isMember(c);

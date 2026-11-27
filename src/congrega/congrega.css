@@ -341,3 +341,27 @@ a.cg-item:hover { background: var(--surface-2); text-decoration: none; }
 .cg-filtro-tipo { max-width: 12rem; min-height: 2.4rem; }
 
 .cg-aviso.ok { background: var(--cg-ok-soft); color: var(--cg-ok); }
+
+/* Agenda */
+.agenda-filtros { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.filtro-chip { border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 999px; padding: 0.35rem 0.8rem; font: inherit; font-size: 0.88rem; cursor: pointer; }
+.filtro-chip.activo { background: var(--primary); border-color: var(--primary); color: var(--primary-text); }
+.agenda-mes { display: flex; flex-direction: column; gap: 0.5rem; }
+.agenda-mes-titulo { margin: 0.6rem 0 0; font-size: 1rem; color: var(--muted); }
+.agenda-mes-titulo::first-letter { text-transform: uppercase; }
+.agenda-evento { padding: 0.7rem 0.9rem; display: flex; flex-direction: column; gap: 0.5rem; }
+.agenda-fila { display: flex; align-items: center; gap: 0.7rem; }
+.agenda-quien { display: flex; flex-direction: column; min-width: 0; color: var(--text); text-decoration: none; }
+.agenda-agendar { align-items: center; }
+
+/* Oración */
+.oracion-para { border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.3rem; }
+.oracion-para label { flex-direction: row !important; align-items: center; }
+.peticion { border-top: 0; padding-top: 0.9rem; }
+.peticion p { margin: 0; }
+.peticion.respondida { opacity: 0.85; }
+.peticion-respondida { color: var(--ok); font-weight: 700; }
+.cg-accesos { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0.8rem; }
+.cg-seccion-titulo { margin: 0.6rem 0 0; font-size: 1rem; color: var(--muted); }
+.agenda-fila .btn { flex: none; padding-inline: 0.55rem; }
+.agenda-quien { flex: 1 1 auto; }

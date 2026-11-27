@@ -4,6 +4,16 @@
 
 export const NOVEDADES = [
   {
+    id: 'n-2026-11-27-oracion', fecha: '2026-11-27', icono: 'pray', to: '/congrega/oracion', boton: 'Ir a Oración',
+    titulo: 'Peticiones de oración',
+    texto: 'En Congrega → Oración puedes pedir oración. Tú eliges si la ven solo los pastores o toda la iglesia, y los hermanos tocan "Voy a orar".',
+  },
+  {
+    id: 'n-2026-11-27-agenda', fecha: '2026-11-27', icono: 'calendar', to: '/congrega/agenda', boton: 'Ver agenda',
+    titulo: 'Agenda de la iglesia',
+    texto: 'Cultos, oración, jóvenes y escuela dominical de los próximos 3 meses. Con un toque los agregas a tu calendario y te avisa antes.',
+  },
+  {
     id: 'n-2026-11-27-avisos', fecha: '2026-11-27', icono: 'sparkle',
     titulo: 'Avisos de la iglesia',
     texto: 'El Pastor y el Administrador pueden publicar avisos con fecha de término. Salen arriba en Inicio y se comparten por WhatsApp con un toque.',

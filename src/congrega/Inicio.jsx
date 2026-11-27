@@ -5,6 +5,7 @@ import { todayISO } from '../lib/dates.js';
 import { RANGOS, TIPOS, activo, esMiembro, nombreDe, useCongrega } from './datos.jsx';
 import { sugerencias } from './sugerencias.js';
 import { EnlazarCuentas } from './UnirPerfiles.jsx';
+import { AccesoAgenda, AccesoOracion } from './Accesos.jsx';
 import { TIPOS_EVENTO, etiquetaTipo, resumenPorTipo, tipoEvento } from './eventos.js';
 
 const corto = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString('es-CL', { day: 'numeric', month: 'short' }).replace('.', '');
@@ -262,6 +263,7 @@ export default function Inicio() {
   return (
     <div className="cg-stack">
       <div className="page-head"><div><h1>Congrega</h1><p className="muted">Personas y asistencia de la iglesia</p></div></div>
+      <div className="cg-accesos"><AccesoOracion /><AccesoAgenda /></div>
       <div className="datos-grid">
         <div className="card dato cg-dato-ver">{ver && ult && <VerQuienes titulo={`Asistencia ${corto(ult.date)}`} grupos={[{ label: ult.name || 'Evento', ps: vinieronA(ult.id) }]} onAbrir={setQuienes} />}<strong>{ult ? nUlt : '—'}</strong><span>{ult ? `Asistencia ${corto(ult.date)}` : marca ? 'Sin asistencia registrada' : 'Asistencia (solo quienes la marcan)'}</span>
           {delta != null && <span className={`cg-delta ${delta >= 0 ? 'sube' : 'baja'}`}>{delta > 0 ? `▲ ${delta} más` : delta < 0 ? `▼ ${-delta} menos` : 'Igual'} que la vez anterior</span>}</div>

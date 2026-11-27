@@ -19,15 +19,15 @@ describe('permisos por perfil', () => {
   it('Encargado de asistencia (equipo de estación): solo estación y su ficha', () => {
     const p = permisosDe({ role: 'miembro', enEquipo: true });
     expect(p).toMatchObject({ marca: true, soloHoy: true, verPersonas: false, verPrivado: false });
-    expect(pestanasCongrega(p)).toEqual(['inicio', 'estacion', 'mificha', 'ajustes']);
+    expect(pestanasCongrega(p)).toEqual(['inicio', 'estacion', 'oracion', 'mificha', 'ajustes']);
   });
   it('Administrativo de asistencia: asistencia completa', () => {
     const p = permisosDe({ role: 'colaborador', perfiles: ['asisAdmin'] });
     expect(p).toMatchObject({ asisAdmin: true, marca: true, soloHoy: false, verPrivado: false });
   });
   it('Miembro y Colaborador: Inicio del hermano y su ficha', () => {
-    expect(pestanasCongrega(permisosDe({ role: 'miembro' }))).toEqual(['inicio', 'mificha', 'ajustes']);
-    expect(pestanasCongrega(permisosDe({ role: 'colaborador' }))).toEqual(['inicio', 'mificha', 'ajustes']);
+    expect(pestanasCongrega(permisosDe({ role: 'miembro' }))).toEqual(['inicio', 'agenda', 'oracion', 'mificha', 'ajustes']);
+    expect(pestanasCongrega(permisosDe({ role: 'colaborador' }))).toEqual(['inicio', 'agenda', 'oracion', 'mificha', 'ajustes']);
   });
   it('solo el Súper admin cambia Administradores; al Súper admin nadie', () => {
     const admin = permisosDe({ role: 'admin' }); const dueno = permisosDe({ role: 'admin', esDueno: true });
