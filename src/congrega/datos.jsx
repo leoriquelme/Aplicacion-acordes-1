@@ -7,7 +7,7 @@ import { db } from '../lib/firebase.js';
 import { useStore } from '../lib/store.jsx';
 import { fusionarDatos } from './importarPco.js';
 import { compararPerfiles, ordenarUnion, personaUnida } from './unir.js';
-import { permisosDe } from './permisos.js';
+import { entradaPermisos, permisosDe } from './permisos.js';
 import { registrar, useEquipoEstacion } from './estacion.jsx';
 
 const Ctx = createContext(null);
@@ -25,10 +25,10 @@ export const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, 
 
 export function CongregaProvider({ children }) {
   const store = useStore();
-  const { churchId, role, myUid, people: peoplePublic = [], misPerfiles = [], church, me } = store;
+  const { churchId, role, myUid, people: peoplePublic = [], misPerfiles = [], church, me, vistaComo } = store;
   const equipo = useEquipoEstacion(churchId);
-  const perms = useMemo(() => permisosDe({ role, perfiles: misPerfiles, enEquipo: equipo.get(myUid)?.estado === 'aceptado', esDueno: church?.ownerUid === myUid }),
-    [role, misPerfiles, equipo, myUid, church?.ownerUid]);
+  const perms = useMemo(() => permisosDe(entradaPermisos({ role, misPerfiles, vistaComo, church, myUid }, equipo.get(myUid)?.estado === 'aceptado')),
+    [role, misPerfiles, equipo, myUid, church?.ownerUid, vistaComo]); // eslint-disable-line react-hooks/exhaustive-deps
   const { admin: isAdmin, marca, verPrivado, verAsistencia, asisAdmin } = perms;
   const verClasificacion = verPrivado || asisAdmin;
   const [familias, setFamilias] = useState(new Map());

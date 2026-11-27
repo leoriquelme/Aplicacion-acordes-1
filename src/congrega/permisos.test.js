@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { permisosDe, pestanasCongrega, puedeCambiarPerfil } from './permisos.js';
+import { entradaPermisos, permisosDe, pestanasCongrega, puedeCambiarPerfil, vistaPorId } from './permisos.js';
 
 describe('permisos por perfil', () => {
   it('Administrador: todo', () => {
@@ -36,5 +36,21 @@ describe('permisos por perfil', () => {
     expect(puedeCambiarPerfil(dueno, { role: 'admin', esDueno: true })).toBe(false);
     expect(puedeCambiarPerfil(admin, { role: 'colaborador' })).toBe(true);
     expect(puedeCambiarPerfil(permisosDe({ role: 'director' }), { role: 'colaborador' })).toBe(false);
+  });
+});
+
+describe('ver la app como otro perfil', () => {
+  it('el Súper admin viendo como Miembro tiene las pestañas del hermano y no es dueño', () => {
+    const v = vistaPorId('miembro');
+    const e = entradaPermisos({ role: v.role, misPerfiles: v.perfiles, vistaComo: v, church: { ownerUid: 'ana' }, myUid: 'ana' }, false);
+    expect(e.esDueno).toBe(false);
+    expect(pestanasCongrega(permisosDe(e))).toEqual(['inicio', 'agenda', 'oracion', 'mificha', 'ajustes']);
+  });
+  it('como Encargado de asistencia aparece Estación aunque no esté en el equipo', () => {
+    const v = vistaPorId('encargado');
+    expect(pestanasCongrega(permisosDe(entradaPermisos({ role: v.role, misPerfiles: v.perfiles, vistaComo: v }, false)))).toContain('estacion');
+  });
+  it('sin "ver como" queda igual que antes', () => {
+    expect(entradaPermisos({ role: 'admin', church: { ownerUid: 'ana' }, myUid: 'ana' }, true)).toEqual({ role: 'admin', perfiles: [], enEquipo: true, esDueno: true });
   });
 });

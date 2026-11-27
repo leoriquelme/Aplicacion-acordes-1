@@ -1,3 +1,4 @@
+import { VistaComoAjustes } from '../components/VistaComo.jsx';
 import { useEffect, useState } from 'react';
 import { collection, deleteField, doc, getDocs, limit, onSnapshot, orderBy, query, writeBatch } from 'firebase/firestore';
 import { db } from '../lib/firebase.js';
@@ -12,6 +13,7 @@ export default function Ajustes() {
   return (
     <div className="cg-stack">
       <div className="page-head"><h1>Ajustes</h1></div>
+      <VistaComoAjustes />
       <MiFicha />
       {isAdmin && <PerfilesAcceso />}
       {isAdmin && <EdicionMasiva />}

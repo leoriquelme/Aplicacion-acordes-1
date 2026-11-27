@@ -8,6 +8,7 @@ import IglesiaPrueba from '../components/IglesiaPrueba.jsx';
 import ProbarPedalera from '../components/ProbarPedalera.jsx';
 import { Respaldo } from '../components/Administracion.jsx';
 import Icon from '../components/Icon.jsx';
+import { VistaComoAjustes } from '../components/VistaComo.jsx';
 import { descargar } from '../lib/descargar.js';
 
 const MUESTRA = '[G]Cuán grande es [C]Él, [G]cuán grande es [D]Él';
@@ -106,6 +107,8 @@ export default function Ajustes() {
           </FilaAbre>
         </Grupo>
       )}
+
+      <VistaComoAjustes />
 
       <Grupo titulo="App">
           {store.mode === 'cloud' && store.can.users && (

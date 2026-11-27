@@ -1926,3 +1926,8 @@ main.content {
 .hermano-eventos li + li { border-top: 1px solid var(--border); }
 .hermano-eventos a { display: flex; flex-direction: column; gap: 0.1rem; padding: 0.55rem 0; color: var(--text); text-decoration: none; }
 .inicio-hermano { display: flex; flex-direction: column; gap: 1rem; }
+
+/* Ver la app como… (Súper admin) */
+.vista-opciones { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.5rem 0; }
+.vista-barra { flex-wrap: wrap; }
+.vista-barra select { width: auto; max-width: 100%; }
