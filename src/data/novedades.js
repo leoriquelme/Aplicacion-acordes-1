@@ -4,6 +4,16 @@
 
 export const NOVEDADES = [
   {
+    id: 'n-2026-11-27-directorio', fecha: '2026-11-27', icono: 'users', to: '/congrega/mificha', boton: 'Ir a Mi ficha',
+    titulo: 'Directorio de hermanos',
+    texto: 'Si quieres, en Mi ficha puedes aparecer en el directorio con tu celular, para que los hermanos te llamen o escriban. Es voluntario.',
+  },
+  {
+    id: 'n-2026-11-27-saludar', fecha: '2026-11-27', icono: 'heart',
+    titulo: 'Saludar por WhatsApp',
+    texto: 'En Inicio ahora salen también los aniversarios de matrimonio, y con el botón Saludar mandas el mensaje por WhatsApp.',
+  },
+  {
     id: 'n-2026-11-27-oracion', fecha: '2026-11-27', icono: 'pray', to: '/congrega/oracion', boton: 'Ir a Oración',
     titulo: 'Peticiones de oración',
     texto: 'En Congrega → Oración puedes pedir oración. Tú eliges si la ven solo los pastores o toda la iglesia, y los hermanos tocan "Voy a orar".',

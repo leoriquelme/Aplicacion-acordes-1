@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { edadEn, rangoPorEdad, sugerencias } from './sugerencias.js';
+import { edadEn, rangoPorEdad, sugerencias, teExtranamos } from './sugerencias.js';
 
 const hoy = '2026-11-24';
 const events = [{ id: 'e1', date: '2026-11-08' }, { id: 'e2', date: '2026-11-15' }, { id: 'e3', date: '2026-11-22' }, { id: 'e0', date: '2026-10-01' }];
@@ -29,5 +29,25 @@ describe('sugerencias del Inicio', () => {
   it('sin 3 eventos recientes con registro no sugiere cambios de asistencia', () => {
     const s = sugerencias({ people: [{ key: 'r', tipo: 'Regular' }], asistencia: asis([['e3', 'z']]), events, hoy });
     expect(s).toEqual([]);
+  });
+});
+
+describe('teExtranamos', () => {
+  const events = ['11-01', '11-08', '11-15', '11-22', '11-29', '10-25', '10-18'].map((d) => ({ id: `c${d}`, date: `2026-${d}` }));
+  const a = (key, ...ds) => ds.map((d) => ({ eventId: `c${d}`, personKey: key }));
+  const asistencia = new Map([
+    ...a('ana', '10-18', '10-25', '11-01'), // venía, faltó 4 seguidos
+    ...a('beto', '11-29'), // vino al último
+    ...a('caro', '10-18'), // venía poco
+    ...a('dani', '10-25', '11-01', '11-08'), // faltó 3 seguidos
+    ...a('otro', '11-15', '11-22', '11-29'),
+  ].map((x, i) => [i, x]));
+  const people = ['ana', 'beto', 'caro', 'dani', 'eva'].map((key) => ({ key, name: key }));
+  it('quien venía seguido y faltó 3 o más cultos', () => {
+    const r = teExtranamos({ people, asistencia, events, hoy: '2026-11-30' });
+    expect(r.map((x) => [x.p.key, x.faltas, x.ultima])).toEqual([['dani', 3, '2026-11-08'], ['ana', 4, '2026-11-01']]);
+  });
+  it('con pocos cultos registrados no dice nada', () => {
+    expect(teExtranamos({ people, asistencia, events: events.slice(0, 3), hoy: '2026-11-30' })).toEqual([]);
   });
 });

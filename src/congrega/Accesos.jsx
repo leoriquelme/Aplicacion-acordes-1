@@ -30,3 +30,13 @@ export function AccesoAgenda() {
     </Link>
   );
 }
+
+export function AccesoDirectorio() {
+  return (
+    <Link to="/congrega/directorio" className="card bloque-musica">
+      <span className="bloque-musica-icono" aria-hidden="true"><Icon name="users" size="1.6rem" /></span>
+      <span className="grow"><strong>Directorio de hermanos</strong><span className="muted small">El contacto de quienes lo quisieron compartir</span></span>
+      <span className="fila-flecha" aria-hidden="true">›</span>
+    </Link>
+  );
+}

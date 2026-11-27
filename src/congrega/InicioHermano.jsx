@@ -10,7 +10,7 @@ import VersiculoDelDia from '../components/VersiculoDelDia.jsx';
 import { Avatar } from '../components/Avatares.jsx';
 import { etiquetaTipo, tipoEvento } from './eventos.js';
 import { nombreDe, useCongrega } from './datos.jsx';
-import { AccesoOracion } from './Accesos.jsx';
+import { AccesoDirectorio, AccesoOracion } from './Accesos.jsx';
 
 const MAX_EVENTOS = 4;
 
@@ -49,6 +49,7 @@ export default function InicioHermano() {
       </section>
 
       <AccesoOracion />
+      <AccesoDirectorio />
 
       <Cumpleanos />
 

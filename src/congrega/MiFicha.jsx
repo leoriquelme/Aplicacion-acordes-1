@@ -7,6 +7,7 @@ import { db } from '../lib/firebase.js';
 import { Avatar } from '../components/Avatares.jsx';
 import ElegirFoto from '../components/ElegirFoto.jsx';
 import { CIVIL, activo, nombreDe, useCongrega } from './datos.jsx';
+import { aparecerEnDirectorio, salirDelDirectorio, useDirectorio } from '../lib/directorio.jsx';
 
 const CAMPOS = [
   ['telefono', 'Celular', 'tel'], ['email', 'Correo', 'email'], ['direccion', 'Dirección', 'text', true], ['comuna', 'Comuna', 'text'], ['region', 'Región', 'text'],
@@ -105,7 +106,42 @@ export default function MiFicha() {
           </div>
         </form>
       )}
+      <EnDirectorio churchId={churchId} uid={myUid} ficha={d} />
       {c.verPersonas && <p className="muted small">Para ver a toda la iglesia, entra a <Link to="/congrega/personas">Personas</Link>.</p>}
     </div>
+  );
+}
+
+/** Aparecer (o no) en el directorio de hermanos con mi celular y correo. Es voluntario. */
+function EnDirectorio({ churchId, uid, ficha }) {
+  const dir = useDirectorio(churchId);
+  const mio = dir.get(uid);
+  const [conCorreo, setConCorreo] = useState(false);
+  const [msg, setMsg] = useState('');
+  const tel = (ficha.telefono || '').trim();
+  const hacer = (f, ok) => f().then(() => setMsg(ok)).catch((e) => setMsg(`No se pudo: ${e.message}`));
+  return (
+    <fieldset className="card cg-stack"><legend>Directorio de hermanos</legend>
+      {mio ? (
+        <>
+          <p className="small">Apareces en el <Link to="/congrega/directorio">directorio</Link> con tu celular{mio.email ? ' y tu correo' : ''}. Solo lo ven los hermanos de la iglesia.</p>
+          <div className="cg-row">
+            {(mio.telefono !== tel) && tel && <button type="button" className="btn small" onClick={() => hacer(() => aparecerEnDirectorio(churchId, uid, { telefono: tel, email: mio.email ? ficha.email : '' }), 'Listo: actualizado.')}>Usar mi celular nuevo</button>}
+            <button type="button" className="btn small ghost" onClick={() => hacer(() => salirDelDirectorio(churchId, uid), 'Listo: ya no apareces en el directorio.')}>Dejar de aparecer</button>
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="small">Si quieres, los hermanos pueden ver tu celular para llamarte o escribirte por WhatsApp. Es voluntario y lo puedes quitar cuando quieras.</p>
+          {tel ? (
+            <>
+              <label className="cg-row small"><input type="checkbox" className="cg-checkbox" checked={conCorreo} onChange={(e) => setConCorreo(e.target.checked)} /> Mostrar también mi correo</label>
+              <div><button type="button" className="btn small primary" onClick={() => hacer(() => aparecerEnDirectorio(churchId, uid, { telefono: tel, email: conCorreo ? ficha.email || '' : '' }), 'Listo: ya apareces en el directorio.')}>Aparecer en el directorio</button></div>
+            </>
+          ) : <p className="muted small">Primero pon tu celular en "Actualizar mis datos".</p>}
+        </>
+      )}
+      {msg && <p className="small">{msg}</p>}
+    </fieldset>
   );
 }

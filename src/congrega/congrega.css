@@ -365,3 +365,6 @@ a.cg-item:hover { background: var(--surface-2); text-decoration: none; }
 .cg-seccion-titulo { margin: 0.6rem 0 0; font-size: 1rem; color: var(--muted); }
 .agenda-fila .btn { flex: none; padding-inline: 0.55rem; }
 .agenda-quien { flex: 1 1 auto; }
+.directorio-item { flex-wrap: wrap; }
+.directorio-acciones { margin-left: auto; }
+.cg-boton-quien { background: none; border: 0; padding: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; }

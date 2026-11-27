@@ -341,6 +341,19 @@ describe('peticiones de oración', () => {
   });
 });
 
+describe('directorio voluntario', () => {
+  beforeEach(() => unirse(cuenta('juan'), 'juan', 'ABCDEF'));
+  const dir = (db, uid = 'juan') => doc(db, 'churches', C, 'directorio', uid);
+  it('cada uno se agrega o se quita; los miembros lo leen', async () => {
+    await assertSucceeds(setDoc(dir(cuenta('juan')), { telefono: '+56911112222', email: '', at: 1 }));
+    await assertSucceeds(getDoc(dir(cuenta('ana'))));
+    await assertFails(getDoc(dir(cuenta('pedro'))));
+    await assertFails(setDoc(dir(cuenta('ana')), { telefono: '1', at: 1 }));
+    await assertFails(setDoc(dir(cuenta('juan')), { telefono: '1', direccion: 'x', at: 1 }));
+    await assertSucceeds(deleteDoc(dir(cuenta('juan'))));
+  });
+});
+
 describe('cuenta personal', () => {
   it('mis canciones solo las veo yo', async () => {
     await assertSucceeds(setDoc(doc(cuenta('juan'), 'users', 'juan', 'songs', 's1'), { title: 'Mía', content: '[G]Hola' }));

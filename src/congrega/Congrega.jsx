@@ -12,6 +12,7 @@ import MiFicha from './MiFicha.jsx';
 import InicioHermano from './InicioHermano.jsx';
 import Agenda from './Agenda.jsx';
 import Oracion from './Oracion.jsx';
+import Directorio from './Directorio.jsx';
 import Familia from './Familia.jsx';
 import { AvisosEstacion } from './estacion.jsx';
 import './congrega.css';
@@ -50,6 +51,7 @@ function Paginas() {
         <Route path="mificha" element={<MiFicha />} />
         <Route path="agenda" element={<Agenda />} />
         <Route path="oracion" element={<Oracion />} />
+        <Route path="directorio" element={<Directorio />} />
         <Route path="ajustes" element={<Ajustes />} />
         <Route path="*" element={<Navigate to="/congrega" replace />} />
       </Routes>

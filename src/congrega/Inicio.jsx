@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Avatar } from '../components/Avatares.jsx';
 import { todayISO } from '../lib/dates.js';
 import { RANGOS, TIPOS, activo, esMiembro, nombreDe, useCongrega } from './datos.jsx';
-import { sugerencias } from './sugerencias.js';
+import { sugerencias, teExtranamos } from './sugerencias.js';
+import { linkWhatsApp, saludoExtranamos } from '../lib/saludos.js';
 import { EnlazarCuentas } from './UnirPerfiles.jsx';
 import { AccesoAgenda, AccesoOracion } from './Accesos.jsx';
 import { TIPOS_EVENTO, etiquetaTipo, resumenPorTipo, tipoEvento } from './eventos.js';
@@ -107,6 +108,45 @@ function Sugerencias({ lista, porKey, aplicar }) {
   );
 }
 
+const CONTACTADOS = 'congrega.teExtranamos.contactados';
+const DIAS_CONTACTADO = 21;
+const leerContactados = () => { try { return JSON.parse(localStorage.getItem(CONTACTADOS) || '{}'); } catch { return {}; } };
+
+/** "Te extrañamos" (solo pastores): quienes venían seguido y faltaron a los últimos cultos, con saludo por WhatsApp. */
+function TeExtranamos({ lista, fichas, iglesia, ir }) {
+  const [hechos, setHechos] = useState(leerContactados);
+  const limite = Date.now() - DIAS_CONTACTADO * 86400000;
+  const visibles = lista.filter((x) => !(hechos[x.p.key] > limite));
+  if (!visibles.length) return null;
+  const contactado = (key) => {
+    const n = Object.fromEntries(Object.entries({ ...hechos, [key]: Date.now() }).filter(([, t]) => t > limite));
+    setHechos(n);
+    try { localStorage.setItem(CONTACTADOS, JSON.stringify(n)); } catch { /* sin almacenamiento */ }
+  };
+  return (
+    <section className="card cg-panel ancho cg-sugerencias">
+      <div className="cg-panel-head"><h3>💌 Te extrañamos</h3><span className="muted small">{visibles.length}</span></div>
+      <p className="muted">Venían seguido y faltaron a los últimos cultos. Un mensaje a tiempo ayuda mucho. Solo lo ven los pastores.</p>
+      {visibles.slice(0, 8).map(({ p, faltas, ultima }) => {
+        const tel = fichas.get(p.key)?.telefono;
+        return (
+          <div key={p.key} className="cg-item cg-sugerencia">
+            <Avatar name={nombreDe(p)} personKey={p.key} photo={p.photo || ''} size="md" />
+            <button type="button" className="cg-quien cg-boton-quien" onClick={() => ir(p.key)}>
+              <span className="cg-nombre">{nombreDe(p)}</span>
+              <span className="cg-meta">Faltó {faltas} cultos seguidos{ultima ? ` · vino por última vez el ${corto(ultima)}` : ''}</span>
+            </button>
+            <span className="cg-row cg-sug-acciones">
+              <a className="btn small primary" href={linkWhatsApp(tel, saludoExtranamos(p, iglesia))} target="_blank" rel="noreferrer">{tel ? 'Escribirle' : 'WhatsApp'}</a>
+              <button type="button" className="btn small ghost" onClick={() => contactado(p.key)}>Ya lo contacté</button>
+            </span>
+          </div>
+        );
+      })}
+    </section>
+  );
+}
+
 const CERRAR_DATOS_MIEMBROS = 'congrega.datosMiembros.cerrado';
 const camposPendientes = (p, ficha = {}) => [
   ...(!p.rangoEdad ? ['Rango de edad'] : []),
@@ -203,7 +243,7 @@ function Recordatorio({ r, titulo, sub, onClick }) {
 }
 
 export default function Inicio() {
-  const { people, events = [], asistencia, fichas, familias, churchId, myUid, verPrivado: isAdmin, verClasificacion, verAsistencia: marca, pastor, asisAdmin, aplicarCambio, admin } = useCongrega();
+  const { people, events = [], asistencia, fichas, familias, churchId, myUid, verPrivado: isAdmin, verClasificacion, verAsistencia: marca, pastor, asisAdmin, aplicarCambio, admin, church } = useCongrega();
   const [quienes, setQuienes] = useState(null);
   const [filtroEdad, setFiltroEdad] = useState('todos');
   const [filtroTipo, setFiltroTipo] = useState('todos');
@@ -273,6 +313,7 @@ export default function Inicio() {
       </div>
       <div className="cg-dash">
         {admin && <EnlazarCuentas />}
+        {pastor && <TeExtranamos lista={teExtranamos({ people: activos, asistencia, events, hoy, tipoDe: tipoEvento })} fichas={fichas} iglesia={church?.name} ir={ir} />}
         {isAdmin && <SugerirDatosMiembros people={people} fichas={fichas} churchId={churchId} myUid={myUid} />}
         {ver && <Sugerencias lista={sugerencias({ people, fichas, asistencia, events, hoy })} porKey={porKey} aplicar={aplicarCambio} />}
         <section className="card cg-panel"><h3>Cumpleaños próximos</h3><p className="muted">Desde ayer hasta los próximos {VENTANA_CUMPLE} días</p>
