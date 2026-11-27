@@ -17,7 +17,7 @@ export function useAvisos(churchId) {
   return lista;
 }
 
-/** Cuadro de avisos para Inicio (Adora y Congrega). */
+/** Cuadro de avisos para el Inicio de Congrega (no sale en Adora). */
 export default function AvisosIglesia() {
   const { mode, churchId, church, me, role, misPerfiles = [] } = useStore();
   const lista = useAvisos(mode === 'cloud' ? churchId : null);

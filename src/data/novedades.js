@@ -26,7 +26,7 @@ export const NOVEDADES = [
   {
     id: 'n-2026-11-27-avisos', fecha: '2026-11-27', icono: 'sparkle',
     titulo: 'Avisos de la iglesia',
-    texto: 'El Pastor y el Administrador pueden publicar avisos con fecha de término. Salen arriba en Inicio y se comparten por WhatsApp con un toque.',
+    texto: 'El Pastor y el Administrador pueden publicar avisos con fecha de término. Salen en el Inicio de Congrega y se comparten por WhatsApp con un toque.',
   },
   {
     id: 'n-2026-11-27-musica', fecha: '2026-11-27', icono: 'music', to: '/musica', boton: 'Escuchar',
