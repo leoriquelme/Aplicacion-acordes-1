@@ -10,6 +10,8 @@ import { TuPropuesta } from '../components/Participacion.jsx';
 import Cumpleanos from '../components/Cumpleanos.jsx';
 import Consejos from '../components/Consejos.jsx';
 import { AvisosEstacion } from '../congrega/estacion.jsx';
+import MusicaCard from '../components/MusicaCard.jsx';
+import AvisosIglesia from '../components/AvisosIglesia.jsx';
 
 const MAX_EVENTOS = 4;
 
@@ -50,6 +52,12 @@ export default function Inicio() {
           ))}
         </section>
       )}
+
+      {/* Avisos de la iglesia (los publica el Pastor o el Administrador) */}
+      <AvisosIglesia />
+
+      {/* Música de la iglesia: las canciones del próximo culto, para escucharlas en la semana */}
+      {mode === 'cloud' && <MusicaCard />}
 
       {/* Equipo de estación: invitación, ofrecerse para tomar asistencia o aprobar ofrecimientos */}
       <AvisosEstacion />

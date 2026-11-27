@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { claveDuplicado, gruposDuplicados, ordenarUnion, personaUnida, tipoPorDefecto } from './unir.js';
+import { claveDuplicado, cuentasPorEnlazar, gruposDuplicados, ordenarUnion, personaUnida, tipoPorDefecto } from './unir.js';
 import { buscarCoincidencias } from './importarPco.js';
 
 describe('personas repetidas', () => {
@@ -50,5 +50,23 @@ describe('unir: lo mejor de cada perfil', () => {
     expect(por.apellido).toMatchObject({ estado: 'distinto', elegido: 'Pérez Soto' });
     expect(por.tipo).toMatchObject({ estado: 'soloB', elegido: 'Regular' });
     expect(por.telefono).toMatchObject({ estado: 'soloB', elegido: '9 1111 2222' });
+  });
+});
+
+describe('cuentasPorEnlazar', () => {
+  const people = [
+    { key: 'u1', uid: 'u1', name: 'Juan Pérez' },
+    { key: 'pco-1', nombre: 'Juan', apellido: 'Perez Soto' },
+    { key: 'u2', uid: 'u2', name: 'Maria Gonzalez' },
+    { key: 'pco-2', nombre: 'Marisol', apellido: 'Rojas' },
+    { key: 'u3', uid: 'u3', name: 'Pedro Díaz' },
+    { key: 'pco-3', nombre: 'Pedro', apellido: 'Díaz' },
+    { key: 'pco-4', nombre: 'Pedro', apellido: 'Díaz Lagos' },
+  ];
+  it('enlaza por correo de la cuenta y por nombre, sin adivinar cuando hay dos iguales', () => {
+    const fichas = new Map([['pco-2', { email: 'Maria@Gmail.com ' }]]);
+    const cuentas = new Map([['u2', { email: 'maria@gmail.com' }]]);
+    const r = cuentasPorEnlazar(people, fichas, cuentas);
+    expect(r.map((x) => [x.cuenta.key, x.ficha.key, x.motivo])).toEqual([['u1', 'pco-1', 'nombre'], ['u2', 'pco-2', 'correo']]);
   });
 });

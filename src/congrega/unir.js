@@ -97,3 +97,29 @@ export function compararPerfiles(base, otra, fBase = {}, fOtra = {}) {
     return { campo, label, donde, a, b, estado, elegido: estado === 'soloB' ? b : estado === 'distinto' ? valorMejor(a, b) : a };
   }).filter(Boolean);
 }
+
+const correo = (x) => String(x || '').trim().toLowerCase();
+
+/**
+ * Hermanos que entraron con su cuenta (Google) y quedaron como un perfil nuevo, aunque ya tenían
+ * ficha en la iglesia (importada o creada a mano). Se reconocen por el correo de la cuenta
+ * (igual al de la ficha) o por el mismo nombre y primer apellido.
+ * cuentas: Map uid → { email }; fichas: Map key → { email }.
+ * Devuelve [{ cuenta, ficha, motivo: 'correo' | 'nombre' }], una por cuenta.
+ */
+export function cuentasPorEnlazar(people, fichas = new Map(), cuentas = new Map()) {
+  const sinCuenta = people.filter((p) => !p.uid);
+  const porCorreo = new Map();
+  sinCuenta.forEach((p) => { const e = correo(fichas.get(p.key)?.email); if (e) porCorreo.set(e, porCorreo.has(e) ? null : p); });
+  const porNombre = new Map();
+  sinCuenta.forEach((p) => { const k = claveDuplicado(p); if (k) porNombre.set(k, porNombre.has(k) ? null : p); });
+  const out = [];
+  for (const c of people.filter((p) => p.uid)) {
+    const e = correo(cuentas.get(c.key)?.email) || correo(fichas.get(c.key)?.email);
+    const pc = e ? porCorreo.get(e) : null;
+    if (pc) { out.push({ cuenta: c, ficha: pc, motivo: 'correo' }); continue; }
+    const pn = porNombre.get(claveDuplicado(c));
+    if (pn) out.push({ cuenta: c, ficha: pn, motivo: 'nombre' });
+  }
+  return out;
+}

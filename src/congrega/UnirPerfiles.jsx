@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Avatar } from '../components/Avatares.jsx';
 import { nombreDe, norm, useCongrega } from './datos.jsx';
-import { compararPerfiles, gruposDuplicados, ordenarUnion } from './unir.js';
+import { compararPerfiles, cuentasPorEnlazar, gruposDuplicados, ordenarUnion } from './unir.js';
 
 const meta = (p, familias, veces) => [
   p.uid ? 'Con cuenta' : '',
@@ -207,5 +207,56 @@ export function Repetidos() {
         );
       })}
     </div>
+  );
+}
+
+const ES_OTRA = 'congrega.enlazarDescartadas';
+const leerOtras = () => { try { return new Set(JSON.parse(localStorage.getItem(ES_OTRA) || '[]')); } catch { return new Set(); } };
+
+/**
+ * Hermanos que entraron con su cuenta (por ejemplo con el QR) y ya tenían ficha en la iglesia:
+ * el Administrador las enlaza con un toque, así su cuenta queda con su familia, asistencia y datos.
+ */
+export function EnlazarCuentas() {
+  const { people, fichas, cuentas, unirPersonas } = useCongrega();
+  const [otras, setOtras] = useState(leerOtras);
+  const [ocupado, setOcupado] = useState('');
+  const [aviso, setAviso] = useState('');
+  const lista = cuentasPorEnlazar(people, fichas, cuentas).filter((x) => !otras.has(`${x.cuenta.key}|${x.ficha.key}`));
+  if (!lista.length && !aviso) return null;
+  const descartar = (id) => { const n = new Set(otras); n.add(id); setOtras(n); try { localStorage.setItem(ES_OTRA, JSON.stringify([...n].slice(-300))); } catch { /* sin almacenamiento */ } };
+  const enlazar = async ({ cuenta, ficha }) => {
+    const id = `${cuenta.key}|${ficha.key}`;
+    setOcupado(id); setAviso('');
+    try {
+      // La cuenta de Google trae el nombre completo junto; la ficha lo tiene separado (nombre y apellidos): vale el de la ficha.
+      const elecciones = ficha.nombre && !cuenta.nombre && !cuenta.apellido ? { nombre: ficha.nombre } : {};
+      await unirPersonas(cuenta.key, [ficha.key], elecciones);
+      setAviso(`Listo: la cuenta de ${nombreDe(cuenta)} quedó enlazada con su ficha.`);
+    } catch (e) { setAviso(`No se pudo enlazar: ${e.message}`); }
+    setOcupado('');
+  };
+  return (
+    <section className="card cg-panel ancho cg-sugerencias">
+      <div className="cg-panel-head"><h3>🔗 Hermanos que entraron con su cuenta</h3><span className="muted small">{lista.length}</span></div>
+      <p className="muted">Ya tenían ficha en la iglesia. Al enlazarlas, la cuenta se queda con su familia, asistencia y datos.</p>
+      {lista.slice(0, 8).map((x) => {
+        const id = `${x.cuenta.key}|${x.ficha.key}`;
+        return (
+          <div key={id} className="cg-item cg-sugerencia">
+            <Avatar name={nombreDe(x.cuenta)} personKey={x.cuenta.key} photo={x.cuenta.photo || ''} size="md" />
+            <span className="cg-quien">
+              <span className="cg-nombre">{nombreDe(x.cuenta)}</span>
+              <span className="cg-meta">Ficha: {nombreDe(x.ficha)} · {x.motivo === 'correo' ? 'mismo correo' : 'mismo nombre y apellido'}</span>
+            </span>
+            <span className="cg-row cg-sug-acciones">
+              <button type="button" className="btn small primary" disabled={Boolean(ocupado)} onClick={() => enlazar(x)}>{ocupado === id ? 'Enlazando…' : 'Enlazar'}</button>
+              <button type="button" className="btn small ghost" disabled={Boolean(ocupado)} onClick={() => descartar(id)}>Es otra persona</button>
+            </span>
+          </div>
+        );
+      })}
+      {aviso && <div className={`cg-aviso${aviso.startsWith('Listo') ? ' info' : ''}`} aria-live="polite">{aviso}</div>}
+    </section>
   );
 }

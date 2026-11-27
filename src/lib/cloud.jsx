@@ -295,7 +295,7 @@ export async function soySuperAdmin() {
   }
 }
 
-const SUBCOLECCIONES = ['members', 'sessions', 'people', 'estadoPersonas', 'clasificacionPersonas', 'private', 'songs', 'events', 'participations', 'favorites', 'suggestions', 'live', 'families', 'fichas', 'asistencia', 'notas', 'registro', 'cuentas'];
+const SUBCOLECCIONES = ['members', 'sessions', 'people', 'estadoPersonas', 'clasificacionPersonas', 'private', 'songs', 'events', 'participations', 'favorites', 'suggestions', 'live', 'families', 'fichas', 'asistencia', 'notas', 'registro', 'cuentas', 'avisos'];
 
 /** Todas las iglesias (solo Super Admin). */
 export async function todasLasIglesias() {
@@ -361,6 +361,7 @@ export async function eliminarIglesia(iglesia) {
   }
   const lib = await getDocs(query(collection(db, 'library'), where('churchId', '==', iglesia.id)));
   await commitAll(lib.docs.map((d) => (b) => b.delete(d.ref)));
+  await deleteDoc(doc(db, 'musicaPublica', iglesia.id)).catch(() => {});
   await deleteDoc(base);
   if (iglesia.codigo) await deleteDoc(doc(db, 'codes', iglesia.codigo)).catch(() => {});
   if (iglesia.ownerUid) {

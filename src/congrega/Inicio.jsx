@@ -4,6 +4,7 @@ import { Avatar } from '../components/Avatares.jsx';
 import { todayISO } from '../lib/dates.js';
 import { RANGOS, TIPOS, activo, esMiembro, nombreDe, useCongrega } from './datos.jsx';
 import { sugerencias } from './sugerencias.js';
+import { EnlazarCuentas } from './UnirPerfiles.jsx';
 import { TIPOS_EVENTO, etiquetaTipo, resumenPorTipo, tipoEvento } from './eventos.js';
 
 const corto = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString('es-CL', { day: 'numeric', month: 'short' }).replace('.', '');
@@ -201,7 +202,7 @@ function Recordatorio({ r, titulo, sub, onClick }) {
 }
 
 export default function Inicio() {
-  const { people, events = [], asistencia, fichas, familias, churchId, myUid, verPrivado: isAdmin, verClasificacion, verAsistencia: marca, pastor, asisAdmin, aplicarCambio } = useCongrega();
+  const { people, events = [], asistencia, fichas, familias, churchId, myUid, verPrivado: isAdmin, verClasificacion, verAsistencia: marca, pastor, asisAdmin, aplicarCambio, admin } = useCongrega();
   const [quienes, setQuienes] = useState(null);
   const [filtroEdad, setFiltroEdad] = useState('todos');
   const [filtroTipo, setFiltroTipo] = useState('todos');
@@ -269,6 +270,7 @@ export default function Inicio() {
         <div className="card dato cg-dato-ver">{ver && visitasMes > 0 && <VerQuienes titulo="Visitas nuevas este mes" grupos={[{ label: 'Visitas', ps: people.filter((p) => p.tipo === 'Visita' && (p.primeraVisita || '').slice(0, 7) === mes) }]} onAbrir={setQuienes} />}<strong>{verClasificacion ? visitasMes : '—'}</strong><span>Visitas nuevas este mes</span></div>
       </div>
       <div className="cg-dash">
+        {admin && <EnlazarCuentas />}
         {isAdmin && <SugerirDatosMiembros people={people} fichas={fichas} churchId={churchId} myUid={myUid} />}
         {ver && <Sugerencias lista={sugerencias({ people, fichas, asistencia, events, hoy })} porKey={porKey} aplicar={aplicarCambio} />}
         <section className="card cg-panel"><h3>Cumpleaños próximos</h3><p className="muted">Desde ayer hasta los próximos {VENTANA_CUMPLE} días</p>

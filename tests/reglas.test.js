@@ -263,6 +263,51 @@ describe('en vivo', () => {
   });
 });
 
+describe('música por link público', () => {
+  beforeEach(() => unirse(cuenta('juan'), 'juan', 'ABCDEF'));
+  const musica = (extra = {}) => ({
+    nombre: 'IGLESIA GRACIA', at: 1,
+    culto: { nombre: 'Servicio de Adoración', fecha: '2026-11-29', hora: '11:45', spotify: '', canciones: [{ t: 'Alaba', sp: 'https://open.spotify.com/track/x' }] },
+    repertorio: [{ t: 'Alaba', a: 'Autor' }], ...extra,
+  });
+  it('el Administrador la activa y cualquiera la lee sin cuenta', async () => {
+    await assertSucceeds(setDoc(doc(cuenta('ana'), 'musicaPublica', C), musica()));
+    await assertSucceeds(getDoc(doc(env.unauthenticatedContext().firestore(), 'musicaPublica', C)));
+    await assertSucceeds(setDoc(doc(cuenta('ana'), 'musicaPublica', C), musica({ culto: null })));
+  });
+  it('un Colaborador o alguien de otra iglesia no la cambia', async () => {
+    await assertFails(setDoc(doc(cuenta('juan'), 'musicaPublica', C), musica()));
+    await assertFails(setDoc(doc(cuenta('pedro'), 'musicaPublica', C), musica()));
+    await updateDoc(doc(cuenta('ana'), 'churches', C, 'members', 'juan'), { role: 'director' });
+    await assertSucceeds(setDoc(doc(cuenta('juan'), 'musicaPublica', C), musica()));
+    await assertSucceeds(deleteDoc(doc(cuenta('juan'), 'musicaPublica', C)));
+  });
+  it('no acepta otros campos ni otro nombre de iglesia', async () => {
+    await assertFails(setDoc(doc(cuenta('ana'), 'musicaPublica', C), musica({ personas: ['Juan'] })));
+    await assertFails(setDoc(doc(cuenta('ana'), 'musicaPublica', C), musica({ nombre: 'OTRA' })));
+    await assertFails(setDoc(doc(cuenta('ana'), 'musicaPublica', C), musica({ repertorio: Array(31).fill({ t: 'x' }) })));
+  });
+});
+
+describe('avisos de la iglesia', () => {
+  beforeEach(() => unirse(cuenta('juan'), 'juan', 'ABCDEF'));
+  const aviso = (extra = {}) => ({ titulo: 'Cena de Navidad', texto: 'Sábado 20', hasta: '2026-12-20', fijado: false, por: 'Ana', at: 1, ...extra });
+  it('el Administrador o el Pastor publica; los miembros leen', async () => {
+    await assertSucceeds(setDoc(doc(cuenta('ana'), 'churches', C, 'avisos', 'a1'), aviso()));
+    await assertSucceeds(getDoc(doc(cuenta('juan'), 'churches', C, 'avisos', 'a1')));
+    await assertFails(getDoc(doc(cuenta('pedro'), 'churches', C, 'avisos', 'a1')));
+    await assertFails(setDoc(doc(cuenta('juan'), 'churches', C, 'avisos', 'a2'), aviso()));
+    await updateDoc(doc(cuenta('ana'), 'churches', C, 'members', 'juan'), { perfiles: ['pastor'] });
+    await assertSucceeds(setDoc(doc(cuenta('juan'), 'churches', C, 'avisos', 'a2'), aviso()));
+    await assertSucceeds(deleteDoc(doc(cuenta('juan'), 'churches', C, 'avisos', 'a1')));
+  });
+  it('valida los campos', async () => {
+    await assertFails(setDoc(doc(cuenta('ana'), 'churches', C, 'avisos', 'a1'), aviso({ titulo: '' })));
+    await assertFails(setDoc(doc(cuenta('ana'), 'churches', C, 'avisos', 'a1'), aviso({ hasta: 'mañana' })));
+    await assertFails(setDoc(doc(cuenta('ana'), 'churches', C, 'avisos', 'a1'), aviso({ otro: 1 })));
+  });
+});
+
 describe('cuenta personal', () => {
   it('mis canciones solo las veo yo', async () => {
     await assertSucceeds(setDoc(doc(cuenta('juan'), 'users', 'juan', 'songs', 's1'), { title: 'Mía', content: '[G]Hola' }));
