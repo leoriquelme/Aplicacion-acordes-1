@@ -87,3 +87,28 @@ export function puedeCambiarPerfil(yo, otro) {
   if (otro.role === 'admin' && !yo.dueno) return false;
   return true;
 }
+
+/**
+ * "Ver la app como…": el Súper admin elige un perfil para ver la app como la ven los demás.
+ * Solo cambia lo que se muestra en este equipo; su cuenta real no cambia.
+ */
+export const VISTAS = [
+  { id: 'miembro', label: 'Miembro', role: 'miembro', perfiles: [] },
+  { id: 'colaborador', label: 'Colaborador', role: 'colaborador', perfiles: [] },
+  { id: 'encargado', label: 'Encargado de asistencia', role: 'miembro', perfiles: [], enEquipo: true },
+  { id: 'asisAdmin', label: 'Administrativo de asistencia', role: 'colaborador', perfiles: ['asisAdmin'] },
+  { id: 'director', label: 'Director musical', role: 'director', perfiles: [] },
+  { id: 'pastor', label: 'Pastor', role: 'colaborador', perfiles: ['pastor'] },
+  { id: 'admin', label: 'Administrador (sin ser Súper admin)', role: 'admin', perfiles: [] },
+];
+export const vistaPorId = (id) => VISTAS.find((v) => v.id === id) || null;
+
+/** Lo que va a permisosDe() según el store, considerando "Ver como". */
+export function entradaPermisos({ role, misPerfiles = [], vistaComo, church, myUid }, enEquipoReal) {
+  return {
+    role,
+    perfiles: misPerfiles,
+    enEquipo: vistaComo ? vistaComo.enEquipo === true : enEquipoReal,
+    esDueno: !vistaComo && church?.ownerUid === myUid,
+  };
+}

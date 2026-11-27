@@ -12,6 +12,7 @@ import { normalize } from './chordpro.js';
 import { keyOf } from './claves.js';
 import { datosEnVivo } from './envivo.js';
 import { cumpleDeNacimiento } from './cumpleanos.js';
+import { vistaPorId } from '../congrega/permisos.js';
 
 // Cada persona entra con su cuenta (Google o correo y contraseña). Sin iglesia ve los himnos,
 // la biblioteca compartida y sus canciones personales. Puede crear una iglesia o unirse con un código.
@@ -720,7 +721,15 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
     setDoc(doc(db, 'churches', churchId, 'live', 'actual'), datosEnVivo({ ...live, by: user.uid, byName: live.byName, active: false })).catch(() => {});
   }, [churchId, user.uid, live]);
 
-  const role = mySession?.role || 'colaborador';
+  // "Ver la app como…" (solo el Súper admin): cambia el perfil que se muestra en este equipo, no la cuenta.
+  const esDuenoReal = Boolean(churchDoc?.ownerUid) && churchDoc.ownerUid === user.uid;
+  const [vistaId, setVistaId] = useState(() => { try { return sessionStorage.getItem(`vistaComo:${churchId}`) || ''; } catch { return ''; } });
+  const setVistaComo = useCallback((id) => {
+    setVistaId(id || '');
+    try { if (id) sessionStorage.setItem(`vistaComo:${churchId}`, id); else sessionStorage.removeItem(`vistaComo:${churchId}`); } catch { /* sin almacenamiento */ }
+  }, [churchId]);
+  const vistaComo = esDuenoReal ? vistaPorId(vistaId) : null;
+  const role = vistaComo ? vistaComo.role : mySession?.role || 'colaborador';
   const can = ROLES[role] || ROLES.colaborador;
   const me = mySession === undefined ? undefined : expired ? null : mySession && { name: person?.name || mySession.name, key: mySession.key, teams: person?.teams || [], photo: person?.photo || '' };
   const church = { id: churchId, name: churchDoc?.name || churchName, ownerUid: churchDoc?.ownerUid, logo: churchDoc?.logo || '' };
@@ -729,8 +738,8 @@ export function CloudStoreProvider({ churchId, churchName, children }) {
     mode: 'cloud', churchId, church, me, role, can, people, songs, events, eventsReady, participations: confirmadas, propuestas, proponer, rechazarPropuesta, error,
     clearError: () => setError(''), saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples, myShares, shareSong, unshareSong, loadLibrary,
     favorites, toggleFavorite, prayers, pray, updateMyName, setMyTeams, setMyPhoto, removePhoto, setChurchLogo, isTest, fillTestData, resetTestChurch, getAccessCode, setAccessCode, restoreBackup, myNotes, setMyNotes, live, publishLive, stopLive, myUid: user.uid,
-    misPerfiles: mySession?.perfiles || [],
-  }), [churchId, church.name, church.logo, me?.name, me?.key, me?.photo, setMyPhoto, removePhoto, setChurchLogo, expired, role, can, people, songs, events, eventsReady, confirmadas, propuestas, proponer, rechazarPropuesta, error, saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples, myShares, shareSong, unshareSong, loadLibrary, favorites, toggleFavorite, prayers, pray, updateMyName, setMyTeams, person?.teams?.join('|'), isTest, fillTestData, resetTestChurch, getAccessCode, setAccessCode, restoreBackup, myNotes, setMyNotes, live, publishLive, stopLive, user.uid, (mySession?.perfiles || []).join('|')]); // eslint-disable-line react-hooks/exhaustive-deps
+    misPerfiles: vistaComo ? vistaComo.perfiles : mySession?.perfiles || [], vistaComo, setVistaComo, esDuenoReal,
+  }), [vistaComo, setVistaComo, esDuenoReal, churchId, church.name, church.logo, me?.name, me?.key, me?.photo, setMyPhoto, removePhoto, setChurchLogo, expired, role, can, people, songs, events, eventsReady, confirmadas, propuestas, proponer, rechazarPropuesta, error, saveSong, deleteSong, saveEvent, deleteEvent, joinEvent, leaveEvent, setPersonRole, removePerson, uploadLocal, addExamples, myShares, shareSong, unshareSong, loadLibrary, favorites, toggleFavorite, prayers, pray, updateMyName, setMyTeams, person?.teams?.join('|'), isTest, fillTestData, resetTestChurch, getAccessCode, setAccessCode, restoreBackup, myNotes, setMyNotes, live, publishLive, stopLive, user.uid, (mySession?.perfiles || []).join('|')]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }

@@ -8,7 +8,7 @@ import { addDoc, collection, deleteDoc, doc, onSnapshot, query, setDoc, updateDo
 import { db } from '../lib/firebase.js';
 import { useStore } from '../lib/store.jsx';
 import { formatLong, sortEvents, todayISO } from '../lib/dates.js';
-import { permisosDe } from './permisos.js';
+import { entradaPermisos, permisosDe } from './permisos.js';
 import './congrega.css';
 
 const col = (c, n) => collection(db, 'churches', c, n);
@@ -69,10 +69,10 @@ export function proximosEventos(events, hoy = todayISO()) {
  * - al Administrador y al Administrativo de asistencia: ofrecimientos por aprobar.
  */
 export function AvisosEstacion() {
-  const { mode, churchId, myUid, role, misPerfiles = [], church, events = [], me } = useStore();
+  const { mode, churchId, myUid, role, misPerfiles = [], church, events = [], me, vistaComo } = useStore();
   const equipo = useEquipoEstacion(mode === 'cloud' ? churchId : null);
   const mio = equipo.get(myUid);
-  const p = permisosDe({ role, perfiles: misPerfiles, enEquipo: mio?.estado === 'aceptado', esDueno: church?.ownerUid === myUid });
+  const p = permisosDe(entradaPermisos({ role, misPerfiles, vistaComo, church, myUid }, mio?.estado === 'aceptado'));
   const turnos = useTurnos(churchId, myUid, p.asisAdmin, mode === 'cloud' && (p.asisAdmin || Boolean(mio)));
   const [error, setError] = useState('');
   const hoy = todayISO();

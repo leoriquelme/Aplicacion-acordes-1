@@ -10,7 +10,8 @@ import Icon from './components/Icon.jsx';
 import { enVivoActivo } from './lib/envivo.js';
 import IglesiaLogo from './components/IglesiaLogo.jsx';
 import { useEquipoEstacion } from './congrega/estacion.jsx';
-import { permisosDe, pestanasCongrega } from './congrega/permisos.js';
+import { entradaPermisos, permisosDe, pestanasCongrega } from './congrega/permisos.js';
+import { BarraVistaComo } from './components/VistaComo.jsx';
 import { SincronizarMusica } from './lib/musicaPublica.jsx';
 
 // Para que la app abra rápido (aunque haya poca señal), al abrir solo se baja lo de la primera
@@ -92,9 +93,9 @@ export default function App() {
   const desdeAjustes = state?.from === 'ajustes';
   // Presentación y Estación de asistencia usan la pantalla completa, sin barra ni menú.
   const presenting = pathname.startsWith('/presentar') || pathname.startsWith('/congrega/estacion/marcar');
-  const { mode, church, me, live, myUid, role, events = [], eventsReady = true, saveEvent, can, churchId, misPerfiles = [] } = useStore();
+  const { mode, church, me, live, myUid, role, events = [], eventsReady = true, saveEvent, can, churchId, misPerfiles = [], vistaComo } = useStore();
   const equipoEstacion = useEquipoEstacion(mode === 'cloud' && pathname.startsWith('/congrega') ? churchId : null);
-  const pestanas = pestanasCongrega(permisosDe({ role, perfiles: misPerfiles, enEquipo: equipoEstacion.get(myUid)?.estado === 'aceptado', esDueno: church?.ownerUid === myUid }));
+  const pestanas = pestanasCongrega(permisosDe(entradaPermisos({ role, misPerfiles, vistaComo, church, myUid }, equipoEstacion.get(myUid)?.estado === 'aceptado')));
   const liveEvent = enVivoActivo(live) ? events.find((e) => e.id === live.eventId) : null;
   const personal = mode === 'personal';
   usePrecargarPaginas();
@@ -154,6 +155,7 @@ export default function App() {
           )}
         </header>
       )}
+      {!presenting && <BarraVistaComo />}
       {mode === 'cloud' && can?.events && <SincronizarMusica />}
       {!presenting && liveEvent && (
         <div className="en-vivo-barra" role="status">
