@@ -67,11 +67,10 @@ export function permisosDe({ role = 'colaborador', perfiles = [], enEquipo = fal
 
 /** Pestañas de Congrega según los permisos. */
 export function pestanasCongrega(p) {
-  const t = [];
-  if (p.verPersonas) t.push('inicio');
+  const t = ['inicio']; // quien no ve personas tiene el Inicio del hermano
   if (p.asisAdmin) t.push('asistencia');
   if (p.marca) t.push('estacion');
-  if (p.verPersonas) t.push('personas');
+  t.push(p.verPersonas ? 'personas' : 'mificha');
   t.push('ajustes');
   return t;
 }

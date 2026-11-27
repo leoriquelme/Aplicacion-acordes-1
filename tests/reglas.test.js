@@ -289,6 +289,25 @@ describe('música por link público', () => {
   });
 });
 
+describe('avisos de la iglesia', () => {
+  beforeEach(() => unirse(cuenta('juan'), 'juan', 'ABCDEF'));
+  const aviso = (extra = {}) => ({ titulo: 'Cena de Navidad', texto: 'Sábado 20', hasta: '2026-12-20', fijado: false, por: 'Ana', at: 1, ...extra });
+  it('el Administrador o el Pastor publica; los miembros leen', async () => {
+    await assertSucceeds(setDoc(doc(cuenta('ana'), 'churches', C, 'avisos', 'a1'), aviso()));
+    await assertSucceeds(getDoc(doc(cuenta('juan'), 'churches', C, 'avisos', 'a1')));
+    await assertFails(getDoc(doc(cuenta('pedro'), 'churches', C, 'avisos', 'a1')));
+    await assertFails(setDoc(doc(cuenta('juan'), 'churches', C, 'avisos', 'a2'), aviso()));
+    await updateDoc(doc(cuenta('ana'), 'churches', C, 'members', 'juan'), { perfiles: ['pastor'] });
+    await assertSucceeds(setDoc(doc(cuenta('juan'), 'churches', C, 'avisos', 'a2'), aviso()));
+    await assertSucceeds(deleteDoc(doc(cuenta('juan'), 'churches', C, 'avisos', 'a1')));
+  });
+  it('valida los campos', async () => {
+    await assertFails(setDoc(doc(cuenta('ana'), 'churches', C, 'avisos', 'a1'), aviso({ titulo: '' })));
+    await assertFails(setDoc(doc(cuenta('ana'), 'churches', C, 'avisos', 'a1'), aviso({ hasta: 'mañana' })));
+    await assertFails(setDoc(doc(cuenta('ana'), 'churches', C, 'avisos', 'a1'), aviso({ otro: 1 })));
+  });
+});
+
 describe('cuenta personal', () => {
   it('mis canciones solo las veo yo', async () => {
     await assertSucceeds(setDoc(doc(cuenta('juan'), 'users', 'juan', 'songs', 's1'), { title: 'Mía', content: '[G]Hola' }));

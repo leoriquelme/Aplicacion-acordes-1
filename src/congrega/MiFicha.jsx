@@ -6,7 +6,6 @@ import { doc, deleteField, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase.js';
 import { Avatar } from '../components/Avatares.jsx';
 import ElegirFoto from '../components/ElegirFoto.jsx';
-import MusicaCard from '../components/MusicaCard.jsx';
 import { CIVIL, activo, nombreDe, useCongrega } from './datos.jsx';
 
 const CAMPOS = [
@@ -47,7 +46,6 @@ export default function MiFicha() {
   return (
     <div className="cg-stack">
       <div className="page-head"><h1>Mi ficha</h1></div>
-      <MusicaCard />
       <div className="cg-perfil">
         <Avatar name={nombreDe(p)} personKey={p.key} photo={p.photo || ''} size="xl" />
         <div className="cg-stack cg-grow">

@@ -9,9 +9,9 @@ import Ajustes from './Ajustes.jsx';
 import Estacion from './Estacion.jsx';
 import EstacionInicio from './EstacionInicio.jsx';
 import MiFicha from './MiFicha.jsx';
+import InicioHermano from './InicioHermano.jsx';
 import Familia from './Familia.jsx';
 import { AvisosEstacion } from './estacion.jsx';
-import { pestanasCongrega } from './permisos.js';
 import './congrega.css';
 
 /** Congrega: personas y asistencia de la iglesia abierta, con los mismos datos de Adora. */
@@ -30,7 +30,6 @@ export default function Congrega() {
 function Paginas() {
   const c = useCongrega();
   const { pathname } = useLocation();
-  const tabs = pestanasCongrega(c);
   const si = (ok, el) => (ok ? el : <Navigate to="/congrega" replace />);
   if (pathname.startsWith('/congrega/estacion/marcar')) {
     return <div className="cg"><Routes><Route path="estacion/marcar" element={si(c.marca, <Estacion />)} /></Routes></div>;
@@ -39,7 +38,7 @@ function Paginas() {
     <div className="cg page">
       <AvisosEstacion />
       <Routes>
-        <Route index element={tabs.includes('inicio') ? <Inicio /> : <MiFicha />} />
+        <Route index element={c.verPersonas ? <Inicio /> : <InicioHermano />} />
         <Route path="asistencia" element={si(c.asisAdmin, <Asistencia />)} />
         <Route path="asistencia/:eventId" element={si(c.asisAdmin, <RevisarAsistencia />)} />
         <Route path="estacion" element={si(c.marca || c.equipo.has(c.myUid), <EstacionInicio />)} />

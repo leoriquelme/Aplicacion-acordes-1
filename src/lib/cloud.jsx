@@ -295,7 +295,7 @@ export async function soySuperAdmin() {
   }
 }
 
-const SUBCOLECCIONES = ['members', 'sessions', 'people', 'estadoPersonas', 'clasificacionPersonas', 'private', 'songs', 'events', 'participations', 'favorites', 'suggestions', 'live', 'families', 'fichas', 'asistencia', 'notas', 'registro', 'cuentas'];
+const SUBCOLECCIONES = ['members', 'sessions', 'people', 'estadoPersonas', 'clasificacionPersonas', 'private', 'songs', 'events', 'participations', 'favorites', 'suggestions', 'live', 'families', 'fichas', 'asistencia', 'notas', 'registro', 'cuentas', 'avisos'];
 
 /** Todas las iglesias (solo Super Admin). */
 export async function todasLasIglesias() {

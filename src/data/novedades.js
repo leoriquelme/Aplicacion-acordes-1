@@ -4,6 +4,11 @@
 
 export const NOVEDADES = [
   {
+    id: 'n-2026-11-27-avisos', fecha: '2026-11-27', icono: 'sparkle',
+    titulo: 'Avisos de la iglesia',
+    texto: 'El Pastor y el Administrador pueden publicar avisos con fecha de término. Salen arriba en Inicio y se comparten por WhatsApp con un toque.',
+  },
+  {
     id: 'n-2026-11-27-musica', fecha: '2026-11-27', icono: 'music', to: '/musica', boton: 'Escuchar',
     titulo: 'Música de la iglesia',
     texto: 'Escucha durante la semana las canciones del próximo culto, las del último y las que más cantamos, en Spotify o YouTube. También hay un link para mandarlo por WhatsApp a quien no tiene la app.',
