@@ -80,6 +80,8 @@ const TABS_CONGREGA = [
   { id: 'asistencia', to: '/congrega/asistencia', label: 'Asistencia', icon: 'hand' },
   { id: 'estacion', to: '/congrega/estacion', label: 'Estación', icon: 'laptop' },
   { id: 'personas', to: '/congrega/personas', label: 'Personas', icon: 'users' },
+  { id: 'agenda', to: '/congrega/agenda', label: 'Agenda', icon: 'calendar' },
+  { id: 'oracion', to: '/congrega/oracion', label: 'Oración', icon: 'pray' },
   { id: 'mificha', to: '/congrega/mificha', label: 'Mi ficha', icon: 'user' },
   { id: 'ajustes', to: '/congrega/ajustes', label: 'Ajustes', icon: 'settings' },
 ];

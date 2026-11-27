@@ -59,3 +59,33 @@ export function sugerencias({ people, fichas = new Map(), asistencia, events, ho
   }
   return out;
 }
+
+export const FALTAS_SEGUIDAS = 3;
+
+/**
+ * "Te extrañamos" (solo para pastores): quien venía seguido y faltó a los últimos 3 cultos dominicales
+ * con asistencia registrada. "Venía seguido" = vino a 2 o más de los 6 cultos anteriores.
+ * Devuelve [{ p, faltas, ultima }] (faltas = cultos seguidos sin venir; ultima = fecha de su última asistencia).
+ */
+export function teExtranamos({ people, asistencia, events, hoy, tipoDe = () => 'culto' }) {
+  const conRegistro = new Set([...asistencia.values()].map((a) => a.eventId));
+  const cultos = events.filter((e) => e.date && e.date <= hoy && conRegistro.has(e.id) && tipoDe(e) === 'culto')
+    .sort((a, b) => b.date.localeCompare(a.date));
+  if (cultos.length < FALTAS_SEGUIDAS + 2) return [];
+  const vino = new Map();
+  asistencia.forEach((a) => { if (!vino.has(a.personKey)) vino.set(a.personKey, new Set()); vino.get(a.personKey).add(a.eventId); });
+  const fecha = new Map(events.map((e) => [e.id, e.date]));
+  const out = [];
+  for (const p of people) {
+    if (p.estado === 'inactivo' || p.tipo === 'Visita') continue;
+    const mias = vino.get(p.key) || new Set();
+    let faltas = 0;
+    while (faltas < cultos.length && !mias.has(cultos[faltas].id)) faltas++;
+    if (faltas < FALTAS_SEGUIDAS || faltas === cultos.length) continue;
+    const antes = cultos.slice(faltas, faltas + 6).filter((e) => mias.has(e.id)).length;
+    if (antes < 2) continue;
+    const ultima = [...mias].map((id) => fecha.get(id) || '').sort().pop() || '';
+    out.push({ p, faltas, ultima });
+  }
+  return out.sort((a, b) => a.faltas - b.faltas || (b.ultima || '').localeCompare(a.ultima || ''));
+}

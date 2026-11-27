@@ -308,6 +308,52 @@ describe('avisos de la iglesia', () => {
   });
 });
 
+describe('peticiones de oración', () => {
+  beforeEach(async () => {
+    await unirse(cuenta('juan'), 'juan', 'ABCDEF');
+    await unirse(cuenta('rosa'), 'rosa', 'ABCDEF', { name: 'Rosa' });
+  });
+  const pet = (extra = {}) => ({ texto: 'Por la salud de mi mamá', para: 'pastores', estado: 'activa', autorUid: 'juan', autor: 'Juan', at: 1, orando: {}, ...extra });
+  const ref = (db, id = 'p1') => doc(db, 'churches', C, 'oracion', id);
+  it('la privada la ven solo el autor y los pastores', async () => {
+    await assertSucceeds(setDoc(ref(cuenta('juan')), pet()));
+    await assertSucceeds(getDoc(ref(cuenta('juan'))));
+    await assertSucceeds(getDoc(ref(cuenta('ana'))));
+    await assertFails(getDoc(ref(cuenta('rosa'))));
+    await assertFails(updateDoc(ref(cuenta('rosa')), { 'orando.rosa': true }));
+  });
+  it('la de toda la iglesia: todos la leen y cada uno marca solo su "estoy orando"', async () => {
+    await setDoc(ref(cuenta('juan')), pet({ para: 'iglesia' }));
+    await assertSucceeds(getDocs(query(collection(cuenta('rosa'), 'churches', C, 'oracion'), where('para', '==', 'iglesia'))));
+    await assertSucceeds(updateDoc(ref(cuenta('rosa')), { 'orando.rosa': true }));
+    await assertFails(updateDoc(ref(cuenta('rosa')), { 'orando.juan': true }));
+    await assertFails(updateDoc(ref(cuenta('rosa')), { texto: 'cambiado' }));
+    await assertSucceeds(updateDoc(ref(cuenta('rosa')), { 'orando.rosa': deleteField() }));
+    await assertFails(deleteDoc(ref(cuenta('rosa'))));
+    await assertSucceeds(updateDoc(ref(cuenta('juan')), { estado: 'respondida' }));
+    await assertSucceeds(deleteDoc(ref(cuenta('juan'))));
+  });
+  it('nadie escribe a nombre de otro ni fuera de la iglesia', async () => {
+    await assertFails(setDoc(ref(cuenta('rosa')), pet()));
+    await assertFails(setDoc(ref(cuenta('pedro')), pet({ autorUid: 'pedro' })));
+    await assertFails(setDoc(ref(cuenta('juan')), pet({ orando: { juan: true } })));
+    await assertFails(setDoc(ref(cuenta('juan')), pet({ texto: '' })));
+  });
+});
+
+describe('directorio voluntario', () => {
+  beforeEach(() => unirse(cuenta('juan'), 'juan', 'ABCDEF'));
+  const dir = (db, uid = 'juan') => doc(db, 'churches', C, 'directorio', uid);
+  it('cada uno se agrega o se quita; los miembros lo leen', async () => {
+    await assertSucceeds(setDoc(dir(cuenta('juan')), { telefono: '+56911112222', email: '', at: 1 }));
+    await assertSucceeds(getDoc(dir(cuenta('ana'))));
+    await assertFails(getDoc(dir(cuenta('pedro'))));
+    await assertFails(setDoc(dir(cuenta('ana')), { telefono: '1', at: 1 }));
+    await assertFails(setDoc(dir(cuenta('juan')), { telefono: '1', direccion: 'x', at: 1 }));
+    await assertSucceeds(deleteDoc(dir(cuenta('juan'))));
+  });
+});
+
 describe('cuenta personal', () => {
   it('mis canciones solo las veo yo', async () => {
     await assertSucceeds(setDoc(doc(cuenta('juan'), 'users', 'juan', 'songs', 's1'), { title: 'Mía', content: '[G]Hola' }));

@@ -70,7 +70,12 @@ export function pestanasCongrega(p) {
   const t = ['inicio']; // quien no ve personas tiene el Inicio del hermano
   if (p.asisAdmin) t.push('asistencia');
   if (p.marca) t.push('estacion');
-  t.push(p.verPersonas ? 'personas' : 'mificha');
+  if (p.verPersonas) t.push('personas');
+  else {
+    // Hermanos: Agenda (si no tiene Estación, para no pasar de 5 pestañas), Oración y Mi ficha.
+    if (!p.marca) t.push('agenda');
+    t.push('oracion', 'mificha');
+  }
   t.push('ajustes');
   return t;
 }
