@@ -1,13 +1,12 @@
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../lib/store.jsx';
-import { APP_NOMBRE } from '../lib/marca.js';
 import Icon from '../components/Icon.jsx';
 import { elegirApp } from './apps.js';
 import './congrega.css';
 
 // Como el selector de productos de Planning Center: un solo inicio de sesión y una tarjeta por app.
 const APPS = [
-  { id: 'adora', ruta: '/', nombre: APP_NOMBRE, icon: 'music', texto: 'Canciones, eventos, equipos y letras en vivo.' },
+  { id: 'adora', ruta: '/', nombre: 'Adora', icon: 'music', texto: 'Canciones, eventos, equipos y letras en vivo.' },
   { id: 'congrega', ruta: '/congrega', nombre: 'Congrega', icon: 'users', texto: 'Personas, familias, asistencia y cumpleaños.', iglesia: true },
 ];
 
